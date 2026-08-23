@@ -16,44 +16,44 @@ const EXCEL_COLUMNS = [
   { col: 'B', label: 'Day', width: 34, isReadOnly: true, zone: 'sky', align: 'center' },
   { col: 'C', label: 'Shift', width: 46, isReadOnly: true, zone: 'sky', align: 'center' },
   { col: 'D', label: 'Machine Name', width: 105, isReadOnly: true, zone: 'sky', align: 'left' },
-  { col: 'E', label: 'Machine Capacity (Pcs)', width: 28, isNumeric: true, zone: 'sky', align: 'right' },
-  { col: 'F', label: 'Actual Prd. (Pcs)', width: 28, isNumeric: true, zone: 'sky', align: 'right' },
-  { col: 'G', label: 'Rejection (Pcs)', width: 28, isNumeric: true, zone: 'sky', align: 'right' },
-  { col: 'H', label: 'Planned Prd. Time (Min)', width: 28, isNumeric: true, zone: 'sky', align: 'right' },
-  { col: 'I', label: 'Expected DownTime (Min)', width: 28, isFormula: true, formula: '=IF(E{r}<>"",30,0)', zone: 'sky', align: 'right' },
-  { col: 'J', label: 'Total Prd. Run Time (Min)', width: 28, isFormula: true, formula: '=H{r}-AH{r}', zone: 'sky', align: 'right' },
+  { col: 'E', label: 'Machine Capacity (Pcs)', width: 40, isNumeric: true, zone: 'sky', align: 'right' },
+  { col: 'F', label: 'Actual Prd. (Pcs)', width: 40, isNumeric: true, zone: 'sky', align: 'right' },
+  { col: 'G', label: 'Rejection (Pcs)', width: 32, isNumeric: true, zone: 'sky', align: 'right' },
+  { col: 'H', label: 'Planned Prd. Time (Min)', width: 40, isNumeric: true, zone: 'sky', align: 'right' },
+  { col: 'I', label: 'Expected DownTime (Min)', width: 32, isFormula: true, formula: '=IF(E{r}<>"",30,0)', zone: 'sky', align: 'right' },
+  { col: 'J', label: 'Total Prd. Run Time (Min)', width: 40, isFormula: true, formula: '=H{r}-AH{r}', zone: 'sky', align: 'right' },
   
   // 23 Downtime columns K to AG (Purple Zone)
-  { col: 'K', label: 'Heater/Coil  Problem', code: 10, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'L', label: 'Power Shutdown', code: 11, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'M', label: 'Machine Breakdown', code: 12, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'N', label: 'Die/ Mold Problem', code: 13, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'O', label: 'Model/ Die Change', code: 14, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'P', label: 'Air Presser Problem', code: 15, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'Q', label: 'Water line Problem', code: 16, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'R', label: 'Lift Problem', code: 17, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'S', label: 'D Coil Insert', code: 18, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'T', label: 'RM Shortage', code: 19, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'U', label: 'Crean Problem', code: 20, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'V', label: 'Worker Absent', code: 21, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'W', label: 'Printer M/C Problem ', code: 22, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'X', label: 'UPS shutdown', code: 23, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'Y', label: 'Load Problem', code: 24, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'Z', label: 'Namaz', code: 25, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AA', label: 'Conveyor Belt Problem', code: 26, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AB', label: 'Fitting Problem', code: 27, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AC', label: 'Gas Presser Problem', code: 28, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AD', label: 'Mold polish & Clean', code: 29, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AE', label: 'Alu. Ash Extraction', code: 30, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AF', label: 'Robot Problems', code: 31, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AG', label: 'Alu. Recipe Problem', code: 32, width: 26, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'K', label: 'Heater/Coil  Problem', code: 10, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'L', label: 'Power Shutdown', code: 11, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'M', label: 'Machine Breakdown', code: 12, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'N', label: 'Die/ Mold Problem', code: 13, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'O', label: 'Model/ Die Change', code: 14, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'P', label: 'Air Presser Problem', code: 15, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'Q', label: 'Water line Problem', code: 16, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'R', label: 'Lift Problem', code: 17, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'S', label: 'D Coil Insert', code: 18, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'T', label: 'RM Shortage', code: 19, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'U', label: 'Crean Problem', code: 20, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'V', label: 'Worker Absent', code: 21, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'W', label: 'Printer M/C Problem ', code: 22, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'X', label: 'UPS shutdown', code: 23, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'Y', label: 'Load Problem', code: 24, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'Z', label: 'Namaz', code: 25, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AA', label: 'Conveyor Belt Problem', code: 26, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AB', label: 'Fitting Problem', code: 27, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AC', label: 'Gas Presser Problem', code: 28, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AD', label: 'Mold polish & Clean', code: 29, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AE', label: 'Alu. Ash Extraction', code: 30, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AF', label: 'Robot Problems', code: 31, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AG', label: 'Alu. Recipe Problem', code: 32, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
   
   // KPI Columns AH to AL (Cyan Zone)
-  { col: 'AH', label: 'Total Down Time (Mins)', width: 28, isFormula: true, formula: '=SUM(K{r}:AG{r})', zone: 'cyan', align: 'right' },
-  { col: 'AI', label: 'Availability (%)', width: 28, isFormula: true, formula: '=IFERROR(J{r}/H{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
-  { col: 'AJ', label: 'Performance (%)', width: 28, isFormula: true, formula: '=IFERROR(F{r}/E{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
-  { col: 'AK', label: 'Quality (%)', width: 28, isFormula: true, formula: '=IFERROR(F{r}/(F{r}+G{r}),"0")', isPercent: true, zone: 'cyan', align: 'right' },
-  { col: 'AL', label: 'OEE (%)', width: 28, isFormula: true, formula: '=IFERROR(AK{r}*AJ{r}*AI{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
+  { col: 'AH', label: 'Total Down Time (Mins)', width: 40, isFormula: true, formula: '=SUM(K{r}:AG{r})', zone: 'cyan', align: 'right' },
+  { col: 'AI', label: 'Availability (%)', width: 34, isFormula: true, formula: '=IFERROR(J{r}/H{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
+  { col: 'AJ', label: 'Performance (%)', width: 34, isFormula: true, formula: '=IFERROR(F{r}/E{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
+  { col: 'AK', label: 'Quality (%)', width: 34, isFormula: true, formula: '=IFERROR(F{r}/(F{r}+G{r}),"0")', isPercent: true, zone: 'cyan', align: 'right' },
+  { col: 'AL', label: 'OEE (%)', width: 34, isFormula: true, formula: '=IFERROR(AK{r}*AJ{r}*AI{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
   
   // Column AM (Remarks) (Sky Blue Zone) - Only Column that allows text!
   { col: 'AM', label: 'Remarks', width: 110, zone: 'sky', align: 'left' }
@@ -2762,15 +2762,20 @@ function renderExcelTable() {
   }
 
   // Column Widths (% based to span 100% full screen width)
+  // Perfectly balanced so text like "Morning" and "Bottom Cover (CNC)" NEVER get clipped in any tab!
   const colgroup = document.createElement('colgroup');
   EXCEL_COLUMNS.forEach(c => {
     const col = document.createElement('col');
-    if (c.col === 'A') col.style.width = '5.5%';
-    else if (c.col === 'B') col.style.width = '3%';
-    else if (c.col === 'C') col.style.width = '3.5%';
-    else if (c.col === 'D') col.style.width = '9%';
-    else if (c.col === 'AM') col.style.width = '7%';
-    else col.style.width = '2.11%';
+    if (c.col === 'A') col.style.width = '4.8%'; // Fits '1-Aug-26' cleanly
+    else if (c.col === 'B') col.style.width = '2.2%'; // Fits 'Sat', 'Sun' cleanly
+    else if (c.col === 'C') col.style.width = '3.2%'; // Fits 'Morning', 'Night' completely
+    else if (c.col === 'D') col.style.width = '8.2%'; // Fits 'Bottom Cover (CNC)' completely
+    else if (['E', 'F', 'H', 'J', 'AH'].includes(c.col)) col.style.width = '3.8%'; // Fits 5-digit numbers (11111)
+    else if (c.col === 'G') col.style.width = '2.6%'; // Fits rejection numbers
+    else if (c.col === 'I') col.style.width = '2.4%'; // Fits Expected DT (30/0)
+    else if (['AI', 'AJ', 'AK', 'AL'].includes(c.col)) col.style.width = '2.3%'; // Fits 100% KPI
+    else if (c.col === 'AM') col.style.width = '5.0%'; // Remarks
+    else col.style.width = '2.1%'; // 23 Downtime columns (Fits 3 digits comfortably like 120, 250, 480)
     colgroup.appendChild(col);
   });
   table.appendChild(colgroup);
@@ -2975,8 +2980,14 @@ function formatCellValue(val, colDef, isTotalRow = false) {
     return `${(num * 100).toFixed(0)}%`;
   }
 
-  if (colDef.isNumeric && typeof val === 'number') {
-    return val !== 0 ? val.toLocaleString() : '0';
+  if (colDef.isNumeric || colDef.isDt || colDef.isFormula) {
+    if (typeof val === 'number') {
+      return val !== 0 ? String(val) : '0';
+    }
+    const n = Number(val);
+    if (!isNaN(n)) {
+      return n !== 0 ? String(n) : '0';
+    }
   }
 
   return String(val);

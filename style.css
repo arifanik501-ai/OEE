@@ -147,16 +147,16 @@ input[type=number] {
 .mep-excel-table tbody td {
   border-right: 1px solid #475569;
   border-bottom: 1px solid #64748B;
-  padding: 1px 3px;
+  padding: 2px 3px;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   position: relative;
-  height: 21px;
+  height: 25px;
   color: #000000;
   font-family: 'Times New Roman', Times, serif;
   font-weight: bold;
-  font-size: 11px;
+  font-size: 11.5px;
   background-color: #FFFFFF;
 }
 
@@ -309,8 +309,9 @@ input[type=number] {
   border-right: 1px solid #7F0000 !important;
   border-bottom: 2.5px solid #000000 !important;
   border-top: 1px solid #7F0000 !important;
-  font-size: 12.5px;
-  height: 22px;
+  font-size: 12px;
+  padding: 2px 3px !important;
+  height: 26px;
 }
 
 .mep-total-row td:first-child {
@@ -331,18 +332,20 @@ input[type=number] {
   background-color: #FFFFFF !important;
   cursor: default !important;
   font-family: 'Times New Roman', Times, serif;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: bold !important;
   color: #000000 !important;
+  padding: 1px 2px !important;
 }
 
 .cell-downtime {
   background-color: #E8DDFE !important;
   text-align: right;
   font-family: 'Times New Roman', Times, serif;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: bold !important;
   color: #000000 !important;
+  padding: 1px 2px !important;
 }
 
 .cell-total-dt {
@@ -350,25 +353,28 @@ input[type=number] {
   text-align: right;
   font-family: 'Times New Roman', Times, serif;
   font-weight: bold !important;
-  font-size: 12px;
+  font-size: 11.5px;
   color: #000000 !important;
+  padding: 1px 2px !important;
 }
 
 .cell-white {
   background-color: #FFFFFF !important;
   font-family: 'Times New Roman', Times, serif;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: bold !important;
   color: #000000 !important;
+  padding: 1px 2px !important;
 }
 
 .cell-kpi {
   background-color: #FFFFFF !important;
   text-align: right;
   font-family: 'Times New Roman', Times, serif;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: bold !important;
   color: #000000 !important;
+  padding: 1px 2px !important;
 }
 
 /* ─── FRIDAY LIGHT GREEN ROW STYLING ───────────────────────────────────────── */
@@ -468,7 +474,7 @@ input[type=number] {
   height: 100%;
   background-color: #FFFFFF;
   color: #000000;
-  border: 2px solid #059669;
+  border: 2px solid #2563EB;
   outline: none;
   font-family: 'Times New Roman', Times, serif;
   font-size: 12px;
