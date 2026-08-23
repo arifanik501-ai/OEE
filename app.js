@@ -129,6 +129,10 @@ const SHEET_TABS = {
       'APC (Downpipe)',
       'APC (Body, Cover)',
       'Blade Rivet'
+    ],
+    timeGroups: [
+      { startIdx: 0, count: 3, label: 'APC (Powder Coating)' },
+      { startIdx: 3, count: 1, label: 'Blade Rivet' }
     ]
   },
   fan_die_casting: {
@@ -311,6 +315,28 @@ function getMachinesForTab(tabId) {
 
 function getRowsPerDay(tabId = ACTIVE_TAB) {
   return getMachinesForTab(tabId).length;
+}
+
+const TIME_COLUMNS = ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI'];
+
+function getTimeGroupInfo(tabId, machineIdx) {
+  const tabInfo = SHEET_TABS[tabId];
+  if (!tabInfo || !tabInfo.timeGroups) {
+    return { isMaster: true, span: 1, masterIdx: machineIdx, isSlave: false, count: 1 };
+  }
+  for (const g of tabInfo.timeGroups) {
+    if (machineIdx >= g.startIdx && machineIdx < g.startIdx + g.count) {
+      const isMaster = (machineIdx === g.startIdx);
+      return {
+        isMaster,
+        span: isMaster ? g.count : 0,
+        masterIdx: g.startIdx,
+        isSlave: !isMaster,
+        count: g.count
+      };
+    }
+  }
+  return { isMaster: true, span: 1, masterIdx: machineIdx, isSlave: false, count: 1 };
 }
 
 // ─── MONTH & YEAR CONTROLLER ──────────────────────────────────────────────────
@@ -1394,11 +1420,14 @@ function resetToOriginalData() {
 // ─── AUTO-CALCULATION ENGINE ──────────────────────────────────────────────────
 function recalculateRow(rowObj) {
   const r = rowObj.row;
+  const rowsPerDay = getRowsPerDay();
+  const mIdx = (r - 6) % rowsPerDay;
+  const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
 
   const cap = Number(rowObj.E?.val) || 0;
   const act = Number(rowObj.F?.val) || 0;
   const rej = Number(rowObj.G?.val) || 0;
-  const plan = Number(rowObj.H?.val) || 0;
+  let plan = Number(rowObj.H?.val) || 0;
 
   // I: Expected DownTime = IF(E<>"", 30, 0)
   const hasCap = (rowObj.E?.val !== null && rowObj.E?.val !== '' && rowObj.E?.val !== undefined && rowObj.E?.val != 0);
@@ -1433,7 +1462,15 @@ function recalculateRow(rowObj) {
   const numRunTime = typeof rowObj.J.val === 'number' ? rowObj.J.val : 0;
 
   // AI: Availability (%) = IFERROR(J/H, "0")
-  const avail = plan > 0 ? (numRunTime / plan) : 0;
+  let avail = plan > 0 ? (numRunTime / plan) : 0;
+  if (groupInfo.isSlave) {
+    const dayStartRow = r - mIdx;
+    const masterRow = SheetState.rows.find(row => row.row === (dayStartRow + groupInfo.masterIdx));
+    if (masterRow && masterRow.AI && typeof masterRow.AI.val === 'number') {
+      avail = masterRow.AI.val;
+    }
+  }
+
   if (!rowObj.AI) rowObj.AI = {};
   rowObj.AI.val = avail;
   rowObj.AI.formula = `=IFERROR(J${r}/H${r},"0")`;
@@ -1456,6 +1493,21 @@ function recalculateRow(rowObj) {
   if (!rowObj.AL) rowObj.AL = {};
   rowObj.AL.val = oee;
   rowObj.AL.formula = `=IFERROR(AK${r}*AJ${r}*AI${r},"0")`;
+
+  // If this is master row, propagate availability to slave rows
+  if (groupInfo.isMaster && groupInfo.count > 1) {
+    for (let offset = 1; offset < groupInfo.count; offset++) {
+      const slaveRow = SheetState.rows.find(row => row.row === (r + offset));
+      if (slaveRow) {
+        if (!slaveRow.AI) slaveRow.AI = {};
+        slaveRow.AI.val = avail;
+        const sPerf = slaveRow.AJ?.val || 0;
+        const sQual = slaveRow.AK?.val || 0;
+        if (!slaveRow.AL) slaveRow.AL = {};
+        slaveRow.AL.val = avail * sPerf * sQual;
+      }
+    }
+  }
 }
 
 function recalculateAllFormulas() {
@@ -1466,19 +1518,28 @@ function recalculateAllFormulas() {
 function recalculateTotalRow() {
   const totals = { E: 0, F: 0, G: 0, H: 0, I: 0, J: 0, AH: 0 };
   EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => totals[c.col] = 0);
+  const rowsPerDay = getRowsPerDay();
 
   SheetState.rows.forEach(r => {
+    // Piece-count columns are summed across all rows
     totals.E += Number(r.E?.val) || 0;
     totals.F += Number(r.F?.val) || 0;
     totals.G += Number(r.G?.val) || 0;
-    totals.H += Number(r.H?.val) || 0;
-    totals.I += Number(r.I?.val) || 0;
-    totals.J += (typeof r.J?.val === 'number' ? r.J.val : 0);
-    totals.AH += Number(r.AH?.val) || 0;
 
-    EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => {
-      totals[c.col] += Number(r[c.col]?.val) || 0;
-    });
+    const mIdx = (r.row - 6) % rowsPerDay;
+    const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
+
+    // Time-related columns are summed ONLY from master rows (no duplication!)
+    if (groupInfo.isMaster) {
+      totals.H += Number(r.H?.val) || 0;
+      totals.I += Number(r.I?.val) || 0;
+      totals.J += (typeof r.J?.val === 'number' ? r.J.val : 0);
+      totals.AH += Number(r.AH?.val) || 0;
+
+      EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => {
+        totals[c.col] += Number(r[c.col]?.val) || 0;
+      });
+    }
   });
 
   totals.AI = totals.H > 0 ? (totals.J / totals.H) : 0;
@@ -1512,18 +1573,24 @@ function getTabMonthlySummary(tabId, year, monthIndex) {
 
   let totalPlannedMins = 0;
   let totalDownMins = 0;
+  const rowsPerDay = getRowsPerDay(tabId);
 
   rowsData.forEach(r => {
-    const planned = Number(r.H?.val) || 0;
-    totalPlannedMins += planned;
+    const mIdx = (r.row - 6) % rowsPerDay;
+    const groupInfo = getTimeGroupInfo(tabId, mIdx);
 
-    let rowDt = 0;
-    dtCols.forEach(c => {
-      const v = Number(r[c.col]?.val) || 0;
-      dtSums[c.col] += v;
-      rowDt += v;
-    });
-    totalDownMins += (typeof r.AH?.val === 'number' && r.AH.val > 0 ? r.AH.val : rowDt);
+    if (groupInfo.isMaster) {
+      const planned = Number(r.H?.val) || 0;
+      totalPlannedMins += planned;
+
+      let rowDt = 0;
+      dtCols.forEach(c => {
+        const v = Number(r[c.col]?.val) || 0;
+        dtSums[c.col] += v;
+        rowDt += v;
+      });
+      totalDownMins += (typeof r.AH?.val === 'number' && r.AH.val > 0 ? r.AH.val : rowDt);
+    }
   });
 
   const totalRunMins = totalPlannedMins - totalDownMins;
@@ -1749,9 +1816,15 @@ function getTabProductionOutputSummary(tabId, year, monthIndex) {
   let capacityPcs = 0;
   let actualPrdPcs = 0;
   let rejectionPcs = 0;
+  const rowsPerDay = getRowsPerDay(tabId);
 
   rowsData.forEach(r => {
-    runningMins += Number(r.H?.val) || 0;
+    const mIdx = (r.row - 6) % rowsPerDay;
+    const groupInfo = getTimeGroupInfo(tabId, mIdx);
+
+    if (groupInfo.isMaster) {
+      runningMins += Number(r.H?.val) || 0;
+    }
     capacityPcs += Number(r.E?.val) || 0;
     actualPrdPcs += Number(r.F?.val) || 0;
     rejectionPcs += Number(r.G?.val) || 0;
@@ -1996,17 +2069,23 @@ function getTabDowntimeRunningStatus(tabId, year, monthIndex) {
 
   let plannedTimeMins = 0;
   let downTimeMins = 0;
+  const rowsPerDay = getRowsPerDay(tabId);
 
   const dtCols = EXCEL_COLUMNS.filter(c => c.isDt);
 
   rowsData.forEach(r => {
-    plannedTimeMins += Number(r.H?.val) || 0;
+    const mIdx = (r.row - 6) % rowsPerDay;
+    const groupInfo = getTimeGroupInfo(tabId, mIdx);
 
-    let rowDt = 0;
-    dtCols.forEach(c => {
-      rowDt += Number(r[c.col]?.val) || 0;
-    });
-    downTimeMins += (typeof r.AH?.val === 'number' && r.AH.val > 0 ? r.AH.val : rowDt);
+    if (groupInfo.isMaster) {
+      plannedTimeMins += Number(r.H?.val) || 0;
+
+      let rowDt = 0;
+      dtCols.forEach(c => {
+        rowDt += Number(r[c.col]?.val) || 0;
+      });
+      downTimeMins += (typeof r.AH?.val === 'number' && r.AH.val > 0 ? r.AH.val : rowDt);
+    }
   });
 
   const runTimeMins = plannedTimeMins - downTimeMins;
@@ -2210,20 +2289,27 @@ function getTabOEESummary(tabId, year, monthIndex) {
   let rejectionPcs = 0;
   let plannedTimeMins = 0;
   let downTimeMins = 0;
+  const rowsPerDay = getRowsPerDay(tabId);
 
   const dtCols = EXCEL_COLUMNS.filter(c => c.isDt);
 
   rowsData.forEach(r => {
+    const mIdx = (r.row - 6) % rowsPerDay;
+    const groupInfo = getTimeGroupInfo(tabId, mIdx);
+
     capacityPcs += Number(r.E?.val) || 0;
     totalProduction += Number(r.F?.val) || 0;
     rejectionPcs += Number(r.G?.val) || 0;
-    plannedTimeMins += Number(r.H?.val) || 0;
 
-    let rowDt = 0;
-    dtCols.forEach(c => {
-      rowDt += Number(r[c.col]?.val) || 0;
-    });
-    downTimeMins += (typeof r.AH?.val === 'number' && r.AH.val > 0 ? r.AH.val : rowDt);
+    if (groupInfo.isMaster) {
+      plannedTimeMins += Number(r.H?.val) || 0;
+
+      let rowDt = 0;
+      dtCols.forEach(c => {
+        rowDt += Number(r[c.col]?.val) || 0;
+      });
+      downTimeMins += (typeof r.AH?.val === 'number' && r.AH.val > 0 ? r.AH.val : rowDt);
+    }
   });
 
   const runTimeMins = plannedTimeMins - downTimeMins;
@@ -2762,20 +2848,20 @@ function renderExcelTable() {
   }
 
   // Column Widths (% based to span 100% full screen width)
-  // Perfectly balanced so text like "Morning" and "Bottom Cover (CNC)" NEVER get clipped in any tab!
+  // Perfectly balanced so even the longest names like "Auto Die Casting (Cover)" NEVER get clipped in any tab!
   const colgroup = document.createElement('colgroup');
   EXCEL_COLUMNS.forEach(c => {
     const col = document.createElement('col');
-    if (c.col === 'A') col.style.width = '4.8%'; // Fits '1-Aug-26' cleanly
-    else if (c.col === 'B') col.style.width = '2.2%'; // Fits 'Sat', 'Sun' cleanly
-    else if (c.col === 'C') col.style.width = '3.2%'; // Fits 'Morning', 'Night' completely
-    else if (c.col === 'D') col.style.width = '8.2%'; // Fits 'Bottom Cover (CNC)' completely
-    else if (['E', 'F', 'H', 'J', 'AH'].includes(c.col)) col.style.width = '3.8%'; // Fits 5-digit numbers (11111)
-    else if (c.col === 'G') col.style.width = '2.6%'; // Fits rejection numbers
-    else if (c.col === 'I') col.style.width = '2.4%'; // Fits Expected DT (30/0)
-    else if (['AI', 'AJ', 'AK', 'AL'].includes(c.col)) col.style.width = '2.3%'; // Fits 100% KPI
-    else if (c.col === 'AM') col.style.width = '5.0%'; // Remarks
-    else col.style.width = '2.1%'; // 23 Downtime columns (Fits 3 digits comfortably like 120, 250, 480)
+    if (c.col === 'A') col.style.width = '4.5%'; // Fits '1-Aug-26' cleanly
+    else if (c.col === 'B') col.style.width = '2.0%'; // Fits 'Sat', 'Sun' cleanly
+    else if (c.col === 'C') col.style.width = '3.0%'; // Fits 'Morning', 'Night' completely
+    else if (c.col === 'D') col.style.width = '10.5%'; // Fits 'Auto Die Casting (Cover)' completely with margins
+    else if (['E', 'F', 'H', 'J', 'AH'].includes(c.col)) col.style.width = '3.6%'; // Fits 5-digit numbers (11111)
+    else if (c.col === 'G') col.style.width = '2.5%'; // Fits rejection numbers
+    else if (c.col === 'I') col.style.width = '2.2%'; // Fits Expected DT (30/0)
+    else if (['AI', 'AJ', 'AK', 'AL'].includes(c.col)) col.style.width = '2.1%'; // Fits 100% KPI
+    else if (c.col === 'AM') col.style.width = '4.5%'; // Remarks
+    else col.style.width = '2.0%'; // 23 Downtime columns (Fits 3 digits comfortably like 120, 250, 480)
     colgroup.appendChild(col);
   });
   table.appendChild(colgroup);
@@ -2896,6 +2982,8 @@ function renderExcelTable() {
     const dayName = rowObj.B?.val;
     const isFriday = (dayName === 'Fri');
     const isDayEnd = ((r - 6) % rowsPerDay === (rowsPerDay - 1)); // Last machine of each day
+    const mIdx = (r - 6) % rowsPerDay;
+    const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
 
     const tr = document.createElement('tr');
     tr.dataset.row = r;
@@ -2908,10 +2996,22 @@ function renderExcelTable() {
 
     EXCEL_COLUMNS.forEach((colDef, cIdx) => {
       const colLetter = colDef.col;
+      const isTimeCol = TIME_COLUMNS.includes(colLetter);
+
+      // If slave row in a merged time group, skip rendering the time columns!
+      if (isTimeCol && groupInfo.isSlave) {
+        return;
+      }
+
       const td = document.createElement('td');
       td.dataset.row = r;
       td.dataset.col = colLetter;
       td.dataset.cidx = cIdx;
+
+      if (isTimeCol && groupInfo.isMaster && groupInfo.count > 1) {
+        td.rowSpan = groupInfo.count;
+        td.style.verticalAlign = 'middle';
+      }
 
       if (colDef.isReadOnly) {
         td.className = 'cell-readonly-fixed';
@@ -3332,6 +3432,20 @@ function saveCellUpdate(colLetter, rowNum, newVal, colDef) {
 }
 
 function updateSingleRowDisplay(rowNum) {
+  const tabInfo = SHEET_TABS[ACTIVE_TAB];
+  if (tabInfo && tabInfo.timeGroups) {
+    const rowsPerDay = getRowsPerDay();
+    const mIdx = (rowNum - 6) % rowsPerDay;
+    const dayStart = rowNum - mIdx;
+    for (let i = 0; i < rowsPerDay; i++) {
+      updateDirectRowDisplay(dayStart + i);
+    }
+    return;
+  }
+  updateDirectRowDisplay(rowNum);
+}
+
+function updateDirectRowDisplay(rowNum) {
   const rowObj = SheetState.rows.find(r => r.row === rowNum);
   if (!rowObj) return;
 
@@ -5145,15 +5259,22 @@ async function exportExcelFile() {
         // Compute Tab Totals
         const tabTotals = { E: 0, F: 0, G: 0, H: 0, I: 0, J: 0, AH: 0 };
         EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => tabTotals[c.col] = 0);
+        const rowsPerDay = getRowsPerDay(tabId);
         rowsData.forEach(r => {
           tabTotals.E += Number(r.E?.val) || 0;
           tabTotals.F += Number(r.F?.val) || 0;
           tabTotals.G += Number(r.G?.val) || 0;
-          tabTotals.H += Number(r.H?.val) || 0;
-          tabTotals.I += Number(r.I?.val) || 0;
-          tabTotals.J += (typeof r.J?.val === 'number' ? r.J.val : 0);
-          tabTotals.AH += Number(r.AH?.val) || 0;
-          EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => tabTotals[c.col] += Number(r[c.col]?.val) || 0);
+
+          const mIdx = (r.row - 6) % rowsPerDay;
+          const groupInfo = getTimeGroupInfo(tabId, mIdx);
+
+          if (groupInfo.isMaster) {
+            tabTotals.H += Number(r.H?.val) || 0;
+            tabTotals.I += Number(r.I?.val) || 0;
+            tabTotals.J += (typeof r.J?.val === 'number' ? r.J.val : 0);
+            tabTotals.AH += Number(r.AH?.val) || 0;
+            EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => tabTotals[c.col] += Number(r[c.col]?.val) || 0);
+          }
         });
         tabTotals.AI = tabTotals.H > 0 ? (tabTotals.J / tabTotals.H) : 0;
         tabTotals.AJ = tabTotals.E > 0 ? (tabTotals.F / tabTotals.E) : 0;
@@ -5192,31 +5313,41 @@ async function exportExcelFile() {
         }
 
         // Body Rows (Row 6 onwards)
-        const rowsPerDay = getRowsPerDay(tabId);
+        const daysInMonth = getDaysInSelectedMonth();
         rowsData.forEach((rowObj, rIdx) => {
           const excelRowIdx = 6 + rIdx;
           const excelRow = ws.getRow(excelRowIdx);
-          excelRow.height = 19;
+          excelRow.height = 20;
 
           const isFriday = (rowObj.B?.val === 'Fri');
           const isDayEnd = (rIdx % rowsPerDay === (rowsPerDay - 1));
+          const mIdx = rIdx % rowsPerDay;
+          const groupInfo = getTimeGroupInfo(tabId, mIdx);
 
           EXCEL_COLUMNS.forEach((colDef, cIdx) => {
-            const cell = excelRow.getCell(cIdx + 1);
+            const colIdx = cIdx + 1;
+            const colLetter = colDef.col;
+            const isTimeCol = TIME_COLUMNS.includes(colLetter);
+
+            const cell = excelRow.getCell(colIdx);
             const val = rowObj[colDef.col]?.val;
 
-            if (colDef.isPercent) {
-              cell.value = (val !== null && val !== undefined && val !== '') ? Number(val) : 0;
-              cell.numFmt = '0%';
-            } else if (colDef.isNumeric || colDef.isDt || colDef.isFormula) {
-              if (val !== null && val !== undefined && val !== '' && !isNaN(val)) {
-                cell.value = Number(val);
-                cell.numFmt = '#,##0';
+            if (isTimeCol && groupInfo.isSlave) {
+              // Slave cell in time group will be spanned by merged master cell
+            } else {
+              if (colDef.isPercent) {
+                cell.value = (val !== null && val !== undefined && val !== '') ? Number(val) : 0;
+                cell.numFmt = '0%';
+              } else if (colDef.isNumeric || colDef.isDt || colDef.isFormula) {
+                if (val !== null && val !== undefined && val !== '' && !isNaN(val)) {
+                  cell.value = Number(val);
+                  cell.numFmt = '#,##0';
+                } else {
+                  cell.value = val ?? '';
+                }
               } else {
                 cell.value = val ?? '';
               }
-            } else {
-              cell.value = val ?? '';
             }
 
             // Cell Font: Times New Roman Bold
@@ -5249,6 +5380,41 @@ async function exportExcelFile() {
             };
           });
         });
+
+        // Merging for each day: Date (A), Day (B), Shift (C) + Time Columns for time groups
+        for (let d = 0; d < daysInMonth; d++) {
+          const dayStart = 6 + (d * rowsPerDay);
+          const dayEnd = dayStart + rowsPerDay - 1;
+
+          if (rowsPerDay > 1) {
+            // Merge Date, Day, Shift across all machines of the day
+            try {
+              ws.mergeCells(dayStart, 1, dayEnd, 1);
+              ws.getCell(dayStart, 1).alignment = { vertical: 'middle', horizontal: 'center' };
+              ws.mergeCells(dayStart, 2, dayEnd, 2);
+              ws.getCell(dayStart, 2).alignment = { vertical: 'middle', horizontal: 'center' };
+              ws.mergeCells(dayStart, 3, dayEnd, 3);
+              ws.getCell(dayStart, 3).alignment = { vertical: 'middle', horizontal: 'center' };
+            } catch (e) {}
+          }
+
+          // If tab has timeGroups, merge time columns (H to AI) across group rows
+          if (tabInfo.timeGroups) {
+            for (const group of tabInfo.timeGroups) {
+              if (group.count > 1) {
+                const rStart = dayStart + group.startIdx;
+                const rEnd = rStart + group.count - 1;
+                TIME_COLUMNS.forEach(colLetter => {
+                  const colIdx = EXCEL_COLUMNS.findIndex(c => c.col === colLetter) + 1;
+                  try {
+                    ws.mergeCells(rStart, colIdx, rEnd, colIdx);
+                    ws.getCell(rStart, colIdx).alignment = { vertical: 'middle', horizontal: 'right' };
+                  } catch (e) {}
+                });
+              }
+            }
+          }
+        }
       }
 
       // Write styled buffer & download
