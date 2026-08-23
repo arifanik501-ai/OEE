@@ -114,155 +114,185 @@
         <div class="h-[1.5px] bg-slate-300 flex-1"></div>
       </div>
 
-      <!-- 5 Balanced Equal-Width Cards Grid (Max Width ~240px per card) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 w-full justify-center">
+      <!-- 6 Balanced Equal-Width Cards Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 w-full justify-center">
         
-        <!-- Card 1: ADMIN -->
-        <div class="user-portal-card" data-user-id="admin">
-          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+        <!-- Card 1: ADMIN (Gold/Amber) -->
+        <div class="user-portal-card user-card-admin border-amber-200" data-user-id="admin">
+          <div class="card-icon-box bg-amber-50 text-amber-600 border border-amber-200">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               <path d="m9 12 2 2 4-4"/>
             </svg>
           </div>
-          <h3 class="card-user-name">ADMIN</h3>
-          <div class="card-role-text">Administrator</div>
+          <h3 class="card-user-name text-amber-950">ADMIN</h3>
+          <div class="card-role-badge bg-amber-50 text-amber-700 border border-amber-200">Administrator</div>
           
-          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          <div class="w-full h-[1px] bg-amber-100 my-1.5"></div>
           
           <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> All 9 Production Sections
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> All 9 Production Sections
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Master Reports & Logs
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Master Reports & Logs
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> System & User Control
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> System & User Control
             </li>
           </ul>
 
-          <button class="card-action-btn">
+          <button class="card-action-btn bg-amber-50 border-amber-300 text-amber-700">
             <span>LOGIN</span>
             <span>→</span>
           </button>
         </div>
 
-        <!-- Card 2: TAKBIR -->
-        <div class="user-portal-card" data-user-id="takbir">
-          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+        <!-- Card 2: TAKBIR (Rose/Crimson Red) -->
+        <div class="user-portal-card user-card-takbir border-rose-200" data-user-id="takbir">
+          <div class="card-icon-box bg-rose-50 text-rose-600 border border-rose-200">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
           </div>
-          <h3 class="card-user-name">TAKBIR</h3>
-          <div class="card-role-text">Armature Incharge</div>
+          <h3 class="card-user-name text-rose-950">TAKBIR</h3>
+          <div class="card-role-badge bg-rose-50 text-rose-700 border border-rose-200">Armature Incharge</div>
           
-          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          <div class="w-full h-[1px] bg-rose-100 my-1.5"></div>
           
           <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Production Log
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Production Log
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Downtime Tracking
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Downtime Tracking
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Shift Summary
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Shift Summary
             </li>
           </ul>
 
-          <button class="card-action-btn">
+          <button class="card-action-btn bg-rose-50 border-rose-300 text-rose-700">
             <span>LOGIN</span>
             <span>→</span>
           </button>
         </div>
 
-        <!-- Card 3: MONIR -->
-        <div class="user-portal-card" data-user-id="monir">
-          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+        <!-- Card 3: MONIR (Emerald/Forest Green) -->
+        <div class="user-portal-card user-card-monir border-emerald-200" data-user-id="monir">
+          <div class="card-icon-box bg-emerald-50 text-emerald-600 border border-emerald-200">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M2 8h20M2 16h20M6 4v16M18 4v16M10 8v8M14 8v8"/>
             </svg>
           </div>
-          <h3 class="card-user-name">MONIR</h3>
-          <div class="card-role-text">Press & Die Incharge</div>
+          <h3 class="card-user-name text-emerald-950">MONIR</h3>
+          <div class="card-role-badge bg-emerald-50 text-emerald-700 border border-emerald-200">Press & Die Incharge</div>
           
-          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          <div class="w-full h-[1px] bg-emerald-100 my-1.5"></div>
           
           <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Power Press & Stamping
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Power Press & Stamping
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Die Casting Logs
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Die Casting Logs
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Tooling Downtime
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tooling Downtime
             </li>
           </ul>
 
-          <button class="card-action-btn">
+          <button class="card-action-btn bg-emerald-50 border-emerald-300 text-emerald-700">
             <span>LOGIN</span>
             <span>→</span>
           </button>
         </div>
 
-        <!-- Card 4: ANWAR -->
-        <div class="user-portal-card" data-user-id="anwar">
-          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+        <!-- Card 4: ANWAR (Sky / Ocean Blue) -->
+        <div class="user-portal-card user-card-anwar border-sky-200" data-user-id="anwar">
+          <div class="card-icon-box bg-sky-50 text-sky-600 border border-sky-200">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
             </svg>
           </div>
-          <h3 class="card-user-name">ANWAR</h3>
-          <div class="card-role-text">Lathe & Coating Incharge</div>
+          <h3 class="card-user-name text-sky-950">ANWAR</h3>
+          <div class="card-role-badge bg-sky-50 text-sky-700 border border-sky-200">Lathe & Coating Incharge</div>
           
-          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          <div class="w-full h-[1px] bg-sky-100 my-1.5"></div>
           
           <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> CNC Lathe Operations
+              <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span> CNC Lathe Operations
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Powder Coating Line
+              <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span> Powder Coating Line
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Quality & Rejection
+              <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span> Quality & Rejection
             </li>
           </ul>
 
-          <button class="card-action-btn">
+          <button class="card-action-btn bg-sky-50 border-sky-300 text-sky-700">
             <span>LOGIN</span>
             <span>→</span>
           </button>
         </div>
 
-        <!-- Card 5: BIKASH -->
-        <div class="user-portal-card" data-user-id="bikash">
-          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+        <!-- Card 5: BIKASH (Purple/Violet) -->
+        <div class="user-portal-card user-card-bikash border-purple-200" data-user-id="bikash">
+          <div class="card-icon-box bg-purple-50 text-purple-600 border border-purple-200">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/><path d="m7 8 5 3 5-3"/>
             </svg>
           </div>
-          <h3 class="card-user-name">BIKASH</h3>
-          <div class="card-role-text">Assembly Incharge</div>
+          <h3 class="card-user-name text-purple-950">BIKASH</h3>
+          <div class="card-role-badge bg-purple-50 text-purple-700 border border-purple-200">Assembly Incharge</div>
           
-          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          <div class="w-full h-[1px] bg-purple-100 my-1.5"></div>
           
           <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Rechargeable Fan Line
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Rechargeable Fan Line
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Capacitor Manufacturing
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Capacitor Manufacturing
             </li>
             <li class="flex items-center gap-1.5 truncate">
-              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Exhaust Fan Assembly
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Exhaust Fan Assembly
             </li>
           </ul>
 
-          <button class="card-action-btn">
+          <button class="card-action-btn bg-purple-50 border-purple-300 text-purple-700">
+            <span>LOGIN</span>
+            <span>→</span>
+          </button>
+        </div>
+
+        <!-- Card 6: ANIK (Teal/Cyan) -->
+        <div class="user-portal-card user-card-anik border-teal-200" data-user-id="anik">
+          <div class="card-icon-box bg-teal-50 text-teal-600 border border-teal-200">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+          </div>
+          <h3 class="card-user-name text-teal-950">ANIK</h3>
+          <div class="card-role-badge bg-teal-50 text-teal-700 border border-teal-200">Assemble & Fan Incharge</div>
+          
+          <div class="w-full h-[1px] bg-teal-100 my-1.5"></div>
+          
+          <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Fan Assemble
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Rechargeable Fan
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Exhaust & Capacitor
+            </li>
+          </ul>
+
+          <button class="card-action-btn bg-teal-50 border-teal-300 text-teal-700">
             <span>LOGIN</span>
             <span>→</span>
           </button>

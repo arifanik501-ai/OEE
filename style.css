@@ -1456,6 +1456,15 @@ html.user-unauthenticated #appMainContainer {
   line-height: 1.2;
 }
 
+.card-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: 9999px;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
 .card-action-btn {
   margin-top: auto;
   width: 100%;
@@ -1472,6 +1481,75 @@ html.user-unauthenticated #appMainContainer {
   justify-content: center;
   gap: 0.35rem;
   transition: all 0.15s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   INDIVIDUAL USER CARD VIBRANT COLOR THEMES & HOVER EFFECTS
+   ══════════════════════════════════════════════════════════════════════════════ */
+.user-card-admin:hover {
+  border-color: #D97706 !important;
+  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.22) !important;
+  transform: translateY(-2px);
+}
+.user-card-admin:hover .card-action-btn {
+  background-color: #D97706 !important;
+  border-color: #D97706 !important;
+  color: #FFFFFF !important;
+}
+
+.user-card-takbir:hover {
+  border-color: #E11D48 !important;
+  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.22) !important;
+  transform: translateY(-2px);
+}
+.user-card-takbir:hover .card-action-btn {
+  background-color: #E11D48 !important;
+  border-color: #E11D48 !important;
+  color: #FFFFFF !important;
+}
+
+.user-card-monir:hover {
+  border-color: #059669 !important;
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.22) !important;
+  transform: translateY(-2px);
+}
+.user-card-monir:hover .card-action-btn {
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+  color: #FFFFFF !important;
+}
+
+.user-card-anwar:hover {
+  border-color: #0284C7 !important;
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.22) !important;
+  transform: translateY(-2px);
+}
+.user-card-anwar:hover .card-action-btn {
+  background-color: #0284C7 !important;
+  border-color: #0284C7 !important;
+  color: #FFFFFF !important;
+}
+
+.user-card-bikash:hover {
+  border-color: #7C3AED !important;
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.22) !important;
+  transform: translateY(-2px);
+}
+.user-card-bikash:hover .card-action-btn {
+  background-color: #7C3AED !important;
+  border-color: #7C3AED !important;
+  color: #FFFFFF !important;
+}
+
+.user-card-anik:hover {
+  border-color: #0D9488 !important;
+  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.22) !important;
+  transform: translateY(-2px);
+}
+.user-card-anik:hover .card-action-btn {
+  background-color: #0D9488 !important;
+  border-color: #0D9488 !important;
+  color: #FFFFFF !important;
 }
 
 /* PIN Modal Dots */
