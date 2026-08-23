@@ -2229,7 +2229,7 @@ function getTabOEESummary(tabId, year, monthIndex) {
   const runTimeMins = plannedTimeMins - downTimeMins;
   const availability = plannedTimeMins > 0 ? (runTimeMins / plannedTimeMins) : 0;
   const performance = capacityPcs > 0 ? (totalProduction / capacityPcs) : 0;
-  const quality = (totalProduction + rejectionPcs) > 0 ? (totalProduction / (totalProduction + rejectionPcs)) : 1;
+  const quality = (totalProduction + rejectionPcs) > 0 ? (totalProduction / (totalProduction + rejectionPcs)) : 0;
   const oee = availability * performance * quality;
 
   return {
@@ -2465,7 +2465,7 @@ function renderOEEReport(table) {
 
   const grandAvail = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
   const grandPerf = grandCap > 0 ? (grandProd / grandCap) : 0;
-  const grandQual = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 1;
+  const grandQual = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 0;
   const grandOEE = grandAvail * grandPerf * grandQual;
 
   const tdTotAvail = document.createElement('td');
@@ -2520,7 +2520,7 @@ function getYearlyOEESummary(year) {
 
     const availability = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
     const performance = grandCap > 0 ? (grandProd / grandCap) : 0;
-    const quality = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 1;
+    const quality = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 0;
     const oee = availability * performance * quality;
     const achievement = grandCap > 0 ? (grandProd / grandCap) : 0;
 
@@ -4694,7 +4694,7 @@ async function exportExcelFile() {
 
           const grandAvail = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
           const grandPerf = grandCap > 0 ? (grandProd / grandCap) : 0;
-          const grandQual = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 1;
+          const grandQual = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 0;
           const grandOEE = grandAvail * grandPerf * grandQual;
 
           const cTotAvail = rTotal.getCell(5);
