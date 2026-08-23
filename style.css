@@ -1,0 +1,1461 @@
+/* ══════════════════════════════════════════════════════════════════════
+   MEP FAN LTD. - Exact Visual Replica of Excel Sheet (Book1.xlsx)
+   Times New Roman Typography + Multi-Tab Support (Fan Lathe & Fan Auto Powder Coating)
+   ══════════════════════════════════════════════════════════════════════ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Times New Roman', Times, serif;
+  background-color: #0B192C;
+  color: #000000;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide Number Input Spinners Across All Browsers */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type=number] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: #0B192C;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 6px;
+  border: 2px solid #0B192C;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Top Toolbar */
+.top-action-bar {
+  background: #002244;
+  border-bottom: 1px solid #003366;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* Formula Bar (fx) */
+.formula-bar-box {
+  background: #FFFFFF;
+  border-bottom: 1px solid #94A3B8;
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.cell-name-box {
+  width: 60px;
+  background: #F1F5F9;
+  border: 1px solid #64748B;
+  border-radius: 2px;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  font-size: 13px;
+  color: #000000;
+  text-align: center;
+  padding: 1px 3px;
+}
+
+.fx-label {
+  font-family: 'Times New Roman', Times, serif;
+  font-style: italic;
+  font-weight: bold;
+  font-size: 16px;
+  color: #475569;
+}
+
+.formula-input-field {
+  flex: 1;
+  border: 1px solid #CBD5E1;
+  border-radius: 2px;
+  padding: 2px 6px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 13px;
+  font-weight: bold;
+  color: #000000;
+  background: #FFFFFF;
+  outline: none;
+}
+.formula-input-field:focus {
+  border-color: #0054A6;
+  box-shadow: 0 0 0 1px #0054A6;
+}
+.formula-input-field:read-only {
+  background-color: #F8FAFC;
+  color: #64748B;
+  cursor: not-allowed;
+}
+
+/* Main Viewport Container */
+.excel-viewport {
+  flex: 1;
+  overflow: auto;
+  background-color: #FFFFFF;
+  position: relative;
+  width: 100%;
+}
+
+/* ─── EXACT EXCEL TABLE STRUCTURE (PERFECT SUBTLE FIT) ───────────────────── */
+.mep-excel-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11.5px;
+  font-weight: bold;
+  width: 98.5% !important;
+  margin: 4px auto !important;
+  background-color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Body Cells Borders & Bold Typography */
+.mep-excel-table tbody td {
+  border-right: 1px solid #475569;
+  border-bottom: 1px solid #64748B;
+  padding: 1px 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  height: 21px;
+  color: #000000;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  font-size: 11px;
+  background-color: #FFFFFF;
+}
+
+.mep-excel-table tbody td:first-child {
+  border-left: 1px solid #475569;
+}
+
+/* ─── BOLD DAY SEPARATOR BORDER (END OF EACH DATE'S 3 ROWS) ─────────────────── */
+.mep-excel-table tbody tr.row-day-end td {
+  border-bottom: 2.5px solid #000000 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   100% OPAQUE SOLID STICKY THEAD
+   ══════════════════════════════════════════════════════════════════════════════ */
+.mep-excel-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #003366;
+}
+
+.mep-excel-table thead th,
+.mep-excel-table thead td {
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+/* Row 1: MEP FAN LTD. */
+.mep-banner-row1 th {
+  background: #0054A6 !important;
+  background: linear-gradient(180deg, #1C75BC 0%, #0054A6 50%, #003366 100%) !important;
+  color: #FFFFFF !important;
+  text-align: center !important;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  letter-spacing: 2px;
+  font-size: 20px;
+  height: 35px;
+  border: 1px solid #002244 !important;
+  border-bottom: none !important;
+}
+
+/* Row 2: Production Performance Analysis Report */
+.mep-banner-row2 th {
+  background: #003366 !important;
+  color: #FFFFFF !important;
+  text-align: center !important;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  font-size: 13px;
+  height: 23px;
+  border: 1px solid #002244 !important;
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+/* Row 3: Dark Navy Blue Bar with Section Name (e.g. Fan Lathe) */
+.mep-banner-row3 th {
+  background: #00334E !important;
+  color: #FFFFFF !important;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold !important;
+  font-size: 13px;
+  text-align: center !important;
+  letter-spacing: 1.5px;
+  height: 23px;
+  vertical-align: middle !important;
+  border: 1px solid #002244 !important;
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+/* Row 4: Column Header Row (Horizontal & Vertical Headers) */
+.h-header-cell {
+  height: 152px !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+  padding: 4px 6px !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  font-size: 12px;
+  border-right: 1px solid #475569 !important;
+  border-bottom: 1px solid #475569 !important;
+  border-top: 1px solid #002244 !important;
+  font-family: 'Times New Roman', Times, serif;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.h-header-cell:first-child {
+  border-left: 1px solid #475569 !important;
+}
+
+.v-header-cell {
+  height: 152px !important;
+  vertical-align: bottom !important;
+  text-align: center !important;
+  padding: 5px 1px !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  font-size: 11.5px;
+  border-right: 1px solid #475569 !important;
+  border-bottom: 1px solid #475569 !important;
+  border-top: 1px solid #002244 !important;
+  font-family: 'Times New Roman', Times, serif;
+  overflow: hidden;
+}
+
+.v-header-cell:first-child {
+  border-left: 1px solid #475569 !important;
+}
+
+.v-header-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: pre-line;
+  display: inline-block;
+  text-align: left;
+  line-height: 1.15;
+  max-height: 142px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11px;
+  font-weight: bold !important;
+  color: #000000 !important;
+}
+
+/* Column Header Color Zones */
+.zone-sky {
+  background: #7EC8E3 !important;
+}
+
+.zone-purple {
+  background: #9F72DE !important;
+}
+
+.zone-cyan {
+  background: #56C5D0 !important;
+}
+
+/* Row 5: Total Row (Top Red Bar above Day 1) - Center Aligned & Bold */
+.mep-total-row th,
+.mep-total-row td {
+  background: #C00000 !important;
+  color: #FFFFFF !important;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border-right: 1px solid #7F0000 !important;
+  border-bottom: 2.5px solid #000000 !important;
+  border-top: 1px solid #7F0000 !important;
+  font-size: 12.5px;
+  height: 22px;
+}
+
+.mep-total-row td:first-child {
+  border-left: 1px solid #7F0000 !important;
+}
+
+.mep-total-row td.total-title-cell,
+.mep-total-row th.total-title-cell {
+  background: #B20000 !important;
+  text-align: center !important;
+  font-size: 13px;
+  font-weight: bold !important;
+  letter-spacing: 1px;
+}
+
+/* 4. Body Cell Styling - All Bold */
+.cell-readonly-fixed {
+  background-color: #FFFFFF !important;
+  cursor: default !important;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12px;
+  font-weight: bold !important;
+  color: #000000 !important;
+}
+
+.cell-downtime {
+  background-color: #E8DDFE !important;
+  text-align: right;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12px;
+  font-weight: bold !important;
+  color: #000000 !important;
+}
+
+.cell-total-dt {
+  background-color: #C8F0FA !important;
+  text-align: right;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold !important;
+  font-size: 12px;
+  color: #000000 !important;
+}
+
+.cell-white {
+  background-color: #FFFFFF !important;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12px;
+  font-weight: bold !important;
+  color: #000000 !important;
+}
+
+.cell-kpi {
+  background-color: #FFFFFF !important;
+  text-align: right;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12px;
+  font-weight: bold !important;
+  color: #000000 !important;
+}
+
+/* ─── FRIDAY LIGHT GREEN ROW STYLING ───────────────────────────────────────── */
+.row-friday td {
+  background-color: #E3F8E9 !important;
+  font-weight: bold !important;
+}
+
+.row-friday td.cell-readonly-fixed {
+  background-color: #E3F8E9 !important;
+}
+
+.row-friday td.cell-downtime {
+  background-color: #E8F5EE !important;
+}
+
+.row-friday td.cell-total-dt {
+  background-color: #CEF3DE !important;
+}
+
+.row-friday td.cell-kpi {
+  background-color: #E3F8E9 !important;
+}
+
+/* ─── TODAY'S ROW & UNCLICKABLE LOCKED FUTURE DAYS ─────────────────────────── */
+.row-today td {
+  background-color: #FEFCE8 !important;
+  font-weight: bold !important;
+}
+
+.row-today td.cell-downtime {
+  background-color: #EFE4FF !important;
+}
+
+.row-today td.cell-total-dt {
+  background-color: #D6F5FD !important;
+}
+
+/* Locked Future Date Rows */
+.row-locked td {
+  background-color: #F8FAFC !important;
+  color: #94A3B8 !important;
+  cursor: not-allowed !important;
+  opacity: 0.65;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.row-locked.row-friday td {
+  background-color: #EDFAF2 !important;
+  color: #6EE7B7 !important;
+}
+
+.row-locked td.cell-downtime {
+  background-color: #F3EEFA !important;
+  color: #A78BFA !important;
+}
+
+.row-locked td.cell-total-dt {
+  background-color: #EDF9FC !important;
+  color: #7DD3FC !important;
+}
+
+/* 6. Selection, Range Selection & Fill Handle */
+.mep-excel-table td.selected-cell,
+.mep-excel-table th.selected-cell {
+  outline: 2px solid #2563EB !important;
+  outline-offset: -2px;
+  background-color: rgba(37, 99, 235, 0.15) !important;
+  z-index: 15;
+}
+
+.mep-excel-table td.in-range-selection {
+  background-color: rgba(37, 99, 235, 0.2) !important;
+  outline: 1px solid rgba(37, 99, 235, 0.4) !important;
+  outline-offset: -1px;
+}
+
+.excel-fill-handle {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  background-color: #2563EB;
+  border: 1px solid #FFFFFF;
+  cursor: crosshair;
+  z-index: 20;
+}
+
+/* 7. Inline Editor Input */
+.cell-edit-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #FFFFFF;
+  color: #000000;
+  border: 2px solid #059669;
+  outline: none;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 1px 3px;
+  z-index: 40;
+  text-align: right;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+.cell-edit-input::-webkit-outer-spin-button,
+.cell-edit-input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BOTTOM SHEET TABS (EXACT EXCEL WORKBOOK TABS - NO WRAPPING / NO SQUISHING)
+   ══════════════════════════════════════════════════════════════════════════════ */
+.bottom-sheet-bar {
+  background-color: #0B192C;
+  border-top: 1px solid #1E293B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  height: 32px;
+  flex-shrink: 0;
+  color: #94A3B8;
+  font-size: 11.5px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.sheet-tabs-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.sheet-tabs-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.tab-nav-arrow-btn {
+  background: #1E293B;
+  color: #94A3B8;
+  border: 1px solid #334155;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.tab-nav-arrow-btn:hover {
+  background: #334155;
+  color: #FFFFFF;
+}
+
+.sheet-tab-btn {
+  background-color: #1E293B;
+  color: #CBD5E1;
+  padding: 3px 14px;
+  font-weight: bold;
+  border-radius: 4px 4px 0 0;
+  font-size: 12px;
+  border: 1px solid #334155;
+  border-bottom: 3px solid transparent;
+  font-family: 'Times New Roman', Times, serif;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  outline: none;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  height: 26px;
+}
+
+.sheet-tab-btn:hover {
+  filter: brightness(1.15);
+  color: #FFFFFF;
+}
+
+.sheet-tab-btn.active-tab {
+  background-color: #FFFFFF !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+  height: 28px;
+}
+
+/* ─── 10 DISTINCT TAB COLOR THEMES (EXACT EXCEL TAB COLORS) ────────────────── */
+/* 0. Total Downtime Report - Executive Gold / Navy */
+.sheet-tab-btn[data-tab="summary_downtime"] {
+  border-bottom: 3.5px solid #F59E0B !important;
+  background-color: #0F172A;
+  color: #FBBF24;
+}
+.sheet-tab-btn[data-tab="summary_downtime"]:hover {
+  background-color: #1E293B;
+  color: #FDE68A;
+}
+.sheet-tab-btn[data-tab="summary_downtime"].active-tab {
+  border-top: 3.5px solid #F59E0B !important;
+  color: #B45309 !important;
+  background-color: #FFFFFF !important;
+}
+
+/* 1. Fan Lathe - Royal Blue */
+.sheet-tab-btn[data-tab="fan_lathe"] {
+  border-bottom: 3.5px solid #0054A6 !important;
+}
+.sheet-tab-btn[data-tab="fan_lathe"]:hover {
+  background-color: #003366;
+}
+.sheet-tab-btn[data-tab="fan_lathe"].active-tab {
+  border-top: 3.5px solid #0054A6 !important;
+  color: #0054A6 !important;
+}
+
+/* 2. Fan Auto Powder Coating - Vibrant Purple */
+.sheet-tab-btn[data-tab="fan_powder"] {
+  border-bottom: 3.5px solid #8B5CF6 !important;
+}
+.sheet-tab-btn[data-tab="fan_powder"]:hover {
+  background-color: #6D28D9;
+}
+.sheet-tab-btn[data-tab="fan_powder"].active-tab {
+  border-top: 3.5px solid #8B5CF6 !important;
+  color: #6D28D9 !important;
+}
+
+/* 3. Fan Auto Die Casting - Emerald Green */
+.sheet-tab-btn[data-tab="fan_die_casting"] {
+  border-bottom: 3.5px solid #10B981 !important;
+}
+.sheet-tab-btn[data-tab="fan_die_casting"]:hover {
+  background-color: #047857;
+}
+.sheet-tab-btn[data-tab="fan_die_casting"].active-tab {
+  border-top: 3.5px solid #10B981 !important;
+  color: #047857 !important;
+}
+
+/* 4. Fan Power Press & Stamping - Amber Gold */
+.sheet-tab-btn[data-tab="fan_power_press"] {
+  border-bottom: 3.5px solid #F59E0B !important;
+}
+.sheet-tab-btn[data-tab="fan_power_press"]:hover {
+  background-color: #B45309;
+}
+.sheet-tab-btn[data-tab="fan_power_press"].active-tab {
+  border-top: 3.5px solid #F59E0B !important;
+  color: #B45309 !important;
+}
+
+/* 5. Fan Assemble - Bright Red */
+.sheet-tab-btn[data-tab="fan_assemble"] {
+  border-bottom: 3.5px solid #EF4444 !important;
+}
+.sheet-tab-btn[data-tab="fan_assemble"]:hover {
+  background-color: #B91C1C;
+}
+.sheet-tab-btn[data-tab="fan_assemble"].active-tab {
+  border-top: 3.5px solid #EF4444 !important;
+  color: #DC2626 !important;
+}
+
+/* 6. Fan Armature - Crimson Red */
+.sheet-tab-btn[data-tab="fan_armature"] {
+  border-bottom: 3.5px solid #DC2626 !important;
+}
+.sheet-tab-btn[data-tab="fan_armature"]:hover {
+  background-color: #991B1B;
+}
+.sheet-tab-btn[data-tab="fan_armature"].active-tab {
+  border-top: 3.5px solid #DC2626 !important;
+  color: #B91C1C !important;
+}
+
+/* 7. Fan Rechargeable - Cyan Teal */
+.sheet-tab-btn[data-tab="fan_rechargeable"] {
+  border-bottom: 3.5px solid #06B6D4 !important;
+}
+.sheet-tab-btn[data-tab="fan_rechargeable"]:hover {
+  background-color: #0E7490;
+}
+.sheet-tab-btn[data-tab="fan_rechargeable"].active-tab {
+  border-top: 3.5px solid #06B6D4 !important;
+  color: #0E7490 !important;
+}
+
+/* 8. Exhaust Fan - Cobalt Blue */
+.sheet-tab-btn[data-tab="exhaust_fan"] {
+  border-bottom: 3.5px solid #3B82F6 !important;
+}
+.sheet-tab-btn[data-tab="exhaust_fan"]:hover {
+  background-color: #1D4ED8;
+}
+.sheet-tab-btn[data-tab="exhaust_fan"].active-tab {
+  border-top: 3.5px solid #3B82F6 !important;
+  color: #1D4ED8 !important;
+}
+
+/* 9. Capacitor - Crimson Rose */
+.sheet-tab-btn[data-tab="capacitor"] {
+  border-bottom: 3.5px solid #F43F5E !important;
+}
+.sheet-tab-btn[data-tab="capacitor"]:hover {
+  background-color: #BE123C;
+}
+.sheet-tab-btn[data-tab="capacitor"].active-tab {
+  border-top: 3.5px solid #F43F5E !important;
+  color: #BE123C !important;
+}
+
+.status-stats-badge {
+  background: #1E293B;
+  color: #F8FAFC;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  font-size: 11.5px;
+  border: 1px solid #334155;
+  white-space: nowrap;
+}
+
+/* ─── FLOATING SEARCH DIALOG (Ctrl+F) ───────────────────────────────────────── */
+.floating-search-bar {
+  position: fixed;
+  top: 45px;
+  right: 25px;
+  z-index: 1500;
+  background: #FFFFFF;
+  border: 1px solid #64748B;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* ─── QUICK ROW ENTRY MODAL (Smart HUD) ─────────────────────────────────────── */
+.modal-backdrop-entry {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.quick-entry-card {
+  background: #FFFFFF;
+  border-radius: 10px;
+  max-width: 850px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  border: 1px solid #CBD5E1;
+  overflow: hidden;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.entry-header {
+  background: #003366;
+  color: #FFFFFF;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+}
+
+.entry-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.entry-input-field {
+  border: 1px solid #94A3B8;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 13.5px;
+  font-weight: bold;
+  width: 100%;
+  outline: none;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+.entry-input-field:focus {
+  border-color: #0054A6;
+  box-shadow: 0 0 0 2px rgba(0, 84, 166, 0.2);
+}
+
+.entry-dt-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.entry-dt-card:focus-within {
+  border-color: #9F72DE;
+  background: #FAF5FF;
+}
+
+/* Context Menu */
+.context-menu-box {
+  position: fixed;
+  z-index: 1000;
+  background-color: #FFFFFF;
+  border: 1px solid #94A3B8;
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  padding: 3px;
+  min-width: 160px;
+  font-size: 12px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.context-menu-row {
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #0F172A;
+  font-weight: bold;
+}
+.context-menu-row:hover {
+  background-color: #F1F5F9;
+  color: #DC2626;
+}
+
+/* Toast */
+.toast-msg-box {
+  position: fixed;
+  bottom: 32px;
+  right: 15px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.toast-msg {
+  background: #0F172A;
+  color: #FFFFFF;
+  border: 1px solid #334155;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   EXECUTIVE TOTAL DOWNTIME SUMMARY REPORT STYLING
+   ══════════════════════════════════════════════════════════════════════════════ */
+.summary-dept-cell {
+  background-color: #00AEEF !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  padding: 4px 8px !important;
+  white-space: nowrap;
+  font-size: 12px !important;
+  border: 1px solid #0077AA !important;
+}
+
+.summary-total-row th,
+.summary-total-row td {
+  background-color: #1E5128 !important;
+  color: #FFFFFF !important;
+  font-weight: bold !important;
+  text-align: right !important;
+  font-size: 12px !important;
+  padding: 4px 6px !important;
+  border: 1px solid #14361B !important;
+}
+
+.summary-total-row th.summary-total-title {
+  background-color: #1E5128 !important;
+  color: #FFFFFF !important;
+  text-align: center !important;
+  font-size: 13px !important;
+}
+
+.summary-data-cell {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: right !important;
+  padding: 4px 6px !important;
+  font-size: 12px !important;
+}
+
+.summary-highlight-cell {
+  background-color: #FDE8D0 !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: right !important;
+  padding: 4px 6px !important;
+  font-size: 12px !important;
+}
+
+.summary-kpi-cell {
+  background-color: #D1FAE5 !important;
+  color: #065F46 !important;
+  font-weight: bold !important;
+  text-align: right !important;
+  padding: 4px 6px !important;
+  font-size: 12px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PRODUCTION OUTPUT SUMMARY REPORT STYLING
+   ══════════════════════════════════════════════════════════════════════════════ */
+.sheet-tab-btn[data-tab="summary_production"] {
+  border-bottom-color: #3B82F6;
+  color: #3B82F6;
+  font-weight: bold;
+}
+.sheet-tab-btn[data-tab="summary_production"]:hover {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+}
+.sheet-tab-btn[data-tab="summary_production"].active-tab {
+  background-color: #3B82F6 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 -2px 0 #1D4ED8 inset;
+}
+
+.prod-output-section-cell {
+  background-color: #E8DDFE !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  padding: 5px 10px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+.prod-output-kpi-cell {
+  background-color: #9F72DE !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: right !important;
+  padding: 5px 8px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+.prod-output-total-cell {
+  background-color: #FFE699 !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: right !important;
+  padding: 6px 8px !important;
+  font-size: 13px !important;
+  border: 1px solid #64748B !important;
+}
+
+.prod-output-total-title {
+  background-color: #FFE699 !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  font-size: 13px !important;
+  border: 1px solid #64748B !important;
+}
+
+.prod-output-remarks-header {
+  background-color: #FF0000 !important;
+  color: #FFFFFF !important;
+  font-weight: bold !important;
+  font-size: 18px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  letter-spacing: 1px;
+  border: 1px solid #990000 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DOWNTIME & RUNNING TIME STATUS REPORT STYLING
+   ══════════════════════════════════════════════════════════════════════════════ */
+.sheet-tab-btn[data-tab="summary_status"] {
+  border-bottom-color: #10B981;
+  color: #10B981;
+  font-weight: bold;
+}
+.sheet-tab-btn[data-tab="summary_status"]:hover {
+  background-color: #10B981;
+  color: #FFFFFF;
+}
+.sheet-tab-btn[data-tab="summary_status"].active-tab {
+  background-color: #10B981 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 -2px 0 #059669 inset;
+}
+
+.status-header-cell {
+  background-color: #D5E8D4 !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 6px 4px !important;
+  font-size: 11.5px !important;
+  border: 1px solid #64748B !important;
+  line-height: 1.2;
+}
+
+.status-name-cell {
+  background-color: #E2EFDA !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  padding: 5px 12px !important;
+  font-size: 11.5px !important;
+  border: 1px solid #64748B !important;
+  white-space: nowrap;
+}
+
+.status-remarks-header {
+  background-color: #FF0000 !important;
+  color: #FFFFFF !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  letter-spacing: 0.5px;
+  border: 1px solid #990000 !important;
+}
+
+.status-subtotal-cell {
+  background-color: #E2E8F0 !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: right !important;
+  padding: 5px 8px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+.status-subtotal-title {
+  background-color: #E2E8F0 !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  padding-left: 8px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   OEE SUMMARY REPORT STYLING
+   ══════════════════════════════════════════════════════════════════════════════ */
+.sheet-tab-btn[data-tab="summary_oee"] {
+  border-bottom-color: #8B5CF6;
+  color: #8B5CF6;
+  font-weight: bold;
+}
+.sheet-tab-btn[data-tab="summary_oee"]:hover {
+  background-color: #8B5CF6;
+  color: #FFFFFF;
+}
+.sheet-tab-btn[data-tab="summary_oee"].active-tab {
+  background-color: #8B5CF6 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 -2px 0 #6D28D9 inset;
+}
+
+.oee-section-cell {
+  background-color: #B8A9EE !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  padding: 5px 10px !important;
+  font-size: 11.5px !important;
+  border: 1px solid #64748B !important;
+  white-space: nowrap;
+}
+
+.oee-total-cell {
+  background-color: #F8CBAD !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: right !important;
+  padding: 5px 8px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+.oee-total-title {
+  background-color: #F8CBAD !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  padding-left: 10px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+.oee-achievement-title {
+  background-color: #FCE4D6 !important;
+  color: #002060 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+  border: 2px solid #000000 !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  letter-spacing: 0.5px;
+}
+
+.oee-achievement-value {
+  background-color: #FCE4D6 !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 6px 12px !important;
+  font-size: 16px !important;
+  border: 2px solid #000000 !important;
+  font-family: 'Times New Roman', Times, serif !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SUMMARY OF OEE (ANNUAL 12-MONTH DASHBOARD) STYLING
+   ══════════════════════════════════════════════════════════════════════════════ */
+.sheet-tab-btn[data-tab="summary_oee_yearly"] {
+  border-bottom-color: #EA580C;
+  color: #EA580C;
+  font-weight: bold;
+}
+.sheet-tab-btn[data-tab="summary_oee_yearly"]:hover {
+  background-color: #EA580C;
+  color: #FFFFFF;
+}
+.sheet-tab-btn[data-tab="summary_oee_yearly"].active-tab {
+  background-color: #EA580C !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 -2px 0 #C2410C inset;
+}
+
+.yearly-month-cell {
+  background-color: #E0F2FE !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 6px 8px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+.yearly-detail-cell {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 4px 6px !important;
+  font-size: 11px !important;
+  border: 1px solid #64748B !important;
+}
+
+.yearly-kpi-cell {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 6px 4px !important;
+  font-size: 11.5px !important;
+  border: 1px solid #64748B !important;
+}
+
+.yearly-ach-cell {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 5px 6px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+.yearly-ach-highlight {
+  background-color: #38B6FF !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 5px 6px !important;
+  font-size: 12px !important;
+  border: 1px solid #64748B !important;
+}
+
+.yearly-remarks-cell {
+  background-color: #E0F2FE !important;
+  border: 1px solid #64748B !important;
+}
+
+.yearly-month-divider td {
+  border-bottom: 1.5px solid #000000 !important;
+}
+
+.yearly-gap-row {
+  height: 10px !important;
+}
+
+.yearly-gap-cell {
+  height: 10px !important;
+  background-color: #BFE2F7 !important;
+  border-top: 1.5px solid #000000 !important;
+  border-bottom: 1.5px solid #000000 !important;
+  border-left: 1.5px solid #000000 !important;
+  border-right: 1.5px solid #000000 !important;
+  padding: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ENTERPRISE SCADA / MES INDUSTRIAL LANDING PORTAL (CLEAN WHITE / LIGHT THEME)
+   ══════════════════════════════════════════════════════════════════════════════ */
+#loginPortal {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important;
+  background-color: #F1F5F9 !important;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.028) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.028) 1px, transparent 1px) !important;
+  background-size: 32px 32px !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* Zero-Flicker Pre-paint Display Control */
+html.user-authenticated #loginPortal {
+  display: none !important;
+}
+html.user-authenticated #appMainContainer {
+  display: flex !important;
+}
+html.user-unauthenticated #loginPortal {
+  display: flex !important;
+}
+html.user-unauthenticated #appMainContainer {
+  display: none !important;
+}
+
+#loginPortal.hidden {
+  display: none !important;
+}
+
+#pinModal {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 100000 !important;
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+#pinModal.hidden {
+  display: none !important;
+}
+
+.user-portal-card {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid #E4E8EF;
+  border-radius: 1rem;
+  padding: 1.5rem 1.15rem;
+  min-height: 510px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  user-select: none;
+}
+
+.user-portal-card:hover {
+  border-color: #3B82F6;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+}
+
+.card-icon-box {
+  width: 90px;
+  height: 90px;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.card-user-name {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.75px;
+  font-family: 'Inter', sans-serif;
+  color: #0F172A;
+  margin-bottom: 0.25rem;
+}
+
+.card-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  margin-bottom: 0.85rem;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Inter', sans-serif;
+}
+
+.card-permissions-table {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  text-align: left;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.perm-table-head {
+  padding: 0.35rem 0.65rem;
+  background: #F1F5F9;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.perm-table-row {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.68rem;
+  color: #334155;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.perm-table-row:last-child {
+  border-bottom: none;
+}
+
+.card-login-btn {
+  margin-top: auto;
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.card-login-btn:hover {
+  filter: brightness(0.95);
+}
+
+/* PIN Modal Dots */
+.pin-dot {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  border: 2px solid #CBD5E1;
+  background-color: transparent;
+}
+
+.pin-dot.active {
+  background-color: #2563EB;
+  border-color: #2563EB;
+}
+
+/* Numeric Keypad */
+.numpad-btn {
+  height: 3.25rem;
+  border-radius: 0.625rem;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  color: #0F172A;
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.numpad-btn:hover {
+  background: #2563EB;
+  border-color: #2563EB;
+  color: #FFFFFF !important;
+}
+
+.numpad-btn:active {
+  background: #1D4ED8;
+  color: #FFFFFF !important;
+}
+
+/* Print CSS */
+@media print {
+  body {
+    overflow: visible !important;
+    background-color: #FFFFFF !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .excel-viewport {
+    overflow: visible !important;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 4mm;
+  }
+}
