@@ -668,27 +668,28 @@ function applyUserLogin(user, showWelcome = true) {
 
   if (syncBtn) {
     if (CurrentUser.id === 'admin') {
-      syncBtn.className = 'px-3 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition border border-amber-300';
-      syncBtn.innerHTML = '<span id="syncSpinIcon" class="text-sm">📢</span><span>Publish Live Data</span>';
-      syncBtn.title = 'সব ডিপার্টমেন্টের ডাটা একত্রিত করে সবার জন্য লাইভ ব্রডকাস্ট করুন';
+      syncBtn.style.display = 'flex';
+      syncBtn.className = 'h-[44px] px-[20px] py-[10px] rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white border border-emerald-500 text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition';
+      syncBtn.innerHTML = '<span id="syncSpinIcon" class="text-sm inline-block">🟢</span><span>Publish</span>';
+      syncBtn.title = 'সব ডিপার্টমেন্টের ডাটা একত্রিত করে লাইভ পাবলিশ করুন';
     } else {
-      syncBtn.className = 'px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer transition border border-blue-400';
-      syncBtn.innerHTML = '<span id="syncSpinIcon" class="text-sm">🔄</span><span>Sync Cloud</span>';
-      syncBtn.title = 'ক্লাউড থেকে সর্বশেষ লাইভ ডাটা সিঙ্ক করুন';
+      syncBtn.style.display = 'none'; // Admin ছাড়া সব এন্ট্রি শিট ও ইউজারের জন্য বাটনটি সম্পূর্ণ বাদ
     }
   }
 
   if (CurrentUser.isReadOnly) {
     if (iconEl) iconEl.innerHTML = '👁️';
-    if (nameEl) nameEl.innerHTML = `<span class="text-amber-300 font-extrabold tracking-wide">VIEW ONLY (READ-ONLY)</span> <span class="text-slate-300 font-medium">• এডিটিং ও এক্সেল ডাউনলোড বন্ধ</span>`;
+    if (nameEl) nameEl.innerHTML = `<span class="text-amber-300 font-extrabold text-xs block tracking-wide">VIEW ONLY</span><span class="text-slate-300 text-[10px] font-medium block">Read-Only Mode</span>`;
     if (saveBtn) saveBtn.style.display = 'none';
     if (excelBtn) excelBtn.style.display = 'none';
     if (formulaInput) formulaInput.readOnly = true;
   } else {
     if (iconEl) {
-      iconEl.innerHTML = CurrentUser.svgIcon || CurrentUser.icon;
+      iconEl.innerHTML = CurrentUser.id === 'admin' ? '🛡️' : (CurrentUser.svgIcon || CurrentUser.icon);
     }
-    if (nameEl) nameEl.textContent = `${CurrentUser.name.toUpperCase()} (${CurrentUser.role})`;
+    if (nameEl) {
+      nameEl.innerHTML = `<span class="text-white font-black text-xs block tracking-wide">${CurrentUser.name.toUpperCase()}</span><span class="text-blue-200 text-[10px] font-medium block">${CurrentUser.role}</span>`;
+    }
     if (saveBtn) saveBtn.style.display = 'flex';
     if (excelBtn) excelBtn.style.display = 'flex';
     if (formulaInput) formulaInput.readOnly = false;
@@ -1047,16 +1048,18 @@ function updateCloudStatusUI(status, text) {
   const txt = document.getElementById('cloudStatusText');
   const autoSave = document.getElementById('autoSaveIndicator');
 
-  if (txt) txt.textContent = text || 'Cloud Sync';
   if (dot) {
     if (status === 'online' || status === 'synced') {
       dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      if (txt) txt.textContent = '🟢 LIVE';
       if (autoSave) autoSave.textContent = '🟢 Local + Cloud Live';
     } else if (status === 'syncing') {
       dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+      if (txt) txt.textContent = '⏳ SYNCING';
       if (autoSave) autoSave.textContent = '⏳ Syncing Cloud...';
     } else {
       dot.className = 'w-2 h-2 rounded-full bg-slate-400';
+      if (txt) txt.textContent = '⚫ OFFLINE';
       if (autoSave) autoSave.textContent = '💾 Local Saved';
     }
   }
@@ -2584,11 +2587,114 @@ function renderOEEReport(table) {
 }
 
 // ─── YEARLY OEE SUMMARY CALCULATOR (ALL 12 MONTHS) ───────────────────────────
+// ─── FIXED PERMANENT HISTORICAL 2026 OEE SUMMARY DATA (JANUARY TO JULY 2026) ─
+const FIXED_YEARLY_OEE_2026 = {
+  0: { // January
+    monthName: 'January',
+    capacityPcs: 1124393,
+    totalProduction: 611910,
+    rejectionPcs: 2815.9,
+    achievement: 0.544,
+    availability: 0.74,
+    performance: 0.75,
+    quality: 0.99,
+    oee: 0.60
+  },
+  1: { // February
+    monthName: 'February',
+    capacityPcs: 618970,
+    totalProduction: 370274,
+    rejectionPcs: 1779,
+    achievement: 0.598,
+    availability: 0.73,
+    performance: 0.79,
+    quality: 0.99,
+    oee: 0.61
+  },
+  2: { // March
+    monthName: 'March',
+    capacityPcs: 609528,
+    totalProduction: 281886,
+    rejectionPcs: 1055,
+    achievement: 0.462,
+    availability: 0.57,
+    performance: 0.66,
+    quality: 1.00,
+    oee: 0.42
+  },
+  3: { // April
+    monthName: 'April',
+    capacityPcs: 1111210,
+    totalProduction: 677516,
+    rejectionPcs: 2648,
+    achievement: 0.610,
+    availability: 0.76,
+    performance: 0.73,
+    quality: 1.00,
+    oee: 0.58
+  },
+  4: { // May
+    monthName: 'May',
+    capacityPcs: 30000,
+    totalProduction: 30088,
+    rejectionPcs: 579,
+    achievement: 1.003,
+    availability: 0.89,
+    performance: 0.99,
+    quality: 0.987,
+    oee: 0.87
+  },
+  5: { // Jun
+    monthName: 'Jun',
+    capacityPcs: 211140,
+    totalProduction: 207640,
+    rejectionPcs: 802,
+    achievement: 0.983,
+    availability: 0.94,
+    performance: 0.98,
+    quality: 0.995,
+    oee: 0.92
+  },
+  6: { // July
+    monthName: 'July',
+    capacityPcs: 146537,
+    totalProduction: 144720,
+    rejectionPcs: 476,
+    achievement: 0.988,
+    availability: 0.93,
+    performance: 0.97,
+    quality: 0.990,
+    oee: 0.90
+  }
+};
+
+// ─── YEARLY OEE SUMMARY CALCULATOR (ALL 12 MONTHS) ───────────────────────────
 function getYearlyOEESummary(year) {
   const monthNames = MonthYearState.monthNames;
   const yearlyData = [];
 
   for (let m = 0; m < 12; m++) {
+    // If year 2026 and month is Jan-Jul (m <= 6), use the fixed permanent historical company data!
+    if (year === 2026 && FIXED_YEARLY_OEE_2026[m]) {
+      const fixed = FIXED_YEARLY_OEE_2026[m];
+      yearlyData.push({
+        monthIndex: m,
+        monthName: fixed.monthName || monthNames[m],
+        capacityPcs: fixed.capacityPcs,
+        totalProduction: fixed.totalProduction,
+        rejectionPcs: fixed.rejectionPcs,
+        plannedTimeMins: 0,
+        runTimeMins: 0,
+        availability: fixed.availability,
+        performance: fixed.performance,
+        quality: fixed.quality,
+        oee: fixed.oee,
+        achievement: fixed.achievement,
+        isFixed: true
+      });
+      continue;
+    }
+
     let grandCap = 0;
     let grandProd = 0;
     let grandRej = 0;
@@ -2622,7 +2728,8 @@ function getYearlyOEESummary(year) {
       performance,
       quality,
       oee,
-      achievement
+      achievement,
+      isFixed: false
     });
   }
 
@@ -2714,72 +2821,82 @@ function renderYearlyOEESummaryReport(table) {
   const tbody = document.createElement('tbody');
 
   yearlyData.forEach((m, idx) => {
+    const isRunningMonth = (idx === MonthYearState.monthIndex);
+
     // Row 1: Total
     const trA = document.createElement('tr');
+    if (isRunningMonth) {
+      trA.className = 'yearly-running-month-row';
+    }
 
     // Col 1: Month (rowSpan 2)
     const tdMonth = document.createElement('td');
     tdMonth.rowSpan = 2;
-    tdMonth.className = 'yearly-month-cell';
+    tdMonth.className = isRunningMonth ? 'yearly-month-cell running-month-active' : 'yearly-month-cell';
     tdMonth.textContent = m.monthName;
     trA.appendChild(tdMonth);
 
     // Col 2: Detail
     const tdDetailA = document.createElement('td');
-    tdDetailA.className = 'yearly-detail-cell';
+    tdDetailA.className = isRunningMonth ? 'yearly-detail-cell running-month-detail' : 'yearly-detail-cell';
     tdDetailA.textContent = 'Total';
     trA.appendChild(tdDetailA);
 
     // Col 3: Machine Capacity
     const tdCap = document.createElement('td');
-    tdCap.className = 'summary-data-cell';
+    tdCap.className = isRunningMonth ? 'summary-data-cell running-month-data font-mono font-bold' : 'summary-data-cell font-mono';
     tdCap.textContent = m.capacityPcs > 0 ? m.capacityPcs.toLocaleString() : '-';
     trA.appendChild(tdCap);
 
     // Col 4: Total Production
     const tdProd = document.createElement('td');
-    tdProd.className = 'summary-data-cell';
+    tdProd.className = isRunningMonth ? 'summary-data-cell running-month-data font-mono font-bold' : 'summary-data-cell font-mono';
     tdProd.textContent = m.totalProduction > 0 ? m.totalProduction.toLocaleString() : '-';
     trA.appendChild(tdProd);
 
     // Col 5: Rejection
     const tdRej = document.createElement('td');
-    tdRej.className = 'summary-data-cell';
+    tdRej.className = isRunningMonth ? 'summary-data-cell running-month-data font-mono font-bold' : 'summary-data-cell font-mono';
     tdRej.textContent = m.rejectionPcs > 0 ? (m.rejectionPcs % 1 !== 0 ? m.rejectionPcs.toFixed(1) : m.rejectionPcs.toLocaleString()) : '0';
     trA.appendChild(tdRej);
 
     // Col 6: Availability (rowSpan 2)
     const tdAvail = document.createElement('td');
     tdAvail.rowSpan = 2;
-    tdAvail.className = 'yearly-kpi-cell font-bold';
-    tdAvail.textContent = m.capacityPcs > 0 || m.plannedTimeMins > 0 ? `${(m.availability * 100).toFixed(0)}%` : '-';
+    tdAvail.className = isRunningMonth ? 'yearly-kpi-cell running-month-kpi font-bold font-mono' : 'yearly-kpi-cell font-bold font-mono';
+    tdAvail.textContent = m.capacityPcs > 0 || m.plannedTimeMins > 0 || m.isFixed ? `${(m.availability * 100).toFixed(0)}%` : '-';
     trA.appendChild(tdAvail);
 
     // Col 7: Performance (rowSpan 2)
     const tdPerf = document.createElement('td');
     tdPerf.rowSpan = 2;
-    tdPerf.className = 'yearly-kpi-cell font-bold';
-    tdPerf.textContent = m.capacityPcs > 0 ? `${(m.performance * 100).toFixed(0)}%` : '-';
+    tdPerf.className = isRunningMonth ? 'yearly-kpi-cell running-month-kpi font-bold font-mono' : 'yearly-kpi-cell font-bold font-mono';
+    tdPerf.textContent = m.capacityPcs > 0 || m.isFixed ? `${(m.performance * 100).toFixed(0)}%` : '-';
     trA.appendChild(tdPerf);
 
     // Col 8: Quality (rowSpan 2)
     const tdQual = document.createElement('td');
     tdQual.rowSpan = 2;
-    tdQual.className = 'yearly-kpi-cell font-bold';
-    tdQual.textContent = m.totalProduction > 0 ? `${(m.quality * 100).toFixed(m.quality >= 0.999 ? 0 : 1)}%` : '-';
+    tdQual.className = isRunningMonth ? 'yearly-kpi-cell running-month-kpi font-bold font-mono' : 'yearly-kpi-cell font-bold font-mono';
+    if (m.isFixed && m.quality !== undefined) {
+      const qVal = m.quality * 100;
+      tdQual.textContent = `${qVal.toFixed(qVal % 1 !== 0 ? 1 : 0)}%`;
+    } else {
+      tdQual.textContent = m.totalProduction > 0 ? `${(m.quality * 100).toFixed(m.quality >= 0.999 ? 0 : 1)}%` : '-';
+    }
     trA.appendChild(tdQual);
 
     // Col 9: OEE (rowSpan 2)
     const tdOEE = document.createElement('td');
     tdOEE.rowSpan = 2;
-    tdOEE.className = 'yearly-kpi-cell font-bold';
-    tdOEE.textContent = m.capacityPcs > 0 ? `${(m.oee * 100).toFixed(0)}%` : '-';
+    tdOEE.className = isRunningMonth ? 'yearly-kpi-cell running-month-kpi font-bold font-mono' : 'yearly-kpi-cell font-bold font-mono';
+    tdOEE.textContent = m.capacityPcs > 0 || m.isFixed ? `${(m.oee * 100).toFixed(0)}%` : '-';
     trA.appendChild(tdOEE);
 
     // Col 10: Remark's (rowSpan 2)
     const tdRem = document.createElement('td');
     tdRem.rowSpan = 2;
-    tdRem.className = 'yearly-remarks-cell';
+    tdRem.className = isRunningMonth ? 'yearly-remarks-cell running-month-data' : 'yearly-remarks-cell';
     tdRem.textContent = '';
     trA.appendChild(tdRem);
 
@@ -2787,11 +2904,11 @@ function renderYearlyOEESummaryReport(table) {
 
     // Row 2: Total Acheivement (%)
     const trB = document.createElement('tr');
-    trB.className = 'yearly-month-divider';
+    trB.className = isRunningMonth ? 'yearly-month-divider yearly-running-month-row-b' : 'yearly-month-divider';
 
     // Col 2: Detail
     const tdDetailB = document.createElement('td');
-    tdDetailB.className = 'yearly-detail-cell';
+    tdDetailB.className = isRunningMonth ? 'yearly-detail-cell running-month-detail font-bold' : 'yearly-detail-cell';
     tdDetailB.textContent = 'Total Acheivement (%)';
     trB.appendChild(tdDetailB);
 
@@ -2799,8 +2916,12 @@ function renderYearlyOEESummaryReport(table) {
     const tdAch = document.createElement('td');
     tdAch.colSpan = 3;
     const isHighlight = m.achievement >= 0.95 && m.capacityPcs > 0;
-    tdAch.className = isHighlight ? 'yearly-ach-highlight' : 'yearly-ach-cell';
-    tdAch.textContent = m.capacityPcs > 0 ? `${(m.achievement * 100).toFixed(1)}%` : '-';
+    if (isRunningMonth) {
+      tdAch.className = 'yearly-ach-cell running-month-ach';
+    } else {
+      tdAch.className = isHighlight ? 'yearly-ach-highlight font-mono' : 'yearly-ach-cell font-mono';
+    }
+    tdAch.textContent = m.capacityPcs > 0 || m.isFixed ? `${(m.achievement * 100).toFixed(1)}%` : '-';
     trB.appendChild(tdAch);
 
     tbody.appendChild(trB);
@@ -2904,6 +3025,7 @@ function renderExcelTable() {
 
   EXCEL_COLUMNS.forEach(c => {
     const th = document.createElement('th');
+    th.title = c.label;
 
     // Horizontal / Upright headers up to Machine Name (Cols A, B, C, D)
     if (['A', 'B', 'C', 'D'].includes(c.col)) {
@@ -2997,16 +3119,27 @@ function renderExcelTable() {
     EXCEL_COLUMNS.forEach((colDef, cIdx) => {
       const colLetter = colDef.col;
       const isTimeCol = TIME_COLUMNS.includes(colLetter);
+      const isDateDayShiftCol = ['A', 'B', 'C'].includes(colLetter);
 
       // If slave row in a merged time group, skip rendering the time columns!
       if (isTimeCol && groupInfo.isSlave) {
         return;
       }
 
+      // Merge Date (A), Day (B), Shift (C) for all machines on the same day
+      if (isDateDayShiftCol && mIdx > 0) {
+        return; // Skip rendering in secondary machine rows of the same day
+      }
+
       const td = document.createElement('td');
       td.dataset.row = r;
       td.dataset.col = colLetter;
       td.dataset.cidx = cIdx;
+
+      if (isDateDayShiftCol && mIdx === 0 && rowsPerDay > 1) {
+        td.rowSpan = rowsPerDay;
+        td.style.verticalAlign = 'middle';
+      }
 
       if (isTimeCol && groupInfo.isMaster && groupInfo.count > 1) {
         td.rowSpan = groupInfo.count;
@@ -3015,6 +3148,8 @@ function renderExcelTable() {
 
       if (colDef.isReadOnly) {
         td.className = 'cell-readonly-fixed';
+      } else if (colLetter === 'J') {
+        td.className = 'cell-formula-runtime';
       } else if (colDef.isDt) {
         td.className = 'cell-downtime';
       } else if (colLetter === 'AH') {
@@ -3023,6 +3158,10 @@ function renderExcelTable() {
         td.className = 'cell-kpi';
       } else {
         td.className = 'cell-white';
+      }
+
+      if (isDateDayShiftCol || isDayEnd || (isTimeCol && groupInfo.isMaster && (mIdx + groupInfo.count >= rowsPerDay))) {
+        td.classList.add('cell-day-end-border');
       }
 
       const cellVal = rowObj[colLetter]?.val;
@@ -3041,7 +3180,7 @@ function renderExcelTable() {
       if (!locked) {
         td.addEventListener('mousedown', (e) => {
           if (e.button === 0) {
-            onCellMouseDown(colLetter, r);
+            onCellMouseDown(colLetter, r, e);
           }
         });
 
@@ -3094,7 +3233,7 @@ function formatCellValue(val, colDef, isTotalRow = false) {
 }
 
 // ─── CELL SELECTION, RANGE SELECTION & STATS ──────────────────────────────────
-function selectCell(colLetter, rowNum) {
+function selectCell(colLetter, rowNum, resetRange = true) {
   if (ACTIVE_TAB === 'summary_downtime' || ACTIVE_TAB === 'summary_production') return;
   if (isRowLocked(rowNum)) return;
 
@@ -3104,7 +3243,12 @@ function selectCell(colLetter, rowNum) {
 
   clearSelectionStyles();
 
-  const targetTd = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${rowNum}"]`);
+  let targetTd = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${rowNum}"]`);
+  if (!targetTd && ['A', 'B', 'C'].includes(colLetter)) {
+    const rowsPerDay = getRowsPerDay();
+    const masterRow = rowNum - ((rowNum - 6) % rowsPerDay);
+    targetTd = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${masterRow}"]`);
+  }
   if (!targetTd) return;
 
   targetTd.classList.add('selected-cell');
@@ -3119,7 +3263,9 @@ function selectCell(colLetter, rowNum) {
   }
 
   SheetState.selected = { row: rowNum, colLetter: colLetter, element: targetTd };
-  SheetState.rangeSelection = { start: { col: colLetter, row: rowNum }, end: { col: colLetter, row: rowNum } };
+  if (resetRange) {
+    SheetState.rangeSelection = { start: { col: colLetter, row: rowNum }, end: { col: colLetter, row: rowNum } };
+  }
 
   // Update Name Box
   const nameBox = document.getElementById('activeCellAddress');
@@ -3157,33 +3303,50 @@ function clearSelectionStyles() {
   });
 }
 
-function onCellMouseDown(colLetter, rowNum) {
-  if (isRowLocked(rowNum)) return;
-  SheetState.rangeSelection.isSelecting = true;
-  selectCell(colLetter, rowNum);
+function onCellMouseDown(colLetter, rowNum, e) {
+  if (isRowLocked(rowNum) || rowNum === 5) return;
+
+  if (e && e.shiftKey && SheetState.selected) {
+    if (e.preventDefault) e.preventDefault();
+    SheetState.rangeSelection.start = { col: SheetState.selected.colLetter, row: SheetState.selected.row };
+    SheetState.rangeSelection.end = { col: colLetter, row: rowNum };
+    highlightSelectedRange();
+    return;
+  }
+
+  if (e && e.preventDefault) e.preventDefault();
+
+  // Remove copied border animation on new selection
+  document.querySelectorAll('.mep-excel-table td.excel-copied-cell').forEach(td => td.classList.remove('excel-copied-cell'));
+
+  SheetState.isSelecting = true;
+  SheetState.rangeSelection = { start: { col: colLetter, row: rowNum }, end: { col: colLetter, row: rowNum } };
+  selectCell(colLetter, rowNum, false);
 }
 
 function onCellMouseEnter(colLetter, rowNum) {
-  if (isRowLocked(rowNum) || !SheetState.rangeSelection.isSelecting) return;
+  if (!SheetState.isSelecting || isRowLocked(rowNum) || rowNum === 5) return;
   SheetState.rangeSelection.end = { col: colLetter, row: rowNum };
   highlightSelectedRange();
 }
 
 document.addEventListener('mouseup', () => {
-  if (SheetState.rangeSelection.isSelecting) {
-    SheetState.rangeSelection.isSelecting = false;
+  if (SheetState.isSelecting) {
+    SheetState.isSelecting = false;
     updateRangeStats();
   }
 });
 
 function highlightSelectedRange() {
-  const start = SheetState.rangeSelection.start;
-  const end = SheetState.rangeSelection.end;
+  const start = SheetState.rangeSelection?.start;
+  const end = SheetState.rangeSelection?.end;
   if (!start || !end) return;
 
   const maxActive = getMaxActiveRow();
   const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
   const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
+  if (startCIdx === -1 || endCIdx === -1) return;
+
   const minC = Math.min(startCIdx, endCIdx);
   const maxC = Math.max(startCIdx, endCIdx);
   const minR = Math.min(start.row, end.row);
@@ -3192,10 +3355,10 @@ function highlightSelectedRange() {
   document.querySelectorAll('.mep-excel-table td.in-range-selection').forEach(td => td.classList.remove('in-range-selection'));
 
   for (let r = minR; r <= maxR; r++) {
-    if (isRowLocked(r)) continue;
+    if (isRowLocked(r) || r === 5) continue;
     for (let c = minC; c <= maxC; c++) {
       const colLetter = EXCEL_COLUMNS[c].col;
-      const td = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${r}"]`);
+      const td = document.querySelector(`.mep-excel-table td[data-col="${colLetter}"][data-row="${r}"]`);
       if (td && !td.classList.contains('selected-cell')) {
         td.classList.add('in-range-selection');
       }
@@ -3207,11 +3370,16 @@ function highlightSelectedRange() {
 
 function updateRangeStats(minR, maxR, minC, maxC) {
   if (minR === undefined) {
-    const cur = SheetState.selected;
-    if (!cur) return;
-    minR = maxR = cur.row;
-    const cIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
-    minC = maxC = cIdx;
+    const start = SheetState.rangeSelection.start || SheetState.selected;
+    const end = SheetState.rangeSelection.end || SheetState.selected;
+    if (!start || !end) return;
+
+    const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
+    const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
+    minC = Math.min(startCIdx, endCIdx);
+    maxC = Math.max(startCIdx, endCIdx);
+    minR = Math.min(start.row, end.row);
+    maxR = Math.min(Math.max(start.row, end.row), getMaxActiveRow());
   }
 
   let count = 0;
@@ -3232,7 +3400,7 @@ function updateRangeStats(minR, maxR, minC, maxC) {
     }
   }
 
-  const avg = numCount > 0 ? (sum / numCount).toFixed(1) : 0;
+  const avg = numCount > 0 ? (sum / numCount).toFixed(numCount > 1 ? 1 : 0) : 0;
 
   setText('statCount', `COUNT: ${count}`);
   setText('statSum', `SUM: ${sum.toLocaleString()}`);
@@ -3341,13 +3509,26 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
   const rowObj = SheetState.rows.find(r => r.row === rowNum);
   const currentVal = rowObj ? (rowObj[colLetter]?.val ?? '') : td.textContent.trim();
 
-  const input = document.createElement('input');
-  input.type = 'text';
-  if (colLetter !== 'AM') input.inputMode = 'numeric';
-  input.value = initialChar !== null ? initialChar : currentVal;
-  input.className = 'cell-edit-input';
+  let input;
+  if (colLetter === 'AM') {
+    input = document.createElement('textarea');
+    input.rows = 1;
+    input.value = initialChar !== null ? initialChar : currentVal;
+    input.className = 'cell-edit-input-remarks';
 
-  if (colLetter !== 'AM') {
+    const autoGrow = () => {
+      input.style.height = 'auto';
+      input.style.height = Math.max(26, input.scrollHeight) + 'px';
+    };
+    input.addEventListener('input', autoGrow);
+    setTimeout(autoGrow, 0);
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.value = initialChar !== null ? initialChar : currentVal;
+    input.className = 'cell-edit-input';
+
     input.addEventListener('keydown', (e) => {
       if (['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
         return;
@@ -3719,10 +3900,10 @@ function cycleSearch(next = true) {
   selectCell(match.col, match.row);
 }
 
-// ─── CLIPBOARD COPY & PASTE ───────────────────────────────────────────────────
+// ─── CLIPBOARD COPY & PASTE (EXACT EXCEL BEHAVIOR) ───────────────────────────
 function handleClipboardCopy() {
-  const start = SheetState.rangeSelection.start;
-  const end = SheetState.rangeSelection.end;
+  const start = SheetState.rangeSelection.start || SheetState.selected;
+  const end = SheetState.rangeSelection.end || SheetState.selected;
   if (!start || !end) return;
 
   const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
@@ -3733,63 +3914,157 @@ function handleClipboardCopy() {
   const maxR = Math.max(start.row, end.row);
 
   const lines = [];
+  document.querySelectorAll('.mep-excel-table td.excel-copied-cell').forEach(td => td.classList.remove('excel-copied-cell'));
+
   for (let r = minR; r <= maxR; r++) {
     const rowObj = SheetState.rows.find(row => row.row === r);
     const lineVals = [];
     for (let c = minC; c <= maxC; c++) {
       const colLetter = EXCEL_COLUMNS[c].col;
       const v = rowObj ? (rowObj[colLetter]?.val ?? '') : (r === 5 ? SheetState.totals[colLetter] : '');
-      lineVals.push(v);
+      lineVals.push(v !== null && v !== undefined ? v : '');
+
+      const td = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${r}"]`);
+      if (td) td.classList.add('excel-copied-cell');
     }
     lines.push(lineVals.join('\t'));
   }
 
   const tsv = lines.join('\n');
-  navigator.clipboard?.writeText(tsv);
-  showToast('📋 Copied cells to clipboard', 'info');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(tsv).then(() => {
+      showToast(`📋 Copied ${maxR - minR + 1} × ${maxC - minC + 1} cells`, 'info');
+    }).catch(() => {
+      fallbackCopyText(tsv);
+    });
+  } else {
+    fallbackCopyText(tsv);
+  }
+}
+
+function fallbackCopyText(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast('📋 Copied cells to clipboard', 'info');
+  } catch (err) {}
+  document.body.removeChild(textarea);
 }
 
 function handleClipboardPaste(text) {
+  if (!text) return;
   const cur = SheetState.selected;
   if (!cur || cur.row === 5 || isRowLocked(cur.row)) return;
 
   pushHistoryState();
 
   const lines = text.split(/\r\n|\n|\r/).filter(l => l.length > 0);
-  const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
+  if (lines.length === 0) return;
+
+  const start = SheetState.rangeSelection.start || cur;
+  const end = SheetState.rangeSelection.end || cur;
+  const minR = Math.min(start.row, end.row);
+  const maxR = Math.min(Math.max(start.row, end.row), getMaxActiveRow());
+  const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === (start.col || cur.colLetter));
+  const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === (end.col || cur.colLetter));
+  const minC = Math.min(startCIdx, endCIdx);
+  const maxC = Math.max(startCIdx, endCIdx);
+
+  const isSingleCellCopied = (lines.length === 1 && !lines[0].includes('\t'));
+  const isMultiCellRangeSelected = (minR !== maxR || minC !== maxC);
+
+  // If copying 1 single value and multi-cells are selected -> Fill the entire range (Same as Excel!)
+  if (isSingleCellCopied && isMultiCellRangeSelected) {
+    const singleVal = lines[0].trim();
+    let modifiedCount = 0;
+    const affectedRows = new Set();
+
+    for (let r = minR; r <= maxR; r++) {
+      if (r === 5 || isRowLocked(r)) continue;
+      const rowObj = SheetState.rows.find(row => row.row === r);
+      if (!rowObj) continue;
+
+      let rowModified = false;
+      for (let c = minC; c <= maxC; c++) {
+        const colDef = EXCEL_COLUMNS[c];
+        if (colDef.isReadOnly || colDef.isFormula) continue;
+        if (!rowObj[colDef.col]) rowObj[colDef.col] = {};
+
+        if (colDef.col === 'AM') {
+          rowObj[colDef.col].val = singleVal;
+        } else {
+          rowObj[colDef.col].val = sanitizeNumericValue(singleVal);
+        }
+        rowModified = true;
+        modifiedCount++;
+      }
+      if (rowModified) {
+        recalculateRow(rowObj);
+        affectedRows.add(r);
+      }
+    }
+
+    if (modifiedCount > 0) {
+      recalculateTotalRow();
+      saveSheetData(false);
+      affectedRows.forEach(r => updateSingleRowDisplay(r));
+      updateTotalRowDisplay();
+      highlightSelectedRange();
+      showToast(`📄 Pasted into ${modifiedCount} cells`, 'success');
+    }
+    return;
+  }
+
+  // Multi-cell grid paste
   const maxActive = getMaxActiveRow();
+  const affectedRows = new Set();
+  let modifiedCount = 0;
 
   lines.forEach((line, rOffset) => {
-    const targetRow = cur.row + rOffset;
+    const targetRow = (isMultiCellRangeSelected ? minR : cur.row) + rOffset;
     if (targetRow > maxActive || isRowLocked(targetRow) || targetRow === 5) return;
     const rowObj = SheetState.rows.find(r => r.row === targetRow);
     if (!rowObj) return;
 
     const values = line.split('\t');
+    let rowModified = false;
     values.forEach((val, cOffset) => {
-      const targetCIdx = startCIdx + cOffset;
+      const targetCIdx = (isMultiCellRangeSelected ? minC : startCIdx) + cOffset;
       if (targetCIdx >= EXCEL_COLUMNS.length) return;
       const colDef = EXCEL_COLUMNS[targetCIdx];
       if (colDef.isFormula || colDef.isReadOnly) return;
 
       const trimmed = val.trim();
       if (!rowObj[colDef.col]) rowObj[colDef.col] = {};
-      
+
       if (colDef.col === 'AM') {
         rowObj[colDef.col].val = trimmed;
       } else {
         rowObj[colDef.col].val = sanitizeNumericValue(trimmed);
       }
+      rowModified = true;
+      modifiedCount++;
     });
 
-    recalculateRow(rowObj);
+    if (rowModified) {
+      recalculateRow(rowObj);
+      affectedRows.add(targetRow);
+    }
   });
 
-  recalculateTotalRow();
-  saveSheetData(false);
-  renderExcelTable();
-  selectCell(cur.colLetter, cur.row);
-  showToast('📄 Pasted cells', 'success');
+  if (modifiedCount > 0) {
+    recalculateTotalRow();
+    saveSheetData(false);
+    affectedRows.forEach(r => updateSingleRowDisplay(r));
+    updateTotalRowDisplay();
+    highlightSelectedRange();
+    showToast(`📄 Pasted ${modifiedCount} cells`, 'success');
+  }
 }
 
 // ─── MULTI-CELL RANGE DELETE / CLEAR (EXCEL-LIKE BULK DELETE) ──────────────────
@@ -3803,29 +4078,16 @@ function deleteSelectedRange(setZero = false) {
     return;
   }
 
-  const start = SheetState.rangeSelection.start;
-  const end = SheetState.rangeSelection.end;
-  const cur = SheetState.selected;
+  const start = SheetState.rangeSelection.start || SheetState.selected;
+  const end = SheetState.rangeSelection.end || SheetState.selected;
+  if (!start || !end) return;
 
-  let minR, maxR, minC, maxC;
-
-  if (start && end) {
-    const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
-    const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
-    minC = Math.min(startCIdx, endCIdx);
-    maxC = Math.max(startCIdx, endCIdx);
-    minR = Math.min(start.row, end.row);
-    maxR = Math.max(start.row, end.row);
-  } else if (cur) {
-    const cIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
-    minC = maxC = cIdx;
-    minR = maxR = cur.row;
-  } else {
-    return;
-  }
-
-  const maxActive = getMaxActiveRow();
-  maxR = Math.min(maxR, maxActive);
+  const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
+  const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
+  const minC = Math.min(startCIdx, endCIdx);
+  const maxC = Math.max(startCIdx, endCIdx);
+  const minR = Math.min(start.row, end.row);
+  const maxR = Math.min(Math.max(start.row, end.row), getMaxActiveRow());
 
   pushHistoryState();
 
@@ -3869,8 +4131,8 @@ function deleteSelectedRange(setZero = false) {
     // Re-highlight the range selection
     highlightSelectedRange();
 
-    const actionText = setZero ? '0 সেট' : 'ডিলেট';
-    showToast(`🧹 ${modifiedCount}টি সেলের ডাটা সফলভাবে ${actionText} করা হয়েছে!`, 'info');
+    const actionText = setZero ? '0 সেট' : 'মুছে ফেলা';
+    showToast(`🧹 ${modifiedCount}টি সেলের ডাটা সফলভাবে ${actionText} হয়েছে!`, 'info');
   }
 }
 
@@ -4145,10 +4407,10 @@ async function exportExcelFile() {
           // Header Borders & Fill Styles
           const skyHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7EC8E3' } };
           const borderThin = {
-            top: { style: 'thin', color: { argb: 'FF475569' } },
-            left: { style: 'thin', color: { argb: 'FF475569' } },
-            bottom: { style: 'thin', color: { argb: 'FF475569' } },
-            right: { style: 'thin', color: { argb: 'FF475569' } }
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
 
           // Row 3 & 4: Merged Header Layout
@@ -4295,10 +4557,10 @@ async function exportExcelFile() {
           rTotal.height = 22;
           const yellowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE699' } };
           const borderThickBottom = {
-            top: { style: 'thin', color: { argb: 'FF475569' } },
-            left: { style: 'thin', color: { argb: 'FF475569' } },
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
             bottom: { style: 'medium', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF475569' } }
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
 
           const cTotTitle = rTotal.getCell(1);
@@ -4393,10 +4655,10 @@ async function exportExcelFile() {
           // Header Styles (Sage Green)
           const sageHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD5E8D4' } };
           const borderThin = {
-            top: { style: 'thin', color: { argb: 'FF475569' } },
-            left: { style: 'thin', color: { argb: 'FF475569' } },
-            bottom: { style: 'thin', color: { argb: 'FF475569' } },
-            right: { style: 'thin', color: { argb: 'FF475569' } }
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
 
           // Row 3: Headers
@@ -4489,10 +4751,10 @@ async function exportExcelFile() {
           rTotal.height = 22;
           const subtotalFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
           const borderThickBottom = {
-            top: { style: 'thin', color: { argb: 'FF475569' } },
-            left: { style: 'thin', color: { argb: 'FF475569' } },
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
             bottom: { style: 'medium', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF475569' } }
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
 
           const cTotTitle = rTotal.getCell(1);
@@ -4589,10 +4851,10 @@ async function exportExcelFile() {
           // Header Styles
           const skyHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7EC8E3' } };
           const borderThin = {
-            top: { style: 'thin', color: { argb: 'FF475569' } },
-            left: { style: 'thin', color: { argb: 'FF475569' } },
-            bottom: { style: 'thin', color: { argb: 'FF475569' } },
-            right: { style: 'thin', color: { argb: 'FF475569' } }
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
 
           // Row 3 & 4: Merged Header Layout
@@ -4769,10 +5031,10 @@ async function exportExcelFile() {
           rTotal.height = 22;
           const peachFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8CBAD' } };
           const borderThickBottom = {
-            top: { style: 'thin', color: { argb: 'FF475569' } },
-            left: { style: 'thin', color: { argb: 'FF475569' } },
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
             bottom: { style: 'medium', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF475569' } }
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
 
           const cTotTitle = rTotal.getCell(1);
@@ -4891,10 +5153,10 @@ async function exportExcelFile() {
           // Header Styles
           const skyHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7EC8E3' } };
           const borderThin = {
-            top: { style: 'thin', color: { argb: 'FF475569' } },
-            left: { style: 'thin', color: { argb: 'FF475569' } },
-            bottom: { style: 'thin', color: { argb: 'FF475569' } },
-            right: { style: 'thin', color: { argb: 'FF475569' } }
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
 
           // Row 3 & 4: Merged Header Layout
@@ -5005,10 +5267,10 @@ async function exportExcelFile() {
             row2.height = 20;
 
             const borderMonthDivider = {
-              top: { style: 'thin', color: { argb: 'FF475569' } },
-              left: { style: 'thin', color: { argb: 'FF475569' } },
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
               bottom: { style: 'medium', color: { argb: 'FF000000' } },
-              right: { style: 'thin', color: { argb: 'FF475569' } }
+              right: { style: 'thin', color: { argb: 'FF000000' } }
             };
 
             // Col 1: Month (merge row1:row2)
@@ -5021,7 +5283,7 @@ async function exportExcelFile() {
             cMonth.border = borderMonthDivider;
             wsYearly.getCell(`A${row2Num}`).border = borderMonthDivider;
 
-            const hasData = (m.capacityPcs > 0 || m.totalProduction > 0);
+            const hasData = (m.capacityPcs > 0 || m.totalProduction > 0 || m.isFixed);
 
             // Row 1: Total
             const cDet1 = row1.getCell(2);
@@ -5216,10 +5478,10 @@ async function exportExcelFile() {
         // Row 4: 39 Column Headers
         ws.getRow(4).height = 105;
         const borderThin = {
-          top: { style: 'thin', color: { argb: 'FF475569' } },
-          left: { style: 'thin', color: { argb: 'FF475569' } },
-          bottom: { style: 'thin', color: { argb: 'FF475569' } },
-          right: { style: 'thin', color: { argb: 'FF475569' } }
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } }
         };
 
         EXCEL_COLUMNS.forEach((c, idx) => {
@@ -5293,10 +5555,10 @@ async function exportExcelFile() {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = {
-            top: { style: 'thin', color: { argb: 'FF7F0000' } },
-            left: { style: 'thin', color: { argb: 'FF7F0000' } },
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
             bottom: { style: 'medium', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF7F0000' } }
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
 
           if (colIdx >= 5) {
@@ -5371,12 +5633,12 @@ async function exportExcelFile() {
 
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillArgb } };
 
-            // Border
+            // Border (Solid Black Thin Grid Lines)
             cell.border = {
-              top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              bottom: isDayEnd ? { style: 'medium', color: { argb: 'FF000000' } } : { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+              top: { style: 'thin', color: { argb: 'FF000000' } },
+              left: { style: 'thin', color: { argb: 'FF000000' } },
+              bottom: isDayEnd ? { style: 'medium', color: { argb: 'FF000000' } } : { style: 'thin', color: { argb: 'FF000000' } },
+              right: { style: 'thin', color: { argb: 'FF000000' } }
             };
           });
         });
@@ -5391,10 +5653,30 @@ async function exportExcelFile() {
             try {
               ws.mergeCells(dayStart, 1, dayEnd, 1);
               ws.getCell(dayStart, 1).alignment = { vertical: 'middle', horizontal: 'center' };
+              ws.getCell(dayStart, 1).border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'medium', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+              };
+
               ws.mergeCells(dayStart, 2, dayEnd, 2);
               ws.getCell(dayStart, 2).alignment = { vertical: 'middle', horizontal: 'center' };
+              ws.getCell(dayStart, 2).border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'medium', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+              };
+
               ws.mergeCells(dayStart, 3, dayEnd, 3);
               ws.getCell(dayStart, 3).alignment = { vertical: 'middle', horizontal: 'center' };
+              ws.getCell(dayStart, 3).border = {
+                top: { style: 'thin', color: { argb: 'FF000000' } },
+                left: { style: 'thin', color: { argb: 'FF000000' } },
+                bottom: { style: 'medium', color: { argb: 'FF000000' } },
+                right: { style: 'thin', color: { argb: 'FF000000' } }
+              };
             } catch (e) {}
           }
 
@@ -5409,6 +5691,14 @@ async function exportExcelFile() {
                   try {
                     ws.mergeCells(rStart, colIdx, rEnd, colIdx);
                     ws.getCell(rStart, colIdx).alignment = { vertical: 'middle', horizontal: 'right' };
+                    if (rEnd === dayEnd) {
+                      ws.getCell(rStart, colIdx).border = {
+                        top: { style: 'thin', color: { argb: 'FF000000' } },
+                        left: { style: 'thin', color: { argb: 'FF000000' } },
+                        bottom: { style: 'medium', color: { argb: 'FF000000' } },
+                        right: { style: 'thin', color: { argb: 'FF000000' } }
+                      };
+                    }
                   } catch (e) {}
                 });
               }
@@ -5661,6 +5951,29 @@ function bindExcelEvents() {
     }
   });
 
+  // Fast and smooth mouse drag range selection across cells
+  const mainTable = document.getElementById('excelMainTable');
+  mainTable?.addEventListener('mouseover', (e) => {
+    if (!SheetState.isSelecting) return;
+    const td = e.target.closest('td');
+    if (!td || !td.dataset.col || !td.dataset.row) return;
+    const r = Number(td.dataset.row);
+    if (r === 5 || isRowLocked(r)) return;
+    SheetState.rangeSelection.end = { col: td.dataset.col, row: r };
+    highlightSelectedRange();
+  });
+
+  // Native Clipboard copy event
+  window.addEventListener('copy', (e) => {
+    if (SheetState.isEditing) return;
+    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+    const cur = SheetState.selected;
+    if (!cur) return;
+
+    e.preventDefault();
+    handleClipboardCopy();
+  });
+
   // Global Keyboard Navigation
   window.addEventListener('keydown', (e) => {
     if (SheetState.isEditing) return;
@@ -5677,7 +5990,16 @@ function bindExcelEvents() {
     const colDef = EXCEL_COLUMNS.find(c => c.col === cur.colLetter);
 
     // Shortcuts
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+      e.preventDefault();
+      const maxActive = getMaxActiveRow();
+      SheetState.rangeSelection.start = { col: 'E', row: 6 };
+      SheetState.rangeSelection.end = { col: 'AM', row: maxActive };
+      selectCell('E', 6, false);
+      highlightSelectedRange();
+      showToast('🔲 All editable cells selected', 'info');
+      return;
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) {
         showToast('🔒 ভিউ মোড: এডিটিং বন্ধ রয়েছে।', 'warning');
@@ -5697,13 +6019,21 @@ function bindExcelEvents() {
       e.preventDefault();
       openSearchBar();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+      e.preventDefault();
       handleClipboardCopy();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+      e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) {
         showToast('🔒 ভিউ মোড: পেস্ট বা পরিবর্তন করা যাবে না।', 'warning');
         return;
       }
-      navigator.clipboard?.readText().then(handleClipboardPaste);
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(text => {
+          if (text) handleClipboardPaste(text);
+        }).catch(() => {
+          showToast('⚠️ Please use Right Click -> Paste or browser paste', 'warning');
+        });
+      }
     } else if (e.key === ' ' || (e.altKey && e.key.toLowerCase() === 'e')) {
       e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) {

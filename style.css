@@ -53,16 +53,19 @@ input[type=number] {
 
 /* Top Toolbar */
 .top-action-bar {
-  background: #002244;
-  border-bottom: 1px solid #003366;
-  padding: 4px 12px;
+  background: #082B55;
+  border-bottom: 2px solid #2C5EA8;
+  height: 64px;
+  min-height: 64px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 16px;
   flex-shrink: 0;
   color: #FFFFFF;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* Formula Bar (fx) */
@@ -164,8 +167,12 @@ input[type=number] {
   border-left: 1px solid #475569;
 }
 
-/* ─── BOLD DAY SEPARATOR BORDER (END OF EACH DATE'S 3 ROWS) ─────────────────── */
-.mep-excel-table tbody tr.row-day-end td {
+/* ─── BOLD DAY SEPARATOR BORDER (END OF EACH DATE'S ROWS ACROSS ALL COLUMNS) ── */
+.mep-excel-table tbody tr.row-day-end td,
+.mep-excel-table tbody td.cell-day-end-border,
+.mep-excel-table tbody td[data-col="A"],
+.mep-excel-table tbody td[data-col="B"],
+.mep-excel-table tbody td[data-col="C"] {
   border-bottom: 2.5px solid #000000 !important;
 }
 
@@ -232,69 +239,70 @@ input[type=number] {
 
 /* Row 4: Column Header Row (Horizontal & Vertical Headers) */
 .h-header-cell {
-  height: 152px !important;
+  height: 162px !important;
   vertical-align: middle !important;
   text-align: center !important;
   padding: 4px 6px !important;
   color: #000000 !important;
   font-weight: bold !important;
   font-size: 12px;
-  border-right: 1px solid #475569 !important;
-  border-bottom: 1px solid #475569 !important;
+  border-right: 1px solid #000000 !important;
+  border-bottom: 1px solid #000000 !important;
   border-top: 1px solid #002244 !important;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Times New Roman', Times, serif !important;
   white-space: normal;
   line-height: 1.2;
 }
 
 .h-header-cell:first-child {
-  border-left: 1px solid #475569 !important;
+  border-left: 1px solid #000000 !important;
 }
 
 .v-header-cell {
-  height: 152px !important;
+  height: 162px !important;
   vertical-align: bottom !important;
   text-align: center !important;
-  padding: 5px 1px !important;
+  padding: 6px 1px !important;
   color: #000000 !important;
   font-weight: bold !important;
-  font-size: 11.5px;
-  border-right: 1px solid #475569 !important;
-  border-bottom: 1px solid #475569 !important;
+  border-right: 1px solid #000000 !important;
+  border-bottom: 1px solid #000000 !important;
   border-top: 1px solid #002244 !important;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Times New Roman', Times, serif !important;
   overflow: hidden;
+  user-select: none;
 }
 
 .v-header-cell:first-child {
-  border-left: 1px solid #475569 !important;
+  border-left: 1px solid #000000 !important;
 }
 
 .v-header-text {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  white-space: pre-line;
+  white-space: nowrap;
   display: inline-block;
   text-align: left;
-  line-height: 1.15;
-  max-height: 142px;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.25px;
+  max-height: 152px;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 12px !important;
   font-weight: bold !important;
   color: #000000 !important;
 }
 
-/* Column Header Color Zones */
+/* Column Header Color Zones (Optimized High Contrast & Brightness) */
 .zone-sky {
-  background: #7EC8E3 !important;
+  background: #8CD3ED !important;
 }
 
 .zone-purple {
-  background: #9F72DE !important;
+  background: #BFA0F5 !important; /* Brighter, high-contrast lilac purple */
 }
 
 .zone-cyan {
-  background: #56C5D0 !important;
+  background: #62CFD9 !important;
 }
 
 /* Row 5: Total Row (Top Red Bar above Day 1) - Center Aligned & Bold */
@@ -327,9 +335,9 @@ input[type=number] {
   letter-spacing: 1px;
 }
 
-/* 4. Body Cell Styling - All Bold */
+/* 4. Body Cell Styling - Distinctive Light Colors for Fixed & Formula Cells */
 .cell-readonly-fixed {
-  background-color: #FFFFFF !important;
+  background-color: #F1F5F9 !important; /* Soft Slate Tint for Fixed Date, Day, Shift, Machine Name */
   cursor: default !important;
   font-family: 'Times New Roman', Times, serif;
   font-size: 11.5px;
@@ -338,8 +346,18 @@ input[type=number] {
   padding: 1px 2px !important;
 }
 
+.cell-formula-runtime {
+  background-color: #E2F2FC !important; /* Soft Ice-Blue for Auto Total Run Time (Col J) */
+  text-align: right;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11.5px;
+  font-weight: bold !important;
+  color: #000000 !important;
+  padding: 1px 2px !important;
+}
+
 .cell-downtime {
-  background-color: #E8DDFE !important;
+  background-color: #F3E8FF !important; /* Soft Lavender for 23 Editable Downtime Inputs */
   text-align: right;
   font-family: 'Times New Roman', Times, serif;
   font-size: 11.5px;
@@ -349,27 +367,27 @@ input[type=number] {
 }
 
 .cell-total-dt {
-  background-color: #C8F0FA !important;
+  background-color: #D6F1FA !important; /* Soft Cyan for Auto Total Down Time (Col AH) */
   text-align: right;
   font-family: 'Times New Roman', Times, serif;
   font-weight: bold !important;
   font-size: 11.5px;
-  color: #000000 !important;
-  padding: 1px 2px !important;
-}
-
-.cell-white {
-  background-color: #FFFFFF !important;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 11.5px;
-  font-weight: bold !important;
   color: #000000 !important;
   padding: 1px 2px !important;
 }
 
 .cell-kpi {
-  background-color: #FFFFFF !important;
+  background-color: #E2F2FC !important; /* Soft Ice-Blue for Auto KPI Formulas (Cols AI-AL) */
   text-align: right;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11.5px;
+  font-weight: bold !important;
+  color: #000000 !important;
+  padding: 1px 2px !important;
+}
+
+.cell-white {
+  background-color: #FFFFFF !important; /* Pure Crisp White for Editable Input Cells (Capacity, Prod, Rej, Plan, Remarks) */
   font-family: 'Times New Roman', Times, serif;
   font-size: 11.5px;
   font-weight: bold !important;
@@ -438,31 +456,42 @@ input[type=number] {
   color: #7DD3FC !important;
 }
 
-/* 6. Selection, Range Selection & Fill Handle */
+/* 6. Excel Selection, Range Selection & Fill Handle */
+.mep-excel-table {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
 .mep-excel-table td.selected-cell,
 .mep-excel-table th.selected-cell {
   outline: 2px solid #2563EB !important;
   outline-offset: -2px;
-  background-color: rgba(37, 99, 235, 0.15) !important;
-  z-index: 15;
+  background-color: #BFDBFE !important;
+  z-index: 25;
 }
 
 .mep-excel-table td.in-range-selection {
-  background-color: rgba(37, 99, 235, 0.2) !important;
-  outline: 1px solid rgba(37, 99, 235, 0.4) !important;
-  outline-offset: -1px;
+  background-color: #DBEAFE !important;
+  box-shadow: inset 0 0 0 1px #93C5FD !important;
+  z-index: 20;
+}
+
+.mep-excel-table td.excel-copied-cell {
+  outline: 2px dashed #16A34A !important;
+  outline-offset: -2px;
+  background-color: rgba(22, 163, 74, 0.12) !important;
 }
 
 .excel-fill-handle {
   position: absolute;
   right: -2px;
   bottom: -2px;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   background-color: #2563EB;
   border: 1px solid #FFFFFF;
   cursor: crosshair;
-  z-index: 20;
+  z-index: 30;
 }
 
 /* 7. Inline Editor Input */
@@ -491,6 +520,43 @@ input[type=number] {
 .cell-edit-input::-webkit-inner-spin-button {
   -webkit-appearance: none !important;
   margin: 0 !important;
+}
+
+/* 8. Remarks Auto-Expansion (Table Cell & Floating Input Editor) */
+.mep-excel-table td[data-col="AM"] {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.25 !important;
+  padding: 3px 5px !important;
+  height: auto !important;
+  min-height: 25px !important;
+}
+
+.cell-edit-input-remarks {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: 420px;
+  min-height: 100%;
+  height: auto;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 2px solid #0054A6 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+  padding: 4px 6px !important;
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+  outline: none !important;
+  border-radius: 2px;
+  box-sizing: border-box;
+  z-index: 200;
+  resize: none;
+  overflow-y: hidden;
+  line-height: 1.25;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -1235,6 +1301,48 @@ input[type=number] {
   padding: 0 !important;
 }
 
+/* ─── OPTION 2: ROYAL GOLD / CHAMPAGNE AMBER RUNNING MONTH ─────────────────── */
+.yearly-month-cell.running-month-active {
+  background-color: #FDE68A !important;
+  color: #78350F !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1.5px solid #D97706 !important;
+}
+
+.running-month-detail {
+  background-color: #FEF3C7 !important;
+  color: #78350F !important;
+  font-weight: bold !important;
+}
+
+.running-month-data {
+  background-color: #FFFBEB !important;
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+.running-month-kpi {
+  background-color: #FEF3C7 !important;
+  color: #78350F !important;
+  font-weight: bold !important;
+}
+
+.running-month-ach {
+  background-color: #D97706 !important;
+  color: #FFFFFF !important;
+  font-weight: bold !important;
+}
+
+.yearly-running-month-row td {
+  border-top: 2px solid #D97706 !important;
+}
+
+.yearly-running-month-row-b td {
+  border-bottom: 2px solid #D97706 !important;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    ENTERPRISE SCADA / MES INDUSTRIAL LANDING PORTAL (CLEAN WHITE / LIGHT THEME)
    ══════════════════════════════════════════════════════════════════════════════ */
@@ -1293,117 +1401,77 @@ html.user-unauthenticated #appMainContainer {
 .user-portal-card {
   position: relative;
   background: #FFFFFF;
-  border: 1px solid #E4E8EF;
-  border-radius: 1rem;
-  padding: 1.5rem 1.15rem;
-  min-height: 510px;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 0.85rem 0.75rem;
+  min-height: 220px;
+  height: 225px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   cursor: pointer;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .user-portal-card:hover {
-  border-color: #3B82F6;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+  border-color: #0F3D91;
+  box-shadow: 0 6px 16px rgba(15, 61, 145, 0.14);
+  transform: translateY(-2px);
+}
+
+.user-portal-card:hover .card-action-btn {
+  background-color: #0F3D91;
+  border-color: #0F3D91;
+  color: #FFFFFF;
 }
 
 .card-icon-box {
-  width: 90px;
-  height: 90px;
-  border-radius: 1rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.85rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  margin-bottom: 0.35rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .card-user-name {
-  font-size: 1.2rem;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.75px;
+  letter-spacing: 0.5px;
   font-family: 'Inter', sans-serif;
   color: #0F172A;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.05rem;
 }
 
-.card-badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  margin-bottom: 0.85rem;
-  width: 100%;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: 'Inter', sans-serif;
-}
-
-.card-permissions-table {
-  width: 100%;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  margin-bottom: 1.25rem;
-  text-align: left;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.perm-table-head {
-  padding: 0.35rem 0.65rem;
-  background: #F1F5F9;
-  border-bottom: 1px solid #E2E8F0;
-  font-size: 0.625rem;
-  font-weight: 800;
+.card-role-text {
+  font-size: 11px;
+  font-weight: 600;
   color: #64748B;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: flex;
-  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
 }
 
-.perm-table-row {
-  padding: 0.35rem 0.65rem;
-  font-size: 0.68rem;
-  color: #334155;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #F1F5F9;
-}
-
-.perm-table-row:last-child {
-  border-bottom: none;
-}
-
-.card-login-btn {
+.card-action-btn {
   margin-top: auto;
   width: 100%;
-  height: 48px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  height: 30px;
+  border-radius: 8px;
+  background-color: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  color: #0F3D91;
+  font-size: 11px;
+  font-weight: 800;
   letter-spacing: 0.5px;
-  font-family: 'Inter', sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  cursor: pointer;
-}
-
-.card-login-btn:hover {
-  filter: brightness(0.95);
+  transition: all 0.15s ease;
 }
 
 /* PIN Modal Dots */

@@ -51,466 +51,248 @@
   <!-- ══════════════════════════════════════════════════════════════════════════════
        ENTERPRISE SCADA / MES LANDING PORTAL (CLEAN LIGHT THEME - 18-POINT UPGRADE)
        ══════════════════════════════════════════════════════════════════════════════ -->
-  <div id="loginPortal" class="fixed inset-0 z-50 bg-[#F1F5F9] flex flex-col justify-between p-3 md:p-5 lg:p-6 overflow-y-auto no-print">
+  <div id="loginPortal" class="fixed inset-0 z-50 bg-[#F8FAFC] flex flex-col justify-between p-2.5 md:p-3.5 overflow-y-auto no-print">
     
-    <!-- TOP CORPORATE BRANDING & SYSTEM CAPABILITIES -->
-    <div class="w-full max-w-[1600px] w-[95%] mx-auto flex flex-col gap-3">
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         1. COMPACT OPERATIONS HEADER (Height: ~90-100px)
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <div class="w-full max-w-[1540px] mx-auto flex flex-col gap-2">
       
-      <!-- Top Premium Branding Row (Clean & Authoritative) -->
-      <div class="flex flex-col md:flex-row items-center justify-between gap-4 pb-3 border-b border-slate-200">
+      <!-- Top Bar: Logo & Titles + Single-Line Connected Status Bar -->
+      <div class="bg-white border border-slate-200 rounded-xl px-3.5 py-2 shadow-[0_2px_6px_rgba(0,0,0,0.04)] flex flex-col lg:flex-row items-center justify-between gap-2.5">
         
-        <!-- Left Emblem & Titles -->
-        <div class="flex items-center gap-4">
-          <div class="w-16 h-16 md:w-[72px] md:h-[72px] rounded-2xl bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 flex items-center justify-center text-white shadow-md shadow-blue-700/20 border border-blue-400/40 shrink-0">
-            <svg class="w-9 h-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
+        <!-- Left: Official Logo & Company Name -->
+        <div class="flex items-center gap-3.5">
+          <div class="h-[52px] px-2.5 py-1 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0 border border-slate-200">
+            <img src="mep_logo.png" alt="MEP Ceiling Fan" class="h-full object-contain">
           </div>
           <div>
-            <div class="flex items-center gap-2 mb-0.5">
-              <span class="text-xs font-black uppercase tracking-widest text-blue-700 font-mono">MEP GROUP</span>
-              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[10px]">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Version 2.0 Enterprise • MES Suite
-              </span>
-            </div>
-            <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-wide" style="font-family: 'Times New Roman', serif;">
+            <h1 class="text-[30px] md:text-[34px] font-black text-[#0F3D91] tracking-tight leading-none" style="font-family: 'Times New Roman', serif;">
               MEP FAN LTD.
             </h1>
-            <div class="text-xs md:text-sm text-slate-600 font-semibold mt-0.5">
-              Industrial OEE Management System • Real-Time Plant Intelligence
+            <div class="text-[12px] md:text-[13px] font-bold text-slate-600 mt-0.5 leading-tight flex items-center gap-1.5">
+              <span>Industrial OEE Dashboard</span>
+              <span class="text-slate-300">•</span>
+              <span class="text-slate-500 font-medium">Production Performance Monitoring</span>
             </div>
           </div>
         </div>
 
-        <!-- Right Side Corporate Badge & View Mode Button -->
-        <div class="flex items-center gap-3">
-          <button id="btnEnterViewOnlyMode" class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl shadow-md font-bold text-xs cursor-pointer transition border border-slate-700 hover:border-slate-500">
-            <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
-            </svg>
-            <span>VIEW ONLY (শুধু ভিউ করুন) →</span>
+        <!-- Right: Single-Line Connected Industrial Status Line -->
+        <div class="flex flex-wrap items-center gap-2 text-[11px] md:text-[12px] font-medium text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+          <span><strong class="text-slate-400 font-normal">Plant :</strong> <span class="text-slate-900 font-bold">MEP FAN LTD.</span></span>
+          <span class="text-slate-300">•</span>
+          <span><strong class="text-slate-400 font-normal">Shift :</strong> <span class="text-slate-900 font-bold">Morning</span></span>
+          <span class="text-slate-300">•</span>
+          <span class="font-mono text-slate-800 font-semibold"><span id="portalDateStr">23 Aug 2026</span> | <span id="portalTimeStr">21:50:00</span></span>
+          <span class="text-slate-300">•</span>
+          <span class="text-emerald-700 font-bold inline-flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Live
+          </span>
+          <span class="text-slate-300">•</span>
+          <span class="text-slate-700 font-medium">Secure Connection</span>
+          <span class="text-slate-300">•</span>
+          <button id="btnEnterViewOnlyMode" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black transition cursor-pointer tracking-wider" title="View Only Mode">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> VIEW ONLY
           </button>
-
-          <div class="hidden sm:inline-flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-xs font-bold text-slate-800">Secure Industrial Gateway</span>
-          </div>
         </div>
 
       </div>
-
-      <!-- Enterprise Plant Live Status Bar (Chip Style) -->
-      <div class="w-full flex flex-wrap items-center justify-between gap-2 text-xs">
-        
-        <div class="flex-1 min-w-[140px] bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm">
-          <span class="text-slate-400 font-semibold">🏭 Plant:</span>
-          <span class="text-slate-900 font-bold truncate">MEP FAN LTD.</span>
-        </div>
-
-        <div class="flex-1 min-w-[140px] bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm">
-          <span class="text-slate-400 font-semibold">⏱️ Shift:</span>
-          <span class="text-amber-800 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">Morning Shift</span>
-        </div>
-
-        <div class="flex-1 min-w-[160px] bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm">
-          <span class="text-slate-400 font-semibold">☁️ Cloud DB:</span>
-          <span class="text-emerald-700 font-bold flex items-center gap-1.5 text-[11px]">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Firebase Live (whatsapp-c10ef)
-          </span>
-        </div>
-
-        <div class="flex-1 min-w-[130px] bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm">
-          <span class="text-slate-400 font-semibold">📡 Telemetry:</span>
-          <span class="text-emerald-700 font-extrabold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-mono text-[11px]">
-            ● ONLINE
-          </span>
-        </div>
-
-        <div class="flex-1 min-w-[140px] bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm font-mono">
-          <span class="text-slate-400 font-sans font-semibold">🗓️ Date:</span>
-          <span class="text-slate-800 font-bold" id="portalDateStr">23 Aug 2026</span>
-        </div>
-
-        <div class="flex-1 min-w-[140px] bg-white border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2 shadow-sm font-mono">
-          <span class="text-slate-400 font-sans font-semibold">⏰ Time:</span>
-          <span class="text-blue-700 font-bold" id="portalTimeStr">16:58:00</span>
-        </div>
-
-      </div>
-
-      <!-- 3 Real System Architecture KPI Tiles with Progress Indicators -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
-        
-        <!-- Tile 1: Users Access Control -->
-        <div class="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Access Control</div>
-              <div class="text-xl font-extrabold text-slate-900 mt-0.5">5 Authorized</div>
-              <div class="text-[11px] text-blue-600 font-semibold">Department Roles</div>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </div>
-          </div>
-          <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-            <div class="bg-blue-600 h-full w-full rounded-full"></div>
-          </div>
-          <div class="text-[10px] text-slate-400 font-semibold mt-1 flex justify-between">
-            <span>Security Model</span>
-            <span class="text-blue-600 font-bold">100% Configured</span>
-          </div>
-        </div>
-
-        <!-- Tile 2: Production Scope -->
-        <div class="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Production Scope</div>
-              <div class="text-xl font-extrabold text-slate-900 mt-0.5">9 Sections</div>
-              <div class="text-[11px] text-emerald-600 font-semibold">Full Plant Coverage</div>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
-              </svg>
-            </div>
-          </div>
-          <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-            <div class="bg-emerald-500 h-full w-full rounded-full"></div>
-          </div>
-          <div class="text-[10px] text-slate-400 font-semibold mt-1 flex justify-between">
-            <span>Manufacturing Mesh</span>
-            <span class="text-emerald-600 font-bold">9/9 Sections Active</span>
-          </div>
-        </div>
-
-        <!-- Tile 3: Telemetry Engine -->
-        <div class="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Calculation Engine</div>
-              <div class="text-xl font-extrabold text-teal-600 mt-0.5 font-mono">100% Automated</div>
-              <div class="text-[11px] text-slate-500 font-semibold">Real-time OEE & Downtime</div>
-            </div>
-            <div class="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-600 shrink-0">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-              </svg>
-            </div>
-          </div>
-          <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-            <div class="bg-teal-500 h-full w-full rounded-full"></div>
-          </div>
-          <div class="text-[10px] text-slate-400 font-semibold mt-1 flex justify-between">
-            <span>Formula Precision</span>
-            <span class="text-teal-600 font-bold">Dynamic Cell Engine</span>
-          </div>
-        </div>
-
-      </div>
-
     </div>
 
-    <!-- MAIN PROFILE SELECTION SECTION (Reduced Top Margin) -->
-    <div class="w-full max-w-[1600px] w-[95%] mx-auto my-2">
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         4. USER SELECTION SECTION (Reduced White Space ~50%, Centered 5-Card Layout)
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <div class="w-full max-w-[1400px] mx-auto my-auto py-2">
       
-      <!-- Section Header -->
-      <div class="text-center mb-3">
-        <h2 class="text-base md:text-lg font-extrabold text-slate-900 uppercase tracking-wider" style="font-family: 'Inter', sans-serif;">
-          Select User Profile & Enter Credentials
+      <!-- Crisp Industrial Divider -->
+      <div class="flex items-center gap-3 my-2">
+        <div class="h-[1.5px] bg-slate-300 flex-1"></div>
+        <h2 class="text-xs md:text-sm font-black text-[#0F3D91] uppercase tracking-widest font-mono">
+          SELECT USER PROFILE
         </h2>
-        <p class="text-xs text-slate-500 mt-0.5 font-medium">
-          Choose your assigned department credential to unlock authorized OEE logs and production entry.
-        </p>
+        <div class="h-[1.5px] bg-slate-300 flex-1"></div>
       </div>
 
-      <!-- 5 Enterprise Profile Cards Grid (Full Height ~500px, 90x90 Icons, Avatars, Table Permissions & Color-Matched Buttons) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full">
+      <!-- 5 Balanced Equal-Width Cards Grid (Max Width ~240px per card) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 w-full justify-center">
         
-        <!-- Card 1: Admin -->
-        <div class="user-portal-card group" data-user-id="admin">
-          <!-- 90x90 Icon Box with 72px Scaled Emblem -->
-          <div class="card-icon-box bg-amber-50 border border-amber-200 text-amber-600">
-            <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Card 1: ADMIN -->
+        <div class="user-portal-card" data-user-id="admin">
+          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               <path d="m9 12 2 2 4-4"/>
             </svg>
           </div>
-
-          <h3 class="card-user-name text-slate-900">ADMIN</h3>
+          <h3 class="card-user-name">ADMIN</h3>
+          <div class="card-role-text">Administrator</div>
           
-          <!-- Avatar Initial Pill -->
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200/80 text-amber-800 text-[11px] font-bold mb-2">
-            <span class="w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[9px] font-black">A</span>
-            Administrator
-          </div>
+          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          
+          <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> All 9 Production Sections
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Master Reports & Logs
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> System & User Control
+            </li>
+          </ul>
 
-          <div class="card-badge bg-amber-100/70 border border-amber-300 text-amber-900">
-            ★ All 9 Sections & Executive Summary
-          </div>
-
-          <!-- Table-Style Structured Permission Matrix -->
-          <div class="card-permissions-table">
-            <div class="perm-table-head">
-              <span>Authorized Module</span>
-              <span>Scope</span>
-            </div>
-            <div class="perm-table-row">
-              <span>9 Production Sections</span>
-              <span class="text-amber-600 font-bold">✔ Full</span>
-            </div>
-            <div class="perm-table-row">
-              <span>5 Summary Dashboards</span>
-              <span class="text-amber-600 font-bold">✔ Full</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Master Excel / PDF Export</span>
-              <span class="text-amber-600 font-bold">✔ Full</span>
-            </div>
-            <div class="perm-table-row">
-              <span>User & Role Management</span>
-              <span class="text-amber-600 font-bold">✔ Full</span>
-            </div>
-          </div>
-
-          <!-- Color-Matched Gold Button -->
-          <button class="card-login-btn bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/20">
-            LOGIN TO DASHBOARD →
+          <button class="card-action-btn">
+            <span>LOGIN</span>
+            <span>→</span>
           </button>
         </div>
 
-        <!-- Card 2: Takbir -->
-        <div class="user-portal-card group" data-user-id="takbir">
-          <!-- 90x90 Icon Box -->
-          <div class="card-icon-box bg-rose-50 border border-rose-200 text-rose-600">
-            <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Card 2: TAKBIR -->
+        <div class="user-portal-card" data-user-id="takbir">
+          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
           </div>
-
-          <h3 class="card-user-name text-slate-900">TAKBIR</h3>
+          <h3 class="card-user-name">TAKBIR</h3>
+          <div class="card-role-text">Armature Incharge</div>
           
-          <!-- Avatar Initial Pill -->
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200/80 text-rose-800 text-[11px] font-bold mb-2">
-            <span class="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px] font-black">T</span>
-            Armature Incharge
-          </div>
+          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          
+          <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Production Log
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Downtime Tracking
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Shift Summary
+            </li>
+          </ul>
 
-          <div class="card-badge bg-rose-100/70 border border-rose-300 text-rose-900">
-            ● Fan Armature & Winding Section
-          </div>
-
-          <!-- Table-Style Structured Permission Matrix -->
-          <div class="card-permissions-table">
-            <div class="perm-table-head">
-              <span>Authorized Module</span>
-              <span>Scope</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Fan Armature Line</span>
-              <span class="text-rose-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Armature Downtime Logs</span>
-              <span class="text-rose-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Filtered Summary of OEE</span>
-              <span class="text-rose-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Shift Production Entry</span>
-              <span class="text-rose-600 font-bold">✔ Active</span>
-            </div>
-          </div>
-
-          <!-- Color-Matched Rose Button -->
-          <button class="card-login-btn bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20">
-            LOGIN TO DASHBOARD →
+          <button class="card-action-btn">
+            <span>LOGIN</span>
+            <span>→</span>
           </button>
         </div>
 
-        <!-- Card 3: Monir -->
-        <div class="user-portal-card group" data-user-id="monir">
-          <!-- 90x90 Icon Box -->
-          <div class="card-icon-box bg-emerald-50 border border-emerald-200 text-emerald-600">
-            <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Card 3: MONIR -->
+        <div class="user-portal-card" data-user-id="monir">
+          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M2 8h20M2 16h20M6 4v16M18 4v16M10 8v8M14 8v8"/>
             </svg>
           </div>
-
-          <h3 class="card-user-name text-slate-900">MONIR</h3>
+          <h3 class="card-user-name">MONIR</h3>
+          <div class="card-role-text">Press & Die Incharge</div>
           
-          <!-- Avatar Initial Pill -->
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-bold mb-2">
-            <span class="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-black">M</span>
-            Press & Die Incharge
-          </div>
+          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          
+          <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Power Press & Stamping
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Die Casting Logs
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Tooling Downtime
+            </li>
+          </ul>
 
-          <div class="card-badge bg-emerald-100/70 border border-emerald-300 text-emerald-900">
-            ● Power Press & Auto Die Casting
-          </div>
-
-          <!-- Table-Style Structured Permission Matrix -->
-          <div class="card-permissions-table">
-            <div class="perm-table-head">
-              <span>Authorized Module</span>
-              <span>Scope</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Power Press & Stamping</span>
-              <span class="text-emerald-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Auto Die Casting Line</span>
-              <span class="text-emerald-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Tooling Downtime Logs</span>
-              <span class="text-emerald-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Department Output Stats</span>
-              <span class="text-emerald-600 font-bold">✔ Active</span>
-            </div>
-          </div>
-
-          <!-- Color-Matched Emerald Button -->
-          <button class="card-login-btn bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20">
-            LOGIN TO DASHBOARD →
+          <button class="card-action-btn">
+            <span>LOGIN</span>
+            <span>→</span>
           </button>
         </div>
 
-        <!-- Card 4: Anwar -->
-        <div class="user-portal-card group" data-user-id="anwar">
-          <!-- 90x90 Icon Box -->
-          <div class="card-icon-box bg-sky-50 border border-sky-200 text-sky-600">
-            <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Card 4: ANWAR -->
+        <div class="user-portal-card" data-user-id="anwar">
+          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
             </svg>
           </div>
-
-          <h3 class="card-user-name text-slate-900">ANWAR</h3>
+          <h3 class="card-user-name">ANWAR</h3>
+          <div class="card-role-text">Lathe & Coating Incharge</div>
           
-          <!-- Avatar Initial Pill -->
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-200/80 text-sky-800 text-[11px] font-bold mb-2">
-            <span class="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black">A</span>
-            Lathe & Coating Incharge
-          </div>
+          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          
+          <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> CNC Lathe Operations
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Powder Coating Line
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Quality & Rejection
+            </li>
+          </ul>
 
-          <div class="card-badge bg-sky-100/70 border border-sky-300 text-sky-900">
-            ● Fan Lathe & Auto Powder Coating
-          </div>
-
-          <!-- Table-Style Structured Permission Matrix -->
-          <div class="card-permissions-table">
-            <div class="perm-table-head">
-              <span>Authorized Module</span>
-              <span>Scope</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Fan CNC Lathe Operation</span>
-              <span class="text-sky-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Auto Powder Coating Line</span>
-              <span class="text-sky-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Oven & Spindle Downtime</span>
-              <span class="text-sky-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Rejection & Quality Logs</span>
-              <span class="text-sky-600 font-bold">✔ Active</span>
-            </div>
-          </div>
-
-          <!-- Color-Matched Blue Button -->
-          <button class="card-login-btn bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20">
-            LOGIN TO DASHBOARD →
+          <button class="card-action-btn">
+            <span>LOGIN</span>
+            <span>→</span>
           </button>
         </div>
 
-        <!-- Card 5: Bikash -->
-        <div class="user-portal-card group" data-user-id="bikash">
-          <!-- 90x90 Icon Box -->
-          <div class="card-icon-box bg-purple-50 border border-purple-200 text-purple-600">
-            <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Card 5: BIKASH -->
+        <div class="user-portal-card" data-user-id="bikash">
+          <div class="card-icon-box bg-slate-100 text-[#0F3D91] border border-slate-200">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/><path d="m7 8 5 3 5-3"/>
             </svg>
           </div>
-
-          <h3 class="card-user-name text-slate-900">BIKASH</h3>
+          <h3 class="card-user-name">BIKASH</h3>
+          <div class="card-role-text">Assembly Incharge</div>
           
-          <!-- Avatar Initial Pill -->
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 border border-purple-200/80 text-purple-800 text-[11px] font-bold mb-2">
-            <span class="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[9px] font-black">B</span>
-            Assembly Incharge
-          </div>
+          <div class="w-full h-[1px] bg-slate-200 my-1.5"></div>
+          
+          <ul class="w-full text-left text-[11px] text-slate-600 leading-snug space-y-0.5 mb-2 font-medium">
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Rechargeable Fan Line
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Capacitor Manufacturing
+            </li>
+            <li class="flex items-center gap-1.5 truncate">
+              <span class="w-1 h-1 rounded-full bg-[#0F3D91]"></span> Exhaust Fan Assembly
+            </li>
+          </ul>
 
-          <div class="card-badge bg-purple-100/70 border border-purple-300 text-purple-900">
-            ● Rojonigondha, Capacitor & Exhaust
-          </div>
-
-          <!-- Table-Style Structured Permission Matrix -->
-          <div class="card-permissions-table">
-            <div class="perm-table-head">
-              <span>Authorized Module</span>
-              <span>Scope</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Rechargeable Fan Line</span>
-              <span class="text-purple-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Capacitor Manufacturing</span>
-              <span class="text-purple-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Exhaust Fan Assembly</span>
-              <span class="text-purple-600 font-bold">✔ Active</span>
-            </div>
-            <div class="perm-table-row">
-              <span>Combined Output Stats</span>
-              <span class="text-purple-600 font-bold">✔ Active</span>
-            </div>
-          </div>
-
-          <!-- Color-Matched Purple Button -->
-          <button class="card-login-btn bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20">
-            LOGIN TO DASHBOARD →
+          <button class="card-action-btn">
+            <span>LOGIN</span>
+            <span>→</span>
           </button>
         </div>
 
       </div>
 
-      <!-- Prominent View Only Banner Button -->
-      <div class="mt-4 w-full flex items-center justify-center">
-        <button id="btnBannerViewOnly" class="inline-flex items-center gap-2.5 bg-white hover:bg-slate-50 border-2 border-slate-300 hover:border-blue-600 text-slate-800 hover:text-blue-700 px-6 py-2.5 rounded-xl shadow-sm hover:shadow-md font-bold text-xs md:text-sm transition cursor-pointer">
-          <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">👁️</div>
-          <span>VIEW ONLY MODE — কোনো এডিট ছাড়া শুধুমাত্র দেখার জন্য পোর্টাল ওপেন করুন (No PIN Required) →</span>
+      <!-- Quick View Only Link Button -->
+      <div class="mt-2.5 w-full flex items-center justify-center">
+        <button id="btnBannerViewOnly" class="inline-flex items-center gap-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 hover:text-slate-900 px-3.5 py-1 rounded-lg shadow-sm font-semibold text-[11px] transition cursor-pointer">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>Open in View Only Mode (No PIN Required)</span>
         </button>
       </div>
 
     </div>
 
-    <!-- ENTERPRISE CORPORATE FOOTER -->
-    <div class="w-full max-w-[1600px] w-[95%] mx-auto pt-3 pb-2 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         5. CLEAN COMPACT INDUSTRIAL FOOTER
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <div class="w-full max-w-[1540px] mx-auto pt-2 pb-1 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] text-slate-500 font-medium">
       <div class="flex items-center gap-2">
         <span class="font-bold text-slate-800">MEP FAN LIMITED</span>
         <span>•</span>
         <span>Industrial OEE Management System</span>
         <span>•</span>
-        <span class="text-blue-700 font-bold">Enterprise Edition 2.0.0</span>
+        <span class="text-[#0F3D91] font-bold">Version 2.0 Enterprise</span>
       </div>
-      <div class="flex items-center gap-2 font-mono">
-        <span class="text-slate-600 font-sans font-medium">Powered by MEP Digital Manufacturing</span>
-        <span>•</span>
-        <span class="text-slate-500 font-sans">Copyright © 2026 MEP GROUP. All Rights Reserved.</span>
+      <div>
+        <span>© 2026 MEP GROUP. All Rights Reserved.</span>
       </div>
     </div>
 
@@ -580,84 +362,109 @@
     <!-- ══════════════════════════════════════════════════════════════════════════════
          TOP EXCEL UTILITY TOOLBAR
          ══════════════════════════════════════════════════════════════════════════════ -->
-    <header class="top-action-bar no-print flex items-center justify-between px-3 py-1.5 bg-[#002244] text-white">
-      <div class="flex items-center gap-3">
-        <span class="font-bold text-base tracking-wide text-white">MEP FAN LTD.</span>
-        <span class="text-xs text-slate-200 bg-blue-950 px-2 py-0.5 rounded border border-blue-700/50">Production Performance Report</span>
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         TOP INDUSTRIAL MES/SCADA NAVIGATION BAR (Height: 64px, Padding: 24px)
+         ══════════════════════════════════════════════════════════════════════════ -->
+    <header class="top-action-bar no-print flex items-center justify-between px-6 h-16 bg-[#082B55] border-b-2 border-[#2C5EA8] text-white shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
+      
+      <!-- 1 & 2. Logo, Company Name & Subtitle / Breadcrumb -->
+      <div class="flex items-center gap-3.5 my-auto">
+        <div class="h-[44px] px-2 py-1 rounded-lg bg-white flex items-center justify-center shadow-sm shrink-0 border border-slate-200">
+          <img src="mep_logo.png" alt="MEP Ceiling Fan" class="h-full object-contain">
+        </div>
+        <div class="flex flex-col justify-center">
+          <span class="text-[26px] font-bold text-white tracking-[0.5px] leading-none" style="font-family: 'Times New Roman', serif;">
+            MEP FAN LTD.
+          </span>
+          <span class="text-[11px] font-semibold text-blue-200 tracking-wide mt-1 leading-none" style="font-family: 'Inter', sans-serif;">
+            Dashboard / Production Performance Report
+          </span>
+        </div>
       </div>
 
-      <!-- Month and Year Selection Option -->
-      <div class="flex items-center gap-1.5 bg-[#001A33] px-2.5 py-0.5 rounded border border-blue-800">
-        <label class="text-xs text-amber-300 font-bold">🗓️ Month:</label>
-        <select id="selectMonth" class="bg-[#003366] text-white text-xs px-2 py-1 rounded border border-slate-500 focus:outline-none cursor-pointer font-bold">
-          <option value="0">January</option>
-          <option value="1">February</option>
-          <option value="2">March</option>
-          <option value="3">April</option>
-          <option value="4">May</option>
-          <option value="5">June</option>
-          <option value="6">July</option>
-          <option value="7" selected>August</option>
-          <option value="8">September</option>
-          <option value="9">October</option>
-          <option value="10">November</option>
-          <option value="11">December</option>
-        </select>
-
-        <label class="text-xs text-amber-300 font-bold ml-1">Year:</label>
-        <select id="selectYear" class="bg-[#003366] text-white text-xs px-2 py-1 rounded border border-slate-500 focus:outline-none cursor-pointer font-bold">
-          <option value="2025">2025</option>
-          <option value="2026" selected>2026</option>
-          <option value="2027">2027</option>
-          <option value="2028">2028</option>
-          <option value="2029">2029</option>
-          <option value="2030">2030</option>
-        </select>
+      <!-- 3. Reporting Period Selector Group (Height: 44px) -->
+      <div class="flex items-center gap-2 bg-[#062040] px-3.5 h-[44px] rounded-lg border border-[#1f4d8f] text-xs">
+        <span class="text-blue-200 font-medium flex items-center gap-1.5 whitespace-nowrap">
+          <span>📅</span>
+          <span class="font-bold text-slate-200">Reporting Period:</span>
+        </span>
+        <div class="flex items-center gap-1.5">
+          <select id="selectMonth" class="bg-[#0F3D91] hover:bg-[#134cb5] text-white text-xs px-2.5 h-[32px] rounded border border-[#2a60b8] focus:outline-none cursor-pointer font-bold transition">
+            <option value="0">January</option>
+            <option value="1">February</option>
+            <option value="2">March</option>
+            <option value="3">April</option>
+            <option value="4">May</option>
+            <option value="5">June</option>
+            <option value="6">July</option>
+            <option value="7" selected>August</option>
+            <option value="8">September</option>
+            <option value="9">October</option>
+            <option value="10">November</option>
+            <option value="11">December</option>
+          </select>
+          <select id="selectYear" class="bg-[#0F3D91] hover:bg-[#134cb5] text-white text-xs px-2 h-[32px] rounded border border-[#2a60b8] focus:outline-none cursor-pointer font-bold transition">
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+            <option value="2029">2029</option>
+            <option value="2030">2030</option>
+          </select>
+        </div>
       </div>
 
-      <!-- User Badge & Actions -->
-      <div class="flex items-center gap-2">
-        <!-- Live Cloud Status Indicator -->
-        <div id="cloudStatusBadge" class="hidden md:flex items-center gap-1.5 bg-[#001A33] px-2.5 py-1 rounded border border-emerald-500/40 text-xs text-emerald-300 font-mono" title="Firebase Realtime Database Status">
-          <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span id="cloudStatusText">Cloud Connected</span>
+      <!-- 4 to 9. System Status, Sync/Publish, User Info, Switch User, Save & Excel Buttons -->
+      <div class="flex items-center gap-3.5">
+        
+        <!-- 4. System Live Status Badge (Compact & Clear Status Badge) -->
+        <div id="cloudStatusBadge" class="hidden md:flex flex-col justify-center px-3 h-[44px] rounded-lg bg-[#062040] border border-[#1f4d8f] text-[11px] leading-tight" title="Firebase Realtime Database Status">
+          <div class="flex items-center gap-1.5 font-bold text-emerald-400">
+            <span id="cloudStatusDot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="cloudStatusText">ONLINE</span>
+          </div>
+          <div class="text-[10px] text-slate-400 font-medium">● Synced</div>
         </div>
 
-        <!-- Master Cloud Sync Button -->
-        <button id="btnCloudSync" class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow flex items-center gap-1.5 cursor-pointer transition border border-blue-400" title="Sync all sheets with Firebase Cloud">
-          <span id="syncSpinIcon" class="text-sm inline-block">🔄</span>
-          <span>Sync Cloud</span>
+        <!-- 5. Master Sync / Publish Button (Admin Only) -->
+        <button id="btnCloudSync" style="display: none;" class="h-[44px] px-[20px] py-[10px] rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white border border-emerald-500 text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition" title="Sync Cloud Data">
+          <span id="syncSpinIcon" class="text-sm inline-block">🟢</span>
+          <span>Publish</span>
         </button>
 
-        <!-- Current Logged In User Badge -->
-        <div id="currentUserBadge" class="flex items-center gap-1.5 bg-[#001A33] px-2.5 py-1 rounded border border-blue-700/60 text-xs text-amber-300 font-bold">
-          <span id="currentUserIcon">👑</span>
-          <span id="currentUserName">Admin</span>
+        <!-- 6. User Info Card (Height: 44px, Integrated Icon) -->
+        <div id="currentUserBadge" class="flex items-center gap-2 bg-[#062040] px-3.5 h-[44px] rounded-lg border border-[#1f4d8f] text-left">
+          <span id="currentUserIcon" class="text-sm text-amber-300 shrink-0">🛡️</span>
+          <div id="currentUserName" class="leading-tight flex flex-col justify-center">
+            <span class="text-white font-black text-xs block tracking-wide">ADMIN</span>
+            <span class="text-blue-200 text-[10px] font-medium block">System Administrator</span>
+          </div>
         </div>
-        <button id="btnSwitchUser" class="px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold shadow flex items-center gap-1 cursor-pointer transition border border-slate-500" title="Switch User / Logout">
-          <span>🔒 Switch User</span>
+
+        <!-- 7. Red Back Button (← Back) -->
+        <button id="btnSwitchUser" class="h-[44px] px-[20px] py-[10px] rounded-lg bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition border border-red-500" title="Back to Login Portal / Switch User">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+          <span>Back</span>
         </button>
-        <button id="btnSaveGrid" class="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow flex items-center gap-1 cursor-pointer transition" title="Save changes (Ctrl+S)">
-          <span>💾 Save</span>
+
+        <!-- 8. Save Button (Green Primary Action) -->
+        <button id="btnSaveGrid" class="h-[44px] px-[20px] py-[10px] rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition border border-emerald-500" title="Save changes (Ctrl+S)">
+          <span class="text-sm">💾</span>
+          <span>Save</span>
         </button>
-        <button id="btnExportExcel" class="px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold shadow flex items-center gap-1 cursor-pointer transition" title="Download formatted Excel (.xlsx)">
-          <span>📊 Excel</span>
+
+        <!-- 9. Excel Export Button (Excel Green with Small Icon) -->
+        <button id="btnExportExcel" class="h-[44px] px-[20px] py-[10px] rounded-lg bg-[#15803D] hover:bg-[#166534] text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition border border-emerald-600" title="Export Excel (.xlsx)">
+          <span class="text-xs">📊</span>
+          <span>Export Excel</span>
         </button>
+
       </div>
     </header>
 
-    <!-- ══════════════════════════════════════════════════════════════════════════════
-         STICKY FORMULA BAR (fx)
-         ══════════════════════════════════════════════════════════════════════════════ -->
-    <div class="formula-bar-box no-print">
-      <div id="activeCellAddress" class="cell-name-box">E6</div>
-      <span class="fx-label">fx</span>
-      <input type="text" id="formulaBarInput" class="formula-input-field" placeholder="Select cell or enter formula / value..." autocomplete="off" spellcheck="false">
-      <div class="text-[12px] text-slate-600 flex items-center gap-3 pr-2">
-        <span>Auto-Calc: <strong class="text-emerald-700 font-bold">Live</strong></span>
-        <span id="autoSaveIndicator" class="text-slate-500">🟢 Saved</span>
-      </div>
-    </div>
+
 
     <!-- ══════════════════════════════════════════════════════════════════════════════
          MAIN SPREADSHEET VIEWPORT (EXACT MATCH TO USER SCREENSHOT)
@@ -691,6 +498,15 @@
           <button class="sheet-tab-btn" data-tab="capacitor" id="tabBtnCapacitor">Capacitor</button>
         </div>
         <button id="btnScrollTabsRight" class="tab-nav-arrow-btn" title="Scroll Tabs Right">▶</button>
+      </div>
+
+      <!-- Real-Time Excel Multi-Cell Selection Stats Bar -->
+      <div id="excelSelectionStatsBar" class="hidden md:flex items-center gap-3 text-[11px] font-mono text-slate-300 px-3 shrink-0 border-l border-slate-700 h-full">
+        <span id="statCount" class="font-bold text-white">COUNT: 1</span>
+        <span class="text-slate-500">•</span>
+        <span id="statSum" class="font-bold text-emerald-400">SUM: 0</span>
+        <span class="text-slate-500">•</span>
+        <span id="statAverage" class="font-bold text-blue-300">AVERAGE: 0</span>
       </div>
     </footer>
 
@@ -753,10 +569,10 @@
           </div>
         </div>
 
-        <!-- Remarks -->
+        <!-- Remarks (Auto Multi-Line Expansion) -->
         <div>
           <label class="text-xs font-bold text-slate-700 block mb-1">Remarks</label>
-          <input type="text" id="mRemarks" class="entry-input-field" placeholder="Notes, reason for breakdown, maintenance...">
+          <textarea id="mRemarks" rows="2" class="entry-input-field resize-y min-h-[46px] text-xs font-medium" placeholder="Notes, reason for breakdown, maintenance..."></textarea>
         </div>
 
         <!-- Live KPI Computed Preview -->
