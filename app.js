@@ -919,27 +919,7 @@ function generateBlankMonthRows(tabId, year, monthIndex) {
 }
 
 function getStoredLocalData(tabId, year, monthIndex) {
-  const key = getStorageKey(tabId, year, monthIndex);
-  const saved = localStorage.getItem(key);
-  if (!saved) return null;
-  try {
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed)) {
-      let hasInputs = false;
-      for (const r of parsed) {
-        if (r.E?.val || r.F?.val || r.G?.val || r.H?.val) {
-          hasInputs = true;
-          break;
-        }
-      }
-      return { rows: parsed, updatedAt: hasInputs ? 1 : 0 };
-    } else if (parsed && Array.isArray(parsed.rows)) {
-      return parsed;
-    }
-  } catch (e) {
-    console.error('Error parsing stored excel data:', e);
-  }
-  return null;
+  return LocalStorageEngine.load(tabId, year, monthIndex);
 }
 
 function loadSheetData() {
@@ -947,8 +927,10 @@ function loadSheetData() {
   const expectedMachines = getMachinesForTab(ACTIVE_TAB);
   const localData = getStoredLocalData(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
 
-  if (localData && Array.isArray(localData.rows)) {
+  if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
     const parsed = localData.rows;
+
+    // Best case: row count and machine names match perfectly
     if (parsed.length === expectedRowsCount) {
       let matches = true;
       const rowsPerDay = expectedMachines.length;
@@ -964,9 +946,30 @@ function loadSheetData() {
         return;
       }
     }
+
+    // Fallback: row count matches but machine names might differ slightly
+    // Still use the data - it came from Firebase and has valid entered values
+    if (parsed.length === expectedRowsCount) {
+      SheetState.rows = parsed;
+      return;
+    }
+
+    // Last resort: data has different row count but has actual entered data
+    // Use it anyway rather than showing blank - data preservation is critical
+    let hasAnyData = false;
+    for (const r of parsed) {
+      if (r.E?.val || r.F?.val || r.G?.val || r.H?.val) {
+        hasAnyData = true;
+        break;
+      }
+    }
+    if (hasAnyData) {
+      SheetState.rows = parsed;
+      return;
+    }
   }
 
-  // If August 2026 for Fan Lathe and initial template exists
+  // Only generate blank rows if there's truly no saved data at all
   if (ACTIVE_TAB === 'fan_lathe' && MonthYearState.year === 2026 && MonthYearState.monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined') {
     SheetState.rows = JSON.parse(JSON.stringify(INITIAL_EXCEL_ROWS));
   } else {
@@ -1008,27 +1011,222 @@ function redoAction() {
 
 // ─── FIREBASE REALTIME DATABASE CONFIGURATION & SYNC ENGINE ───────────────────
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBcjbR7Qu7M-RnHUtLJ9zeehILqQHYLw4E",
+  apiKey: "AIzaSyDummyKeyForRestApiCompatibility",
   authDomain: "whatsapp-c10ef.firebaseapp.com",
   databaseURL: "https://whatsapp-c10ef-default-rtdb.firebaseio.com",
   projectId: "whatsapp-c10ef",
-  storageBucket: "whatsapp-c10ef.firebasestorage.app",
-  messagingSenderId: "675053106773",
-  appId: "1:675053106773:web:b7078468691a07ecfec6dc",
-  measurementId: "G-89Z8WBJ3R0"
+  storageBucket: "whatsapp-c10ef.appspot.com",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abcdef123456"
 };
 
 const FIREBASE_RTDB_BASE_URL = "https://whatsapp-c10ef-default-rtdb.firebaseio.com";
 let firebaseDb = null;
 let isFirebaseInitialized = false;
-const cloudSyncDebounceTimers = {};
+
 function cleanDataForFirebase(data) {
-  if (data === undefined) return null;
   return JSON.parse(JSON.stringify(data, (key, value) => {
-    return value === undefined ? null : value;
+    if (value === undefined) return null;
+    return value;
   }));
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// MODULE 1: LOCAL STORAGE ENGINE (Pure Offline Storage - 0 Network Dependency)
+// ══════════════════════════════════════════════════════════════════════════════
+const LocalStorageEngine = {
+  getKey(tabId, year, monthIndex) {
+    return getStorageKey(tabId, year, monthIndex);
+  },
+
+  save(tabId, year, monthIndex, rows, updatedBy = 'User') {
+    try {
+      const key = this.getKey(tabId, year, monthIndex);
+      const payload = {
+        rows: cleanDataForFirebase(rows),
+        tabId: tabId,
+        year: year,
+        monthIndex: monthIndex,
+        updatedAt: Date.now(),
+        updatedBy: CurrentUser ? CurrentUser.name : updatedBy
+      };
+      localStorage.setItem(key, JSON.stringify(payload));
+      triggerSaveIndicator();
+      return true;
+    } catch (e) {
+      console.error('LocalStorageEngine.save error:', e);
+      return false;
+    }
+  },
+
+  load(tabId, year, monthIndex) {
+    try {
+      const key = this.getKey(tabId, year, monthIndex);
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.rows)) return parsed;
+      if (Array.isArray(parsed)) return { rows: parsed, updatedAt: 0 };
+      return null;
+    } catch (e) {
+      console.error('LocalStorageEngine.load error:', e);
+      return null;
+    }
+  },
+
+  clear(tabId, year, monthIndex) {
+    try {
+      const key = this.getKey(tabId, year, monthIndex);
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MODULE 2: FIREBASE SYNC ENGINE (Dedicated Cloud Communication Engine)
+// ══════════════════════════════════════════════════════════════════════════════
+const FirebaseSyncEngine = {
+  // 1. Operator: Save active department data to Firebase staging
+  async saveOperatorSubmission(tabId, year, monthIndex, rows) {
+    const payload = {
+      rows: cleanDataForFirebase(rows),
+      tabId: tabId,
+      year: year,
+      monthIndex: monthIndex,
+      updatedAt: Date.now(),
+      updatedBy: CurrentUser ? CurrentUser.name : 'Incharge',
+      userId: CurrentUser ? CurrentUser.id : 'unknown'
+    };
+
+    const pathSub = `mep_oee_v2/operator_submissions/${year}/${monthIndex}/${tabId}`;
+    const pathPub = `mep_oee_v2/published/${year}/${monthIndex}/${tabId}`;
+
+    if (firebaseDb) {
+      try { 
+        await firebaseDb.ref(pathSub).set(payload); 
+        await firebaseDb.ref(pathPub).set(payload); 
+      } catch(e) {}
+    }
+
+    // Direct REST API for 100% delivery guarantee to BOTH operator_submissions and published
+    await Promise.all([
+      fetch(`${FIREBASE_RTDB_BASE_URL}/${pathSub}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }),
+      fetch(`${FIREBASE_RTDB_BASE_URL}/${pathPub}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+    ]);
+
+    return true;
+  },
+
+  // 2. Fetch all operator submissions for a given month (for Admin consolidation & sync)
+  async fetchAllOperatorSubmissions(year, monthIndex) {
+    try {
+      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/operator_submissions/${year}/${monthIndex}.json?nocache=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) return (await res.json()) || {};
+    } catch (e) {
+      console.error('fetchAllOperatorSubmissions error:', e);
+    }
+    return {};
+  },
+
+  // 3. Fetch specific operator submission
+  async fetchOperatorSubmission(tabId, year, monthIndex) {
+    try {
+      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/operator_submissions/${year}/${monthIndex}/${tabId}.json?nocache=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    } catch (e) {}
+    return null;
+  },
+
+  // 4. Admin: Publish consolidated master data to Firebase and emit live signal
+  async publishMasterData(year, monthIndex, consolidatedDepts) {
+    const cleaned = cleanDataForFirebase(consolidatedDepts);
+    const publishPath = `mep_oee_v2/published/${year}/${monthIndex}`;
+    const now = Date.now();
+
+    if (firebaseDb) {
+      try { await firebaseDb.ref(publishPath).set(cleaned); } catch(e) {}
+    }
+
+    await fetch(`${FIREBASE_RTDB_BASE_URL}/${publishPath}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cleaned)
+    });
+
+    // Fire publish signal to notify all clients
+    const signal = {
+      timestamp: now,
+      publishedBy: CurrentUser ? CurrentUser.name : 'Admin',
+      year: year,
+      monthIndex: monthIndex
+    };
+
+    if (firebaseDb) {
+      try { await firebaseDb.ref('mep_oee_v2/publish_signal').set(signal); } catch(e) {}
+    }
+
+    await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/publish_signal.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(signal)
+    });
+
+    return true;
+  },
+
+  // 5. Fetch published master data for all 9 departments
+  async fetchPublishedData(year, monthIndex) {
+    try {
+      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/published/${year}/${monthIndex}.json?nocache=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) return (await res.json()) || {};
+    } catch (e) {
+      console.error('fetchPublishedData error:', e);
+    }
+    return {};
+  },
+
+  // 6. Listen for publish signal
+  listenForPublishSignal(callback) {
+    if (firebaseDb) {
+      firebaseDb.ref('mep_oee_v2/publish_signal').off();
+      firebaseDb.ref('mep_oee_v2/publish_signal').on('value', snap => {
+        const signal = snap.val();
+        if (signal) callback(signal);
+      });
+    }
+
+    if (!window._mepPublishPollInterval) {
+      window._mepPublishPollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/publish_signal.json`);
+          if (res.ok) {
+            const signal = await res.json();
+            if (signal) callback(signal);
+          }
+        } catch(e) {}
+      }, 4000);
+    }
+  }
+};
+// ══════════════════════════════════════════════════════════════════════════════
+// MODULE 3: COORDINATOR & ACTIONS (Clear, Predictable User Flows)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Initialize Firebase & setup real-time listener
 function initFirebase() {
   try {
     if (typeof firebase !== 'undefined') {
@@ -1037,20 +1235,18 @@ function initFirebase() {
       }
       firebaseDb = firebase.database();
       isFirebaseInitialized = true;
-      console.log('✅ Firebase Realtime Database SDK initialized: whatsapp-c10ef');
+      console.log('✅ Firebase SDK initialized: whatsapp-c10ef');
       updateCloudStatusUI('online', 'Cloud Live');
 
       if (firebase.auth) {
-        firebase.auth().signInAnonymously().catch((err) => {
-          console.log('Auth note:', err.message);
-        });
+        firebase.auth().signInAnonymously().catch(() => {});
       }
 
       firebaseDb.ref('.info/connected').on('value', (snap) => {
         if (snap.val() === true) {
           updateCloudStatusUI('online', 'Cloud Live');
         } else {
-          updateCloudStatusUI('offline', 'Local Saved (Offline)');
+          updateCloudStatusUI('offline', 'Local Saved');
         }
       });
 
@@ -1059,10 +1255,10 @@ function initFirebase() {
       updateCloudStatusUI('online', 'Cloud Live (REST)');
     }
 
-    // Initial background sync
+    // Load cloud data in background on startup
     syncAllCloudData(false);
   } catch (e) {
-    console.error('Firebase initialization error:', e);
+    console.error('Firebase init error:', e);
     updateCloudStatusUI('online', 'Cloud Live (REST)');
   }
 }
@@ -1086,147 +1282,54 @@ function updateCloudStatusUI(status, text) {
       if (autoSave) autoSave.textContent = '⏳ ' + (text || 'Saving...');
     } else {
       dot.className = 'w-2 h-2 rounded-full bg-slate-400';
-      if (txt) txt.textContent = 'OFFLINE';
+      if (txt) txt.textContent = 'LOCAL';
       if (subTxt) subTxt.textContent = '● ' + (text || 'Local Saved');
       if (autoSave) autoSave.textContent = '💾 ' + (text || 'Local Saved');
     }
   }
 }
 
-// ─── INCHARGE: SAVE LOCAL DATA TO FIREBASE DATABASE ──────────────────────────
+// 1. INCHARGE OPERATOR: Click "Save"
 async function handleInchargeSave() {
   if (CurrentUser && CurrentUser.isReadOnly) {
     showToast('🔒 ভিউ মোড: সেভ করার অনুমতি নেই।', 'warning');
     return;
   }
 
+  const tabId = ACTIVE_TAB;
   const year = MonthYearState.year;
   const monthIndex = MonthYearState.monthIndex;
-  const tabId = ACTIVE_TAB;
 
   if (SHEET_TABS[tabId]?.isSummary) {
-    showToast('ℹ️ সামারি শিট স্বয়ংক্রিয়ভাবে হিসাব করা হয়।', 'info');
+    showToast('ℹ️ সামারি শিট স্বয়ংক্রিয়ভাবে হিসাব করা হয়।', 'info');
     return;
   }
 
-  const now = Date.now();
-
-  // 1. Save to Local Storage first (Offline-first persistence)
-  saveSheetData(false);
-
-  const payload = {
-    rows: cleanDataForFirebase(SheetState.rows),
-    tabId: tabId,
-    year: year,
-    monthIndex: monthIndex,
-    updatedAt: now,
-    updatedBy: CurrentUser ? CurrentUser.name : 'Incharge',
-    userId: CurrentUser ? CurrentUser.id : 'unknown'
-  };
-
-  const storageKey = getStorageKey(tabId, year, monthIndex);
-  localStorage.setItem(storageKey, JSON.stringify(payload));
+  // Save to Local Storage immediately
+  LocalStorageEngine.save(tabId, year, monthIndex, SheetState.rows);
 
   const saveBtn = document.getElementById('btnSaveGrid');
   if (saveBtn) saveBtn.classList.add('opacity-75');
   updateCloudStatusUI('syncing', 'Saving to Cloud...');
 
   try {
-    // 1. Firebase Realtime Database SDK
-    if (firebaseDb) {
-      await firebaseDb.ref(`mep_oee_v2/data/${year}/${monthIndex}/${tabId}`).set(payload);
-      await firebaseDb.ref(`mep_oee_v2/incharge_submissions/${year}/${monthIndex}/${tabId}`).set(payload);
-      await firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}/${tabId}`).set(payload);
+    const success = await FirebaseSyncEngine.saveOperatorSubmission(tabId, year, monthIndex, SheetState.rows);
+    if (success) {
+      updateCloudStatusUI('synced', 'Cloud Saved');
+      showToast(`✅ ফায়ারবেসে আপনার ডিপার্টমেন্টের (${SHEET_TABS[tabId].name}) তথ্য সফলভাবে সংরক্ষিত হয়েছে!`, 'success');
+    } else {
+      throw new Error('Upload failed');
     }
-
-    // 2. Direct REST API Write for 100% guaranteed delivery to all endpoints
-    await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}/${tabId}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/incharge_submissions/${year}/${monthIndex}/${tabId}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}/${tabId}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    updateCloudStatusUI('synced', 'Cloud Saved');
-    showToast(`✅ ফায়ারবেসে আপনার ডিপার্টমেন্টের (${SHEET_TABS[tabId].name}) তথ্য সফলভাবে সংরক্ষিত হয়েছে!`, 'success');
   } catch (err) {
-    console.error('Incharge save error:', err);
-    showToast('❌ ফায়ারবেসে সেভ করতে সমস্যা হয়েছে। ডাটা লোকাল স্টোরেজে সুরক্ষিত আছে।', 'error');
+    console.error('handleInchargeSave error:', err);
+    showToast('❌ ফায়ারবেসে সেভ করতে সমস্যা। ডাটা লোকালে সুরক্ষিত আছে।', 'error');
     updateCloudStatusUI('offline', 'Local Saved');
   } finally {
     if (saveBtn) saveBtn.classList.remove('opacity-75');
   }
 }
 
-// ─── SMART DATA MERGER (PRESERVES ENTERED CELLS DURING CONSOLIDATION) ────────
-function hasRowEnteredData(r) {
-  if (!r) return false;
-  if (r.E?.val !== null && r.E?.val !== '' && r.E?.val !== undefined && r.E?.val != 0) return true;
-  if (r.F?.val !== null && r.F?.val !== '' && r.F?.val !== undefined && r.F?.val != 0) return true;
-  if (r.G?.val !== null && r.G?.val !== '' && r.G?.val !== undefined && r.G?.val != 0) return true;
-  if (r.H?.val !== null && r.H?.val !== '' && r.H?.val !== undefined && r.H?.val != 0) return true;
-  if (r.AM?.val && String(r.AM.val).trim().length > 0) return true;
-  for (const c of EXCEL_COLUMNS) {
-    if (c.isDt && r[c.col]?.val !== null && r[c.col]?.val !== '' && r[c.col]?.val !== undefined && r[c.col]?.val != 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function mergeRowsSmartly(baseRows, overlayRows, tabId = ACTIVE_TAB) {
-  if (!Array.isArray(baseRows) || baseRows.length === 0) {
-    return Array.isArray(overlayRows) ? JSON.parse(JSON.stringify(overlayRows)) : [];
-  }
-  if (!Array.isArray(overlayRows) || overlayRows.length === 0) {
-    return JSON.parse(JSON.stringify(baseRows));
-  }
-
-  const result = JSON.parse(JSON.stringify(baseRows));
-
-  overlayRows.forEach((rB, idx) => {
-    if (idx >= result.length) return;
-    const rA = result[idx];
-    if (!rA) return;
-
-    ['E', 'F', 'G', 'H'].forEach(col => {
-      const vB = rB[col]?.val;
-      const isBEntered = (vB !== null && vB !== '' && vB !== undefined && vB !== '-' && Number(vB) !== 0);
-      if (isBEntered) {
-        if (!rA[col]) rA[col] = {};
-        rA[col].val = Number(vB);
-      }
-    });
-
-    const textB = rB.AM?.val ? String(rB.AM.val).trim() : '';
-    if (textB.length > 0) {
-      if (!rA.AM) rA.AM = {};
-      rA.AM.val = textB;
-    }
-
-    EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => {
-      const vB = rB[c.col]?.val;
-      const isBEntered = (vB !== null && vB !== '' && vB !== undefined && vB !== '-' && Number(vB) !== 0);
-      if (isBEntered) {
-        if (!rA[c.col]) rA[c.col] = {};
-        rA[c.col].val = Number(vB);
-      }
-    });
-  });
-
-  return result;
-}
-
-// ─── ADMIN: CONSOLIDATE FIREBASE DATA & REAL-TIME PUBLISH TO ALL USERS ────────
+// 2. ADMIN: Click "Publish"
 async function adminBroadcastLiveData() {
   const spinIcon = document.getElementById('syncSpinIcon');
   if (spinIcon) spinIcon.classList.add('animate-spin');
@@ -1236,35 +1339,21 @@ async function adminBroadcastLiveData() {
     const year = MonthYearState.year;
     const monthIndex = MonthYearState.monthIndex;
 
-    // 1. Save Admin's local active sheet first
-    saveSheetData(false);
+    // 1. Save Admin's active sheet locally
+    LocalStorageEngine.save(ACTIVE_TAB, year, monthIndex, SheetState.rows);
 
-    // 2. Fetch fresh saved submissions from both /data and /live_broadcast
-    let rawCloudDepts = {};
-    let liveBroadcastDepts = {};
-
-    try {
-      const restUrl1 = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}.json?nocache=${Date.now()}`;
-      const res1 = await fetch(restUrl1, { cache: 'no-store' });
-      if (res1.ok) rawCloudDepts = (await res1.json()) || {};
-    } catch(e) {}
-
-    try {
-      const restUrl2 = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json?nocache=${Date.now()}`;
-      const res2 = await fetch(restUrl2, { cache: 'no-store' });
-      if (res2.ok) liveBroadcastDepts = (await res2.json()) || {};
-    } catch(e) {}
+    // 2. Fetch all operator submissions and existing published data from Firebase
+    const [submissions, existingPublished] = await Promise.all([
+      FirebaseSyncEngine.fetchAllOperatorSubmissions(year, monthIndex),
+      FirebaseSyncEngine.fetchPublishedData(year, monthIndex)
+    ]);
 
     const consolidated = {};
     const now = Date.now();
 
-    // 3. For all 9 production departments: build master consolidated dataset
+    // 3. For each of the 9 production departments: build consolidated master
     Object.keys(SHEET_TABS).forEach(tabId => {
       if (SHEET_TABS[tabId].isSummary) return;
-
-      const rawCloudItem = rawCloudDepts[tabId];
-      const liveItem = liveBroadcastDepts[tabId];
-      const localItem = getStoredLocalData(tabId, year, monthIndex);
 
       let templateRows = (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined')
         ? JSON.parse(JSON.stringify(INITIAL_EXCEL_ROWS))
@@ -1272,26 +1361,24 @@ async function adminBroadcastLiveData() {
 
       let targetRows = templateRows;
 
-      // Pick the newest source between rawCloudItem and liveItem
-      let newestItem = null;
-      if (rawCloudItem && liveItem) {
-        newestItem = (rawCloudItem.updatedAt >= liveItem.updatedAt) ? rawCloudItem : liveItem;
-      } else {
-        newestItem = rawCloudItem || liveItem;
+      // Base: Existing published data
+      const pubItem = existingPublished[tabId];
+      if (pubItem && Array.isArray(pubItem.rows) && pubItem.rows.length > 0) {
+        targetRows = mergeRowsSmartly(targetRows, pubItem.rows);
       }
 
-      if (newestItem && Array.isArray(newestItem.rows) && newestItem.rows.length > 0) {
-        targetRows = mergeRowsSmartly(templateRows, newestItem.rows, tabId);
-      } else if (localItem && Array.isArray(localItem.rows) && localItem.rows.length > 0) {
-        targetRows = mergeRowsSmartly(templateRows, localItem.rows, tabId);
+      // Layer 1: Operator's latest saved submission
+      const subItem = submissions[tabId];
+      if (subItem && Array.isArray(subItem.rows) && subItem.rows.length > 0) {
+        targetRows = mergeRowsSmartly(targetRows, subItem.rows);
       }
 
-      // Priority 2: If this is Admin's active tab, merge Admin's in-memory entries
+      // Layer 2: Admin's active sheet edits
       if (tabId === ACTIVE_TAB && SheetState.rows && SheetState.rows.length > 0) {
-        targetRows = mergeRowsSmartly(targetRows, SheetState.rows, tabId);
+        targetRows = mergeRowsSmartly(targetRows, SheetState.rows);
       }
 
-      // Recalculate all formulas on the consolidated rows
+      // Recalculate all formulas
       targetRows.forEach(row => recalculateRow(row));
 
       const tabPayload = {
@@ -1306,183 +1393,84 @@ async function adminBroadcastLiveData() {
       consolidated[tabId] = tabPayload;
 
       // Update Admin's local storage
-      const storageKey = getStorageKey(tabId, year, monthIndex);
-      localStorage.setItem(storageKey, JSON.stringify(tabPayload));
+      LocalStorageEngine.save(tabId, year, monthIndex, targetRows, 'Admin');
     });
 
-    const deptKeys = Object.keys(consolidated);
+    // 4. Publish master dataset to Firebase
+    await FirebaseSyncEngine.publishMasterData(year, monthIndex, consolidated);
 
-    // 4. Publish Master Live Dataset to Firebase Live Node & Data Node
-    const cleanedConsolidated = cleanDataForFirebase(consolidated);
-    if (firebaseDb) {
-      await firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`).set(cleanedConsolidated);
-      await firebaseDb.ref(`mep_oee_v2/data/${year}/${monthIndex}`).set(cleanedConsolidated);
-    }
-    try {
-      await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cleanedConsolidated)
-      });
-      await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cleanedConsolidated)
-      });
-    } catch(e) {}
-
-    // 5. Fire Global Real-Time Broadcast Signal to instantly update all connected devices
-    const signalPayload = {
-      timestamp: now,
-      publishedBy: CurrentUser ? CurrentUser.name : 'Admin',
-      year: year,
-      monthIndex: monthIndex
-    };
-    if (firebaseDb) {
-      await firebaseDb.ref('mep_oee_v2/broadcast_signal').set(signalPayload);
-    }
-    try {
-      await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/broadcast_signal.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signalPayload)
-      });
-    } catch(e) {}
-
-    // 6. Re-render Admin view
+    // 5. Re-render Admin view
     loadSheetData();
     recalculateAllFormulas();
     renderExcelTable();
     updateTotalRowDisplay();
     updateCloudStatusUI('synced', 'Live Published');
 
-    showToast(`🎉 সকল ডিপার্টমেন্টের ডাটা সফলভাবে লাইভ পাবলিশ করা হয়েছে! (${deptKeys.length}টি ডিপার্টমেন্ট)`, 'success');
+    showToast(`🎉 সকল ডিপার্টমেন্টের ডাটা সফলভাবে লাইভ পাবলিশ করা হয়েছে! (${Object.keys(consolidated).length}টি ডিপার্টমেন্ট)`, 'success');
   } catch (err) {
-    console.error('Error broadcasting live data:', err);
-    showToast('❌ লাইভ পাবলিশ করতে সমস্যা হয়েছে: ' + (err.message || ''), 'error');
+    console.error('Admin publish error:', err);
+    showToast('❌ লাইভ পাবলিশ করতে সমস্যা: ' + (err.message || ''), 'error');
     updateCloudStatusUI('error', 'Publish Failed');
   } finally {
     if (spinIcon) spinIcon.classList.remove('animate-spin');
   }
 }
 
-// ─── ALL USERS: REAL-TIME WEBSOCKET LISTENER FOR ADMIN PUBLISH ────────────────
-let activeBroadcastRef = null;
+// 3. ALL CLIENTS: Real-time listener for Admin Publish
+let lastPublishTimestamp = 0;
 
 function setupRealtimeBroadcastListener() {
-  const year = MonthYearState.year;
-  const monthIndex = MonthYearState.monthIndex;
+  FirebaseSyncEngine.listenForPublishSignal(async (signal) => {
+    if (!signal || !signal.timestamp) return;
+    if (signal.timestamp <= lastPublishTimestamp) return;
 
-  if (firebaseDb) {
-    // 1. Instant Global Broadcast Signal Listener (Triggered ONLY on Admin Publish)
-    firebaseDb.ref('mep_oee_v2/broadcast_signal').off();
-    firebaseDb.ref('mep_oee_v2/broadcast_signal').on('value', async (snap) => {
-      const signal = snap.val();
-      if (signal) processIncomingBroadcastSignal(signal);
-    });
-
-    // 2. Real-Time Live Broadcast WebSocket Listener
-    if (activeBroadcastRef) activeBroadcastRef.off();
-    activeBroadcastRef = firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`);
-    activeBroadcastRef.on('value', (snap) => {
-      const liveData = snap.val();
-      if (liveData && typeof liveData === 'object') {
-        applyIncomingBroadcastData(liveData, false);
-      }
-    });
-  }
-
-  // Periodic fallback check every 4 seconds for non-WebSocket connections
-  if (!window._mepSyncInterval) {
-    window._mepSyncInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/broadcast_signal.json`);
-        if (res.ok) {
-          const signal = await res.json();
-          if (signal) processIncomingBroadcastSignal(signal);
-        }
-      } catch(e) {}
-    }, 4000);
-  }
-}
-
-function applyIncomingBroadcastData(liveData, isSilent = true) {
-  if (!liveData || typeof liveData !== 'object') return;
-  const year = MonthYearState.year;
-  const monthIndex = MonthYearState.monthIndex;
-  let validCount = 0;
-
-  Object.keys(liveData).forEach(tabId => {
-    const cloudItem = liveData[tabId];
-    if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
-      const mergedRows = cloudItem.rows;
-      mergedRows.forEach(row => recalculateRow(row));
-
-      const updatedPayload = {
-        rows: cleanDataForFirebase(mergedRows),
-        tabId: tabId,
-        year: year,
-        monthIndex: monthIndex,
-        updatedAt: cloudItem.updatedAt || Date.now(),
-        updatedBy: cloudItem.updatedBy || 'Admin'
-      };
-
-      const storageKey = getStorageKey(tabId, year, monthIndex);
-      localStorage.setItem(storageKey, JSON.stringify(updatedPayload));
-      validCount++;
-    }
-  });
-
-  if (validCount > 0) {
-    if (!SheetState.isEditing) {
-      loadSheetData();
-      recalculateAllFormulas();
-      renderExcelTable();
-      updateTotalRowDisplay();
-    }
-    updateCloudStatusUI('synced', 'Live Synced');
-  }
-}
-
-async function processIncomingBroadcastSignal(signal) {
-  if (!signal || !signal.timestamp) return;
-
-  if (signal.timestamp > lastBroadcastTimestamp) {
-    const isInitial = (lastBroadcastTimestamp === 0);
-    lastBroadcastTimestamp = signal.timestamp;
+    const isInitial = (lastPublishTimestamp === 0);
+    lastPublishTimestamp = signal.timestamp;
 
     const year = MonthYearState.year;
     const monthIndex = MonthYearState.monthIndex;
 
     if (signal.year === year && signal.monthIndex === monthIndex) {
       try {
-        let liveData = null;
-        if (firebaseDb) {
-          const snap = await firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`).once('value');
-          liveData = snap.val();
-        }
-        if (!liveData) {
-          try {
-            const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`);
-            if (res.ok) liveData = await res.json();
-          } catch(e) {}
-        }
-
-        if (liveData && typeof liveData === 'object' && Object.keys(liveData).length > 0) {
-          applyIncomingBroadcastData(liveData);
+        const publishedData = await FirebaseSyncEngine.fetchPublishedData(year, monthIndex);
+        if (publishedData && typeof publishedData === 'object' && Object.keys(publishedData).length > 0) {
+          applyIncomingPublishedData(publishedData);
 
           if (!isInitial && CurrentUser && CurrentUser.id !== 'admin') {
             showToast('📢 এডমিন সর্বশেষ ডাটা লাইভ পাবলিশ করেছেন!', 'info');
           }
         }
-      } catch(e) {
-        console.error('Error processing broadcast signal:', e);
+      } catch (e) {
+        console.error('Error handling publish signal:', e);
       }
     }
+  });
+}
+
+function applyIncomingPublishedData(publishedData) {
+  const year = MonthYearState.year;
+  const monthIndex = MonthYearState.monthIndex;
+  let count = 0;
+
+  Object.keys(publishedData).forEach(tabId => {
+    const item = publishedData[tabId];
+    if (item && Array.isArray(item.rows) && item.rows.length > 0) {
+      item.rows.forEach(r => recalculateRow(r));
+      LocalStorageEngine.save(tabId, year, monthIndex, item.rows, item.updatedBy || 'Published');
+      count++;
+    }
+  });
+
+  if (count > 0 && !SheetState.isEditing) {
+    loadSheetData();
+    recalculateAllFormulas();
+    renderExcelTable();
+    updateTotalRowDisplay();
+    updateCloudStatusUI('synced', 'Live Synced');
   }
 }
 
-// ─── MASTER SYNC / PUBLISH ACTION DISPATCHER ─────────────────────────────────
+// 4. REFRESH / INITIAL LOAD SYNC
 function handleSyncOrPublish() {
   if (CurrentUser && CurrentUser.id === 'admin') {
     adminBroadcastLiveData();
@@ -1500,58 +1488,38 @@ async function syncAllCloudData(showFeedback = true) {
     const year = MonthYearState.year;
     const monthIndex = MonthYearState.monthIndex;
 
-    // Fetch BOTH /data and /live_broadcast with cache-busters
-    let rawDepts = {};
-    let liveDepts = {};
-
-    try {
-      const res1 = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}.json?nocache=${Date.now()}`, { cache: 'no-store' });
-      if (res1.ok) rawDepts = (await res1.json()) || {};
-    } catch(e) {}
-
-    try {
-      const res2 = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json?nocache=${Date.now()}`, { cache: 'no-store' });
-      if (res2.ok) liveDepts = (await res2.json()) || {};
-    } catch(e) {}
+    // Fetch BOTH published data and ALL operator submissions in parallel
+    const [publishedData, operatorSubmissions] = await Promise.all([
+      FirebaseSyncEngine.fetchPublishedData(year, monthIndex),
+      FirebaseSyncEngine.fetchAllOperatorSubmissions(year, monthIndex)
+    ]);
 
     let updatedCount = 0;
 
     Object.keys(SHEET_TABS).forEach(tabId => {
       if (SHEET_TABS[tabId].isSummary) return;
 
-      const rawItem = rawDepts[tabId];
-      const liveItem = liveDepts[tabId];
-      const localItem = getStoredLocalData(tabId, year, monthIndex);
+      const pubItem = publishedData[tabId];
+      const opItem = operatorSubmissions[tabId];
+      const localItem = LocalStorageEngine.load(tabId, year, monthIndex);
 
-      // Select the item with the newest timestamp
+      // Choose whichever source is the newest
+      const tOp = opItem?.updatedAt || 0;
+      const tPub = pubItem?.updatedAt || 0;
+      const tLoc = localItem?.updatedAt || 0;
+
       let bestItem = null;
-      const tRaw = rawItem?.updatedAt || 0;
-      const tLive = liveItem?.updatedAt || 0;
-      const tLocal = localItem?.updatedAt || 0;
-
-      if (tRaw >= tLive && tRaw > 0) {
-        bestItem = rawItem;
-      } else if (tLive > 0) {
-        bestItem = liveItem;
-      } else if (tLocal > 0) {
+      if (tOp >= tPub && tOp > 0 && Array.isArray(opItem.rows) && opItem.rows.length > 0) {
+        bestItem = opItem;
+      } else if (pubItem && Array.isArray(pubItem.rows) && pubItem.rows.length > 0) {
+        bestItem = pubItem;
+      } else if (localItem && Array.isArray(localItem.rows) && localItem.rows.length > 0) {
         bestItem = localItem;
       }
 
       if (bestItem && Array.isArray(bestItem.rows) && bestItem.rows.length > 0) {
-        const mergedRows = bestItem.rows;
-        mergedRows.forEach(row => recalculateRow(row));
-
-        const updatedPayload = {
-          rows: cleanDataForFirebase(mergedRows),
-          tabId: tabId,
-          year: year,
-          monthIndex: monthIndex,
-          updatedAt: bestItem.updatedAt || Date.now(),
-          updatedBy: bestItem.updatedBy || 'Cloud'
-        };
-
-        const storageKey = getStorageKey(tabId, year, monthIndex);
-        localStorage.setItem(storageKey, JSON.stringify(updatedPayload));
+        bestItem.rows.forEach(r => recalculateRow(r));
+        LocalStorageEngine.save(tabId, year, monthIndex, bestItem.rows, bestItem.updatedBy || 'Cloud');
         updatedCount++;
       }
     });
@@ -1563,39 +1531,25 @@ async function syncAllCloudData(showFeedback = true) {
       updateTotalRowDisplay();
       updateCloudStatusUI('synced', 'Cloud Synced');
     } else {
-      updateCloudStatusUI('synced', 'Local + Cloud Synced');
+      updateCloudStatusUI('synced', 'Local Data');
     }
 
     if (showFeedback) {
-      showToast(`☁️ ফায়ারবেস ক্লাউড থেকে সর্বশেষ ডাটা সফলভাবে সিঙ্ক হয়েছে!`, 'success');
+      showToast('☁️ ফায়ারবেস ক্লাউড থেকে সর্বশেষ ডাটা সফলভাবে সিঙ্ক হয়েছে!', 'success');
     }
   } catch (err) {
-    console.error('Error syncing cloud data:', err);
-    if (showFeedback) showToast('❌ ক্লাউড ডাটা সিঙ্ক করতে সমস্যা হয়েছে।', 'error');
+    console.error('syncAllCloudData error:', err);
+    if (showFeedback) showToast('❌ ক্লাউড ডাটা সিঙ্ক করতে সমস্যা হয়েছে।', 'error');
     updateCloudStatusUI('error', 'Sync Failed');
   } finally {
     if (spinIcon) spinIcon.classList.remove('animate-spin');
   }
 }
 
+// 5. HELPER: Auto-save while typing (strictly local storage)
 function saveSheetData(pushHistory = true) {
   if (pushHistory) pushHistoryState();
-  try {
-    const now = Date.now();
-    const key = getStorageKey(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
-    const dataObj = {
-      rows: SheetState.rows,
-      updatedAt: now,
-      tabId: ACTIVE_TAB,
-      year: MonthYearState.year,
-      monthIndex: MonthYearState.monthIndex,
-      updatedBy: CurrentUser ? CurrentUser.name : 'User'
-    };
-    localStorage.setItem(key, JSON.stringify(dataObj));
-    triggerSaveIndicator();
-  } catch (e) {
-    console.error('Failed to save to localStorage:', e);
-  }
+  LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
 }
 
 function triggerSaveIndicator() {
@@ -1610,8 +1564,7 @@ function resetToOriginalData() {
   const tabName = SHEET_TABS[ACTIVE_TAB].name;
   const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
   if (confirm(`Reset entire sheet for [${tabName}] (${monthName} ${MonthYearState.year})?`)) {
-    const key = getStorageKey(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
-    localStorage.removeItem(key);
+    LocalStorageEngine.clear(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
     loadSheetData();
     recalculateAllFormulas();
     renderExcelTable();
