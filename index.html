@@ -455,19 +455,16 @@
       <div class="flex items-center gap-3.5">
         
         <!-- 4. System Live Status Badge (Compact & Clear Status Badge) -->
-        <div id="cloudStatusBadge" class="hidden md:flex flex-col justify-center px-3 h-[44px] rounded-lg bg-[#062040] border border-[#1f4d8f] text-[11px] leading-tight" title="Firebase Realtime Database Status">
-          <div class="flex items-center gap-1.5 font-bold text-emerald-400">
-            <span id="cloudStatusDot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="cloudStatusText">ONLINE</span>
+        <div id="cloudStatusBadge" class="hidden md:flex items-center gap-2 px-3.5 h-[44px] rounded-lg bg-[#062040] border border-[#1f4d8f] text-xs font-semibold leading-tight shadow-sm" title="Google Sheets Live Cloud Sync">
+          <span id="cloudStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+          <div class="flex flex-col">
+            <span id="cloudStatusText" class="text-emerald-400 font-bold text-[11px] tracking-wide">LIVE</span>
+            <span id="cloudStatusSubText" class="text-[10px] text-slate-300 font-medium">All changes saved to cloud</span>
           </div>
-          <div id="cloudStatusSubText" class="text-[10px] text-slate-300 font-medium">● Synced</div>
         </div>
 
         <!-- 5. Master Sync / Publish Button (Admin Only) -->
-        <button id="btnCloudSync" style="display: none;" class="h-[44px] px-[20px] py-[10px] rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white border border-emerald-500 text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition" title="Sync Cloud Data">
-          <span id="syncSpinIcon" class="text-sm inline-block">🟢</span>
-          <span>Publish</span>
-        </button>
+        <button id="btnCloudSync" style="display: none;" class="hidden"></button>
 
         <!-- 6. User Info Card (Height: 44px, Integrated Icon) -->
         <div id="currentUserBadge" class="flex items-center gap-2 bg-[#062040] px-3.5 h-[44px] rounded-lg border border-[#1f4d8f] text-left">
@@ -487,10 +484,7 @@
         </button>
 
         <!-- 8. Save Button (Green Primary Action) -->
-        <button id="btnSaveGrid" class="h-[44px] px-[20px] py-[10px] rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition border border-emerald-500" title="Save changes (Ctrl+S)">
-          <span class="text-sm">💾</span>
-          <span>Save</span>
-        </button>
+        <button id="btnSaveGrid" style="display: none;" class="hidden"></button>
 
         <!-- 9. Excel Export Button (Excel Green with Small Icon) -->
         <button id="btnExportExcel" class="h-[44px] px-[20px] py-[10px] rounded-lg bg-[#15803D] hover:bg-[#166534] text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition border border-emerald-600" title="Export Excel (.xlsx)">

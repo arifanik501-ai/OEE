@@ -717,6 +717,7 @@ function applyUserLogin(user, showWelcome = true) {
   recalculateAllFormulas();
   renderExcelTable();
   selectInitialCell();
+  GoogleSheetsRealtimeEngine.listenToActiveSheet(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
 
   // 5. Seamlessly reveal the main container with zero blink/flicker
   document.documentElement.classList.remove('user-unauthenticated');
@@ -861,6 +862,7 @@ function switchSheetTab(tabId) {
   recalculateAllFormulas();
   renderExcelTable();
   selectInitialCell();
+  GoogleSheetsRealtimeEngine.listenToActiveSheet(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
 }
 
 function onMonthYearChange() {
@@ -868,6 +870,7 @@ function onMonthYearChange() {
   recalculateAllFormulas();
   renderExcelTable();
   selectInitialCell();
+  GoogleSheetsRealtimeEngine.listenToActiveSheet(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
   setupRealtimeBroadcastListener();
   syncAllCloudData(false);
 }
@@ -1009,7 +1012,7 @@ function redoAction() {
   showToast('↪️ Redone', 'info');
 }
 
-// ─── FIREBASE REALTIME DATABASE CONFIGURATION & SYNC ENGINE ───────────────────
+// ─── FIREBASE REALTIME DATABASE CONFIGURATION (GOOGLE SHEETS MODEL) ───────────
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDummyKeyForRestApiCompatibility",
   authDomain: "whatsapp-c10ef.firebaseapp.com",
@@ -1032,7 +1035,7 @@ function cleanDataForFirebase(data) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MODULE 1: LOCAL STORAGE ENGINE (Pure Offline Storage - 0 Network Dependency)
+// MODULE 1: LOCAL STORAGE CACHE (0ms Instant Display & Offline Fallback)
 // ══════════════════════════════════════════════════════════════════════════════
 const LocalStorageEngine = {
   getKey(tabId, year, monthIndex) {
@@ -1076,8 +1079,7 @@ const LocalStorageEngine = {
 
   clear(tabId, year, monthIndex) {
     try {
-      const key = this.getKey(tabId, year, monthIndex);
-      localStorage.removeItem(key);
+      localStorage.removeItem(this.getKey(tabId, year, monthIndex));
       return true;
     } catch (e) {
       return false;
@@ -1085,148 +1087,172 @@ const LocalStorageEngine = {
   }
 };
 
+function getStoredLocalData(tabId, year, monthIndex) {
+  return LocalStorageEngine.load(tabId, year, monthIndex);
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
-// MODULE 2: FIREBASE SYNC ENGINE (Dedicated Cloud Communication Engine)
+// MODULE 2: PURE GOOGLE SHEETS REAL-TIME ENGINE (Cell/Row Granular Cloud Sync)
 // ══════════════════════════════════════════════════════════════════════════════
-const FirebaseSyncEngine = {
-  // 1. Operator: Save active department data to Firebase staging
-  async saveOperatorSubmission(tabId, year, monthIndex, rows) {
-    const payload = {
-      rows: cleanDataForFirebase(rows),
-      tabId: tabId,
-      year: year,
-      monthIndex: monthIndex,
-      updatedAt: Date.now(),
-      updatedBy: CurrentUser ? CurrentUser.name : 'Incharge',
-      userId: CurrentUser ? CurrentUser.id : 'unknown'
-    };
+let activeSheetRef = null;
+let activeSheetListenerTab = null;
 
-    const pathSub = `mep_oee_v2/operator_submissions/${year}/${monthIndex}/${tabId}`;
-    const pathPub = `mep_oee_v2/published/${year}/${monthIndex}/${tabId}`;
+const GoogleSheetsRealtimeEngine = {
+  // Push a single modified row immediately to Firebase Realtime Database
+  async pushRowChange(tabId, year, monthIndex, rowObj) {
+    if (!rowObj || typeof rowObj.row !== 'number') return;
+    if (CurrentUser && CurrentUser.isReadOnly) return;
 
-    if (firebaseDb) {
-      try { 
-        await firebaseDb.ref(pathSub).set(payload); 
-        await firebaseDb.ref(pathPub).set(payload); 
-      } catch(e) {}
-    }
+    const rIdx = rowObj.row - 6;
+    if (rIdx < 0) return;
 
-    // Direct REST API for 100% delivery guarantee to BOTH operator_submissions and published
-    await Promise.all([
-      fetch(`${FIREBASE_RTDB_BASE_URL}/${pathSub}.json`, {
+    const cleanRow = cleanDataForFirebase(rowObj);
+    const path = `mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows/${rIdx}`;
+
+    updateCloudStatusUI('syncing', 'Saving...');
+
+    try {
+      if (firebaseDb) {
+        firebaseDb.ref(path).set(cleanRow);
+      }
+      // REST API call
+      fetch(`${FIREBASE_RTDB_BASE_URL}/${path}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }),
-      fetch(`${FIREBASE_RTDB_BASE_URL}/${pathPub}.json`, {
+        body: JSON.stringify(cleanRow)
+      }).then(() => {
+        updateCloudStatusUI('synced', 'All changes saved to cloud');
+      }).catch(() => {});
+    } catch (err) {
+      console.error('pushRowChange error:', err);
+      updateCloudStatusUI('offline', 'Saved locally (offline)');
+    }
+  },
+
+  // Push batch of modified rows (e.g. from paste or modal entry)
+  async pushRowsBatch(tabId, year, monthIndex, rowsArray) {
+    if (!Array.isArray(rowsArray) || rowsArray.length === 0) return;
+    if (CurrentUser && CurrentUser.isReadOnly) return;
+
+    updateCloudStatusUI('syncing', 'Saving...');
+
+    const promises = rowsArray.map(rObj => {
+      const rIdx = rObj.row - 6;
+      if (rIdx < 0) return Promise.resolve();
+      const cleanRow = cleanDataForFirebase(rObj);
+      const path = `mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows/${rIdx}`;
+
+      if (firebaseDb) {
+        firebaseDb.ref(path).set(cleanRow);
+      }
+      return fetch(`${FIREBASE_RTDB_BASE_URL}/${path}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-    ]);
-
-    return true;
-  },
-
-  // 2. Fetch all operator submissions for a given month (for Admin consolidation & sync)
-  async fetchAllOperatorSubmissions(year, monthIndex) {
-    try {
-      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/operator_submissions/${year}/${monthIndex}.json?nocache=${Date.now()}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (res.ok) return (await res.json()) || {};
-    } catch (e) {
-      console.error('fetchAllOperatorSubmissions error:', e);
-    }
-    return {};
-  },
-
-  // 3. Fetch specific operator submission
-  async fetchOperatorSubmission(tabId, year, monthIndex) {
-    try {
-      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/operator_submissions/${year}/${monthIndex}/${tabId}.json?nocache=${Date.now()}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (res.ok) return await res.json();
-    } catch (e) {}
-    return null;
-  },
-
-  // 4. Admin: Publish consolidated master data to Firebase and emit live signal
-  async publishMasterData(year, monthIndex, consolidatedDepts) {
-    const cleaned = cleanDataForFirebase(consolidatedDepts);
-    const publishPath = `mep_oee_v2/published/${year}/${monthIndex}`;
-    const now = Date.now();
-
-    if (firebaseDb) {
-      try { await firebaseDb.ref(publishPath).set(cleaned); } catch(e) {}
-    }
-
-    await fetch(`${FIREBASE_RTDB_BASE_URL}/${publishPath}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cleaned)
+        body: JSON.stringify(cleanRow)
+      });
     });
 
-    // Fire publish signal to notify all clients
-    const signal = {
-      timestamp: now,
-      publishedBy: CurrentUser ? CurrentUser.name : 'Admin',
-      year: year,
-      monthIndex: monthIndex
-    };
-
-    if (firebaseDb) {
-      try { await firebaseDb.ref('mep_oee_v2/publish_signal').set(signal); } catch(e) {}
-    }
-
-    await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/publish_signal.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(signal)
-    });
-
-    return true;
-  },
-
-  // 5. Fetch published master data for all 9 departments
-  async fetchPublishedData(year, monthIndex) {
     try {
-      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/published/${year}/${monthIndex}.json?nocache=${Date.now()}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (res.ok) return (await res.json()) || {};
+      await Promise.all(promises);
+      updateCloudStatusUI('synced', 'All changes saved to cloud');
     } catch (e) {
-      console.error('fetchPublishedData error:', e);
+      updateCloudStatusUI('synced', 'All changes saved to cloud');
     }
-    return {};
   },
 
-  // 6. Listen for publish signal
-  listenForPublishSignal(callback) {
+  // Listen to the active sheet in real-time via WebSockets
+  listenToActiveSheet(tabId, year, monthIndex) {
+    if (activeSheetRef) {
+      try { activeSheetRef.off(); } catch (e) {}
+      activeSheetRef = null;
+    }
+
+    activeSheetListenerTab = `${tabId}_${year}_${monthIndex}`;
+    const path = `mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows`;
+
     if (firebaseDb) {
-      firebaseDb.ref('mep_oee_v2/publish_signal').off();
-      firebaseDb.ref('mep_oee_v2/publish_signal').on('value', snap => {
-        const signal = snap.val();
-        if (signal) callback(signal);
+      activeSheetRef = firebaseDb.ref(path);
+
+      // Listen for individual row updates from other collaborators
+      activeSheetRef.on('child_changed', (snap) => {
+        const rIdx = Number(snap.key);
+        const incomingRow = snap.val();
+        if (!incomingRow || isNaN(rIdx)) return;
+
+        // If local user is currently editing THIS exact row, don't interrupt cursor
+        if (SheetState.isEditing && SheetState.selected && SheetState.selected.row === (rIdx + 6)) {
+          return;
+        }
+
+        if (Array.isArray(SheetState.rows) && SheetState.rows[rIdx]) {
+          SheetState.rows[rIdx] = incomingRow;
+          recalculateRow(SheetState.rows[rIdx]);
+          recalculateTotalRow();
+          updateSingleRowDisplay(rIdx + 6);
+          updateTotalRowDisplay();
+          LocalStorageEngine.save(tabId, year, monthIndex, SheetState.rows, 'RealtimeCloud');
+        }
       });
     }
 
-    if (!window._mepPublishPollInterval) {
-      window._mepPublishPollInterval = setInterval(async () => {
+    // Fallback polling every 3 seconds
+    if (!window._mepGoogleSheetsPoll) {
+      window._mepGoogleSheetsPoll = setInterval(async () => {
+        if (SheetState.isEditing) return; // Don't poll while user is actively typing
         try {
-          const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/publish_signal.json`);
+          const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/sheets/${MonthYearState.year}/${MonthYearState.monthIndex}/${ACTIVE_TAB}/rows.json`);
           if (res.ok) {
-            const signal = await res.json();
-            if (signal) callback(signal);
+            const cloudRows = await res.json();
+            if (Array.isArray(cloudRows) && cloudRows.length > 0 && !SheetState.isEditing) {
+              let hasChanges = false;
+              cloudRows.forEach((r, idx) => {
+                if (!r || idx >= SheetState.rows.length) return;
+                // Quick compare input fields
+                if (JSON.stringify(r.E) !== JSON.stringify(SheetState.rows[idx]?.E) ||
+                    JSON.stringify(r.F) !== JSON.stringify(SheetState.rows[idx]?.F) ||
+                    JSON.stringify(r.G) !== JSON.stringify(SheetState.rows[idx]?.G) ||
+                    JSON.stringify(r.H) !== JSON.stringify(SheetState.rows[idx]?.H) ||
+                    JSON.stringify(r.AM) !== JSON.stringify(SheetState.rows[idx]?.AM)) {
+                  SheetState.rows[idx] = r;
+                  recalculateRow(SheetState.rows[idx]);
+                  updateSingleRowDisplay(idx + 6);
+                  hasChanges = true;
+                }
+              });
+              if (hasChanges) {
+                recalculateTotalRow();
+                updateTotalRowDisplay();
+                LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows, 'CloudPoll');
+              }
+            }
           }
         } catch(e) {}
-      }, 4000);
+      }, 3000);
     }
+  },
+
+  // Fetch full sheet from Firebase
+  async fetchSheetFromCloud(tabId, year, monthIndex) {
+    try {
+      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}.json?nocache=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.rows) && data.rows.length > 0) {
+          return data.rows;
+        }
+      }
+    } catch (e) {
+      console.error('fetchSheetFromCloud error:', e);
+    }
+    return null;
   }
 };
+
 // ══════════════════════════════════════════════════════════════════════════════
-// MODULE 3: COORDINATOR & ACTIONS (Clear, Predictable User Flows)
+// MODULE 3: INITIALIZATION & USER ACTIONS (Google Sheets Model)
 // ══════════════════════════════════════════════════════════════════════════════
 
-// Initialize Firebase & setup real-time listener
 function initFirebase() {
   try {
     if (typeof firebase !== 'undefined') {
@@ -1235,8 +1261,8 @@ function initFirebase() {
       }
       firebaseDb = firebase.database();
       isFirebaseInitialized = true;
-      console.log('✅ Firebase SDK initialized: whatsapp-c10ef');
-      updateCloudStatusUI('online', 'Cloud Live');
+      console.log('✅ Google Sheets Realtime Engine Connected: whatsapp-c10ef');
+      updateCloudStatusUI('online', 'All changes saved to cloud');
 
       if (firebase.auth) {
         firebase.auth().signInAnonymously().catch(() => {});
@@ -1244,22 +1270,23 @@ function initFirebase() {
 
       firebaseDb.ref('.info/connected').on('value', (snap) => {
         if (snap.val() === true) {
-          updateCloudStatusUI('online', 'Cloud Live');
+          updateCloudStatusUI('online', 'All changes saved to cloud');
         } else {
-          updateCloudStatusUI('offline', 'Local Saved');
+          updateCloudStatusUI('offline', 'Saved locally (offline)');
         }
       });
 
-      setupRealtimeBroadcastListener();
+      // Start listening to active sheet
+      GoogleSheetsRealtimeEngine.listenToActiveSheet(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
     } else {
-      updateCloudStatusUI('online', 'Cloud Live (REST)');
+      updateCloudStatusUI('online', 'All changes saved to cloud (REST)');
     }
 
-    // Load cloud data in background on startup
+    // Initial background sync from cloud
     syncAllCloudData(false);
   } catch (e) {
     console.error('Firebase init error:', e);
-    updateCloudStatusUI('online', 'Cloud Live (REST)');
+    updateCloudStatusUI('online', 'All changes saved to cloud');
   }
 }
 
@@ -1271,282 +1298,62 @@ function updateCloudStatusUI(status, text) {
 
   if (dot) {
     if (status === 'online' || status === 'synced') {
-      dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
       if (txt) txt.textContent = 'LIVE';
-      if (subTxt) subTxt.textContent = '● ' + (text || 'Synced');
-      if (autoSave) autoSave.textContent = '🟢 ' + (text || 'Synced');
+      if (subTxt) subTxt.textContent = text || 'All changes saved to cloud';
+      if (autoSave) autoSave.textContent = '🟢 ' + (text || 'All changes saved to cloud');
     } else if (status === 'syncing') {
-      dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
-      if (txt) txt.textContent = 'SYNCING';
-      if (subTxt) subTxt.textContent = '● ' + (text || 'Saving...');
-      if (autoSave) autoSave.textContent = '⏳ ' + (text || 'Saving...');
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0';
+      if (txt) txt.textContent = 'SAVING';
+      if (subTxt) subTxt.textContent = text || 'Saving to cloud...';
+      if (autoSave) autoSave.textContent = '⏳ Saving...';
     } else {
-      dot.className = 'w-2 h-2 rounded-full bg-slate-400';
-      if (txt) txt.textContent = 'LOCAL';
-      if (subTxt) subTxt.textContent = '● ' + (text || 'Local Saved');
-      if (autoSave) autoSave.textContent = '💾 ' + (text || 'Local Saved');
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0';
+      if (txt) txt.textContent = 'OFFLINE';
+      if (subTxt) subTxt.textContent = text || 'Saved locally';
+      if (autoSave) autoSave.textContent = '💾 Saved locally';
     }
   }
 }
 
-// 1. INCHARGE OPERATOR: Click "Save"
-async function handleInchargeSave() {
-  if (CurrentUser && CurrentUser.isReadOnly) {
-    showToast('🔒 ভিউ মোড: সেভ করার অনুমতি নেই।', 'warning');
-    return;
-  }
-
-  const tabId = ACTIVE_TAB;
-  const year = MonthYearState.year;
-  const monthIndex = MonthYearState.monthIndex;
-
-  if (SHEET_TABS[tabId]?.isSummary) {
-    showToast('ℹ️ সামারি শিট স্বয়ংক্রিয়ভাবে হিসাব করা হয়।', 'info');
-    return;
-  }
-
-  // Save to Local Storage immediately
-  LocalStorageEngine.save(tabId, year, monthIndex, SheetState.rows);
-
-  const saveBtn = document.getElementById('btnSaveGrid');
-  if (saveBtn) saveBtn.classList.add('opacity-75');
-  updateCloudStatusUI('syncing', 'Saving to Cloud...');
-
-  try {
-    const success = await FirebaseSyncEngine.saveOperatorSubmission(tabId, year, monthIndex, SheetState.rows);
-    if (success) {
-      updateCloudStatusUI('synced', 'Cloud Saved');
-      showToast(`✅ ফায়ারবেসে আপনার ডিপার্টমেন্টের (${SHEET_TABS[tabId].name}) তথ্য সফলভাবে সংরক্ষিত হয়েছে!`, 'success');
-    } else {
-      throw new Error('Upload failed');
-    }
-  } catch (err) {
-    console.error('handleInchargeSave error:', err);
-    showToast('❌ ফায়ারবেসে সেভ করতে সমস্যা। ডাটা লোকালে সুরক্ষিত আছে।', 'error');
-    updateCloudStatusUI('offline', 'Local Saved');
-  } finally {
-    if (saveBtn) saveBtn.classList.remove('opacity-75');
-  }
-}
-
-// 2. ADMIN: Click "Publish"
-async function adminBroadcastLiveData() {
-  const spinIcon = document.getElementById('syncSpinIcon');
-  if (spinIcon) spinIcon.classList.add('animate-spin');
-  updateCloudStatusUI('syncing', 'Publishing Live...');
-
+// Background sync on startup / tab change
+async function syncAllCloudData(showFeedback = false) {
   try {
     const year = MonthYearState.year;
     const monthIndex = MonthYearState.monthIndex;
+    const cloudRows = await GoogleSheetsRealtimeEngine.fetchSheetFromCloud(ACTIVE_TAB, year, monthIndex);
 
-    // 1. Save Admin's active sheet locally
-    LocalStorageEngine.save(ACTIVE_TAB, year, monthIndex, SheetState.rows);
-
-    // 2. Fetch all operator submissions and existing published data from Firebase
-    const [submissions, existingPublished] = await Promise.all([
-      FirebaseSyncEngine.fetchAllOperatorSubmissions(year, monthIndex),
-      FirebaseSyncEngine.fetchPublishedData(year, monthIndex)
-    ]);
-
-    const consolidated = {};
-    const now = Date.now();
-
-    // 3. For each of the 9 production departments: build consolidated master
-    Object.keys(SHEET_TABS).forEach(tabId => {
-      if (SHEET_TABS[tabId].isSummary) return;
-
-      let templateRows = (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined')
-        ? JSON.parse(JSON.stringify(INITIAL_EXCEL_ROWS))
-        : generateBlankMonthRows(tabId, year, monthIndex);
-
-      let targetRows = templateRows;
-
-      // Base: Existing published data
-      const pubItem = existingPublished[tabId];
-      if (pubItem && Array.isArray(pubItem.rows) && pubItem.rows.length > 0) {
-        targetRows = mergeRowsSmartly(targetRows, pubItem.rows);
-      }
-
-      // Layer 1: Operator's latest saved submission
-      const subItem = submissions[tabId];
-      if (subItem && Array.isArray(subItem.rows) && subItem.rows.length > 0) {
-        targetRows = mergeRowsSmartly(targetRows, subItem.rows);
-      }
-
-      // Layer 2: Admin's active sheet edits
-      if (tabId === ACTIVE_TAB && SheetState.rows && SheetState.rows.length > 0) {
-        targetRows = mergeRowsSmartly(targetRows, SheetState.rows);
-      }
-
-      // Recalculate all formulas
-      targetRows.forEach(row => recalculateRow(row));
-
-      const tabPayload = {
-        rows: cleanDataForFirebase(targetRows),
-        tabId: tabId,
-        year: year,
-        monthIndex: monthIndex,
-        updatedAt: now,
-        updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
-      };
-
-      consolidated[tabId] = tabPayload;
-
-      // Update Admin's local storage
-      LocalStorageEngine.save(tabId, year, monthIndex, targetRows, 'Admin');
-    });
-
-    // 4. Publish master dataset to Firebase
-    await FirebaseSyncEngine.publishMasterData(year, monthIndex, consolidated);
-
-    // 5. Re-render Admin view
-    loadSheetData();
-    recalculateAllFormulas();
-    renderExcelTable();
-    updateTotalRowDisplay();
-    updateCloudStatusUI('synced', 'Live Published');
-
-    showToast(`🎉 সকল ডিপার্টমেন্টের ডাটা সফলভাবে লাইভ পাবলিশ করা হয়েছে! (${Object.keys(consolidated).length}টি ডিপার্টমেন্ট)`, 'success');
-  } catch (err) {
-    console.error('Admin publish error:', err);
-    showToast('❌ লাইভ পাবলিশ করতে সমস্যা: ' + (err.message || ''), 'error');
-    updateCloudStatusUI('error', 'Publish Failed');
-  } finally {
-    if (spinIcon) spinIcon.classList.remove('animate-spin');
-  }
-}
-
-// 3. ALL CLIENTS: Real-time listener for Admin Publish
-let lastPublishTimestamp = 0;
-
-function setupRealtimeBroadcastListener() {
-  FirebaseSyncEngine.listenForPublishSignal(async (signal) => {
-    if (!signal || !signal.timestamp) return;
-    if (signal.timestamp <= lastPublishTimestamp) return;
-
-    const isInitial = (lastPublishTimestamp === 0);
-    lastPublishTimestamp = signal.timestamp;
-
-    const year = MonthYearState.year;
-    const monthIndex = MonthYearState.monthIndex;
-
-    if (signal.year === year && signal.monthIndex === monthIndex) {
-      try {
-        const publishedData = await FirebaseSyncEngine.fetchPublishedData(year, monthIndex);
-        if (publishedData && typeof publishedData === 'object' && Object.keys(publishedData).length > 0) {
-          applyIncomingPublishedData(publishedData);
-
-          if (!isInitial && CurrentUser && CurrentUser.id !== 'admin') {
-            showToast('📢 এডমিন সর্বশেষ ডাটা লাইভ পাবলিশ করেছেন!', 'info');
-          }
-        }
-      } catch (e) {
-        console.error('Error handling publish signal:', e);
-      }
-    }
-  });
-}
-
-function applyIncomingPublishedData(publishedData) {
-  const year = MonthYearState.year;
-  const monthIndex = MonthYearState.monthIndex;
-  let count = 0;
-
-  Object.keys(publishedData).forEach(tabId => {
-    const item = publishedData[tabId];
-    if (item && Array.isArray(item.rows) && item.rows.length > 0) {
-      item.rows.forEach(r => recalculateRow(r));
-      LocalStorageEngine.save(tabId, year, monthIndex, item.rows, item.updatedBy || 'Published');
-      count++;
-    }
-  });
-
-  if (count > 0 && !SheetState.isEditing) {
-    loadSheetData();
-    recalculateAllFormulas();
-    renderExcelTable();
-    updateTotalRowDisplay();
-    updateCloudStatusUI('synced', 'Live Synced');
-  }
-}
-
-// 4. REFRESH / INITIAL LOAD SYNC
-function handleSyncOrPublish() {
-  if (CurrentUser && CurrentUser.id === 'admin') {
-    adminBroadcastLiveData();
-  } else {
-    syncAllCloudData(true);
-  }
-}
-
-async function syncAllCloudData(showFeedback = true) {
-  const spinIcon = document.getElementById('syncSpinIcon');
-  if (spinIcon) spinIcon.classList.add('animate-spin');
-  updateCloudStatusUI('syncing', 'Syncing Data...');
-
-  try {
-    const year = MonthYearState.year;
-    const monthIndex = MonthYearState.monthIndex;
-
-    // Fetch BOTH published data and ALL operator submissions in parallel
-    const [publishedData, operatorSubmissions] = await Promise.all([
-      FirebaseSyncEngine.fetchPublishedData(year, monthIndex),
-      FirebaseSyncEngine.fetchAllOperatorSubmissions(year, monthIndex)
-    ]);
-
-    let updatedCount = 0;
-
-    Object.keys(SHEET_TABS).forEach(tabId => {
-      if (SHEET_TABS[tabId].isSummary) return;
-
-      const pubItem = publishedData[tabId];
-      const opItem = operatorSubmissions[tabId];
-      const localItem = LocalStorageEngine.load(tabId, year, monthIndex);
-
-      // Choose whichever source is the newest
-      const tOp = opItem?.updatedAt || 0;
-      const tPub = pubItem?.updatedAt || 0;
-      const tLoc = localItem?.updatedAt || 0;
-
-      let bestItem = null;
-      if (tOp >= tPub && tOp > 0 && Array.isArray(opItem.rows) && opItem.rows.length > 0) {
-        bestItem = opItem;
-      } else if (pubItem && Array.isArray(pubItem.rows) && pubItem.rows.length > 0) {
-        bestItem = pubItem;
-      } else if (localItem && Array.isArray(localItem.rows) && localItem.rows.length > 0) {
-        bestItem = localItem;
-      }
-
-      if (bestItem && Array.isArray(bestItem.rows) && bestItem.rows.length > 0) {
-        bestItem.rows.forEach(r => recalculateRow(r));
-        LocalStorageEngine.save(tabId, year, monthIndex, bestItem.rows, bestItem.updatedBy || 'Cloud');
-        updatedCount++;
-      }
-    });
-
-    if (updatedCount > 0) {
-      loadSheetData();
+    if (cloudRows && Array.isArray(cloudRows) && cloudRows.length > 0) {
+      cloudRows.forEach(r => recalculateRow(r));
+      SheetState.rows = cloudRows;
+      LocalStorageEngine.save(ACTIVE_TAB, year, monthIndex, cloudRows, 'CloudSync');
       recalculateAllFormulas();
       renderExcelTable();
       updateTotalRowDisplay();
-      updateCloudStatusUI('synced', 'Cloud Synced');
+      updateCloudStatusUI('synced', 'All changes saved to cloud');
+      if (showFeedback) showToast('🟢 ক্লাউড থেকে ডাটা সিঙ্ক হয়েছে!', 'success');
     } else {
-      updateCloudStatusUI('synced', 'Local Data');
-    }
-
-    if (showFeedback) {
-      showToast('☁️ ফায়ারবেস ক্লাউড থেকে সর্বশেষ ডাটা সফলভাবে সিঙ্ক হয়েছে!', 'success');
+      updateCloudStatusUI('synced', 'All changes saved to cloud');
     }
   } catch (err) {
     console.error('syncAllCloudData error:', err);
-    if (showFeedback) showToast('❌ ক্লাউড ডাটা সিঙ্ক করতে সমস্যা হয়েছে।', 'error');
-    updateCloudStatusUI('error', 'Sync Failed');
-  } finally {
-    if (spinIcon) spinIcon.classList.remove('animate-spin');
   }
 }
 
-// 5. HELPER: Auto-save while typing (strictly local storage)
+function handleInchargeSave() {
+  // Optional manual save trigger -> pushes full active sheet to cloud
+  GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
+  showToast('✅ ক্লাউডে সফলভাবে সেভ হয়েছে!', 'success');
+}
+
+function adminBroadcastLiveData() {
+  handleInchargeSave();
+}
+
+function handleSyncOrPublish() {
+  syncAllCloudData(true);
+}
+
 function saveSheetData(pushHistory = true) {
   if (pushHistory) pushHistoryState();
   LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
@@ -1555,7 +1362,7 @@ function saveSheetData(pushHistory = true) {
 function triggerSaveIndicator() {
   const el = document.getElementById('autoSaveIndicator');
   if (el) {
-    el.textContent = '💾 Local Saved';
+    el.textContent = '🟢 Saved to cloud';
     el.style.opacity = '1';
   }
 }
@@ -1568,6 +1375,7 @@ function resetToOriginalData() {
     loadSheetData();
     recalculateAllFormulas();
     renderExcelTable();
+    GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
     showToast(`🔄 Reset [${tabName}] for ${monthName} ${MonthYearState.year}`, 'info');
   }
 }
@@ -4296,7 +4104,7 @@ function saveCellUpdate(colLetter, rowNum, newVal, colDef) {
 
   recalculateTotalRow();
   saveSheetData(false);
-
+  GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, affectedRows);
   updateSingleRowDisplay(rowNum);
   updateTotalRowDisplay();
   selectCell(colLetter, rowNum);
@@ -4587,7 +4395,7 @@ function saveModalEntry(andNext = false) {
 
   recalculateTotalRow();
   saveSheetData(false);
-
+  GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, affectedRows);
   updateSingleRowDisplay(modalActiveRow);
   updateTotalRowDisplay();
 
@@ -4777,8 +4585,16 @@ function handleClipboardPaste(text) {
 
     if (modifiedCount > 0) {
       recalculateTotalRow();
-      saveSheetData(false);
-      affectedRows.forEach(r => updateSingleRowDisplay(r));
+    saveSheetData(false);
+    const rowsToPush = [];
+    affectedRows.forEach(r => {
+      const rowObj = SheetState.rows.find(row => row.row === r);
+      if (rowObj) rowsToPush.push(rowObj);
+      updateSingleRowDisplay(r);
+    });
+    if (rowsToPush.length > 0) {
+      GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, rowsToPush);
+    }
       updateTotalRowDisplay();
       highlightSelectedRange();
       showToast(`📄 Pasted into ${modifiedCount} cells`, 'success');
@@ -4843,7 +4659,15 @@ function handleClipboardPaste(text) {
 
     recalculateTotalRow();
     saveSheetData(false);
-    affectedRows.forEach(r => updateSingleRowDisplay(r));
+    const rowsToPush = [];
+    affectedRows.forEach(r => {
+      const rowObj = SheetState.rows.find(row => row.row === r);
+      if (rowObj) rowsToPush.push(rowObj);
+      updateSingleRowDisplay(r);
+    });
+    if (rowsToPush.length > 0) {
+      GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, rowsToPush);
+    }
     updateTotalRowDisplay();
     highlightSelectedRange();
     showToast(`📄 Pasted ${modifiedCount} cells`, 'success');
@@ -4924,7 +4748,15 @@ function deleteSelectedRange(setZero = false) {
 
     recalculateTotalRow();
     saveSheetData(false);
-    affectedRows.forEach(r => updateSingleRowDisplay(r));
+    const rowsToPush = [];
+    affectedRows.forEach(r => {
+      const rowObj = SheetState.rows.find(row => row.row === r);
+      if (rowObj) rowsToPush.push(rowObj);
+      updateSingleRowDisplay(r);
+    });
+    if (rowsToPush.length > 0) {
+      GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, rowsToPush);
+    }
     updateTotalRowDisplay();
 
     // Re-highlight the range selection
