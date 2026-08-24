@@ -4107,22 +4107,27 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      input.blur();
+      e.stopPropagation();
+      commit();
       navigateSelection(0, 1);
     } else if (e.key === 'Tab') {
       e.preventDefault();
-      input.blur();
+      e.stopPropagation();
+      commit();
       navigateSelection(e.shiftKey ? -1 : 1, 0);
     } else if (e.key === 'ArrowUp' && colLetter !== 'AM') {
       e.preventDefault();
-      input.blur();
+      e.stopPropagation();
+      commit();
       navigateSelection(0, -1);
     } else if (e.key === 'ArrowDown' && colLetter !== 'AM') {
       e.preventDefault();
-      input.blur();
+      e.stopPropagation();
+      commit();
       navigateSelection(0, 1);
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       SheetState.isEditing = false;
       SheetState.activeInput = null;
       updateSingleRowDisplay(rowNum);
@@ -4206,31 +4211,73 @@ function updateTotalRowDisplay() {
   });
 }
 
-// ─── KEYBOARD NAVIGATION ENGINE ───────────────────────────────────────────────
+// ─── KEYBOARD NAVIGATION ENGINE (WITH EXCEL-GRADE MERGED CELL AWARENESS) ──────
+function getCellSpanInfo(colLetter, rowNum) {
+  const rowsPerDay = getRowsPerDay();
+  const mIdx = (rowNum - 6) % rowsPerDay;
+
+  if (['A', 'B', 'C'].includes(colLetter)) {
+    const masterRow = rowNum - mIdx;
+    return { masterRow, span: rowsPerDay, isMerged: rowsPerDay > 1 };
+  }
+
+  if (TIME_COLUMNS.includes(colLetter)) {
+    const tabInfo = SHEET_TABS[ACTIVE_TAB];
+    if (tabInfo && tabInfo.timeGroups) {
+      const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
+      const dayStart = rowNum - mIdx;
+      const masterRow = dayStart + groupInfo.masterIdx;
+      return { masterRow, span: groupInfo.count, isMerged: groupInfo.count > 1 };
+    }
+  }
+
+  return { masterRow: rowNum, span: 1, isMerged: false };
+}
+
 function navigateSelection(dCol, dRow) {
+  if (SHEET_TABS[ACTIVE_TAB]?.isSummary) return;
+
   let cur = SheetState.selected;
-  if (!cur) {
+  const maxActive = getMaxActiveRow();
+
+  if (!cur || !cur.colLetter || !cur.row) {
     selectCell('E', 6);
     return;
   }
 
   const colIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
-  let newColIdx = colIdx;
+  let newColIdx = (colIdx >= 0) ? colIdx : 4;
   let newRowNum = cur.row;
 
-  const maxActive = getMaxActiveRow();
-
-  // Ctrl+Arrow big jump navigation
-  if (Math.abs(dCol) >= 50) {
-    newColIdx = dCol > 0 ? (EXCEL_COLUMNS.length - 1) : 4;
-  } else {
-    newColIdx = Math.max(0, Math.min(EXCEL_COLUMNS.length - 1, colIdx + dCol));
+  // Horizontal Navigation (Left / Right)
+  if (dCol !== 0) {
+    if (Math.abs(dCol) >= 50) {
+      newColIdx = dCol > 0 ? (EXCEL_COLUMNS.length - 1) : 0;
+    } else {
+      newColIdx = Math.max(0, Math.min(EXCEL_COLUMNS.length - 1, newColIdx + dCol));
+    }
   }
 
-  if (Math.abs(dRow) >= 50) {
-    newRowNum = dRow > 0 ? maxActive : 6;
-  } else {
-    newRowNum = Math.max(6, Math.min(maxActive, cur.row + dRow));
+  // Vertical Navigation (Up / Down) with Merged Cell awareness
+  if (dRow !== 0) {
+    const spanInfo = getCellSpanInfo(cur.colLetter, cur.row);
+    
+    if (Math.abs(dRow) >= 50) {
+      newRowNum = dRow > 0 ? maxActive : 6;
+    } else if (dRow > 0) {
+      // Moving Down: jump past the merged cell's entire span in 1 single step!
+      newRowNum = spanInfo.masterRow + spanInfo.span;
+      if (newRowNum > maxActive) newRowNum = maxActive;
+    } else if (dRow < 0) {
+      // Moving Up: jump to the top master cell above the merged block in 1 single step!
+      const targetAbove = spanInfo.masterRow - 1;
+      if (targetAbove >= 6) {
+        const aboveInfo = getCellSpanInfo(cur.colLetter, targetAbove);
+        newRowNum = aboveInfo.masterRow;
+      } else {
+        newRowNum = 6;
+      }
+    }
   }
 
   const newColLetter = EXCEL_COLUMNS[newColIdx].col;
@@ -6557,8 +6604,15 @@ function bindExcelEvents() {
       return;
     }
 
-    const cur = SheetState.selected;
-    if (!cur || !cur.element) return;
+    let cur = SheetState.selected;
+    if (!cur || !cur.element || !document.body.contains(cur.element)) {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)) {
+        e.preventDefault();
+        selectCell('E', 6);
+        return;
+      }
+      return;
+    }
 
     const colDef = EXCEL_COLUMNS.find(c => c.col === cur.colLetter);
 
