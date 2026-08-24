@@ -473,29 +473,22 @@ function initAuthSystem() {
     applyUserLogin(USERS_CONFIG.viewer, true);
   });
 
-  // Hidden input for keyboard typing
-  const pinInput = document.getElementById('pinHiddenInput');
-  pinInput?.addEventListener('input', (e) => {
-    const val = e.target.value;
-    EnteredPin = val.slice(0, 4);
-    updatePinDots();
-    if (EnteredPin.length === 4) {
-      verifyAndLogin();
-    }
-  });
-
-  // Modal keyboard keydown
+  // Modal keyboard keydown handler (Single source of truth to prevent double-typing)
   window.addEventListener('keydown', (e) => {
     const modal = document.getElementById('pinModal');
     if (!modal || modal.classList.contains('hidden')) return;
 
     if (e.key === 'Escape') {
+      e.preventDefault();
       closePinModal();
     } else if (e.key === 'Enter') {
+      e.preventDefault();
       verifyAndLogin();
     } else if (e.key === 'Backspace') {
+      e.preventDefault();
       handlePinKey('backspace');
     } else if (/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
       handlePinKey(e.key);
     }
   });
