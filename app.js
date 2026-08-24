@@ -1277,45 +1277,33 @@ async function adminBroadcastLiveData() {
 
 // ─── CLIENTS: REALTIME BROADCAST & INSTANT WEBSOCKET LISTENERS ───────────────
 let activeBroadcastRef = null;
-let activeDataRef = null;
 
 function setupRealtimeBroadcastListener() {
   const year = MonthYearState.year;
   const monthIndex = MonthYearState.monthIndex;
 
   if (firebaseDb) {
-    // 1. Instant Global Broadcast Signal Listener via WebSocket
+    // 1. Instant Global Broadcast Signal Listener via WebSocket (Triggered ONLY on Admin Publish)
     firebaseDb.ref('mep_oee_v2/broadcast_signal').off();
     firebaseDb.ref('mep_oee_v2/broadcast_signal').on('value', async (snap) => {
       const signal = snap.val();
       if (signal) processIncomingBroadcastSignal(signal);
     });
 
-    // 2. Detach previous month/year listeners
+    // 2. Detach previous month/year live broadcast listeners
     if (activeBroadcastRef) activeBroadcastRef.off();
-    if (activeDataRef) activeDataRef.off();
 
-    // 3. Instant Realtime Live Broadcast WebSocket Listener
+    // 3. Instant Realtime Live Broadcast WebSocket Listener (Receives ONLY Admin-Published Snapshots)
     activeBroadcastRef = firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`);
     activeBroadcastRef.on('value', (snap) => {
       const liveData = snap.val();
       if (liveData && typeof liveData === 'object') {
-        applyIncomingBroadcastData(liveData);
-      }
-    });
-
-    // 4. Instant Realtime Collaborative Department Updates Listener
-    activeDataRef = firebaseDb.ref(`mep_oee_v2/data/${year}/${monthIndex}`);
-    activeDataRef.on('child_changed', (snap) => {
-      const tabId = snap.key;
-      const cloudItem = snap.val();
-      if (tabId && cloudItem && Array.isArray(cloudItem.rows)) {
-        applySingleTabCloudUpdate(tabId, cloudItem);
+        applyIncomingBroadcastData(liveData, false);
       }
     });
   }
 
-  // Periodic high-speed fallback check every 3 seconds for non-WebSocket connections
+  // Periodic fallback check every 3 seconds for non-WebSocket connections
   if (!window._mepSyncInterval) {
     window._mepSyncInterval = setInterval(async () => {
       try {
@@ -1329,7 +1317,7 @@ function setupRealtimeBroadcastListener() {
   }
 }
 
-function applyIncomingBroadcastData(liveData) {
+function applyIncomingBroadcastData(liveData, isSilent = true) {
   if (!liveData || typeof liveData !== 'object') return;
   const year = MonthYearState.year;
   const monthIndex = MonthYearState.monthIndex;
@@ -1338,13 +1326,14 @@ function applyIncomingBroadcastData(liveData) {
   Object.keys(liveData).forEach(tabId => {
     const cloudItem = liveData[tabId];
     if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
-      const localData = getStoredLocalData(tabId, year, monthIndex);
-      const localUpdated = localData ? (localData.updatedAt || 0) : 0;
-      const cloudUpdated = cloudItem.updatedAt || 0;
-
-      // If user has newer local edits, do not overwrite
-      if (localData && localUpdated > cloudUpdated && localUpdated > 0) {
-        return;
+      // Incharge local draft protection: if user is working on their permitted tab and has newer draft, keep draft
+      if (CurrentUser && CurrentUser.id !== 'admin' && CurrentUser.allowedDepts && CurrentUser.allowedDepts.includes(tabId)) {
+        const localData = getStoredLocalData(tabId, year, monthIndex);
+        const localUpdated = localData ? (localData.updatedAt || 0) : 0;
+        const cloudUpdated = cloudItem.updatedAt || 0;
+        if (localData && localUpdated > cloudUpdated && localUpdated > 0) {
+          return;
+        }
       }
 
       const storageKey = getStorageKey(tabId, year, monthIndex);
@@ -1361,35 +1350,6 @@ function applyIncomingBroadcastData(liveData) {
     }
     updateCloudStatusUI('synced', 'Live Synced');
   }
-}
-
-function applySingleTabCloudUpdate(tabId, cloudItem) {
-  if (!tabId || !cloudItem || !Array.isArray(cloudItem.rows)) return;
-  const year = MonthYearState.year;
-  const monthIndex = MonthYearState.monthIndex;
-
-  const localData = getStoredLocalData(tabId, year, monthIndex);
-  const localUpdated = localData ? (localData.updatedAt || 0) : 0;
-  const cloudUpdated = cloudItem.updatedAt || 0;
-
-  if (localData && localUpdated > cloudUpdated && localUpdated > 0) return;
-
-  const storageKey = getStorageKey(tabId, year, monthIndex);
-  localStorage.setItem(storageKey, JSON.stringify(cloudItem));
-
-  if (tabId === ACTIVE_TAB) {
-    if (!SheetState.isEditing) {
-      loadSheetData();
-      recalculateAllFormulas();
-      renderExcelTable();
-    }
-  } else {
-    recalculateAllFormulas();
-    if (SHEET_TABS[ACTIVE_TAB]?.isSummary) {
-      renderExcelTable();
-    }
-  }
-  updateCloudStatusUI('synced', 'Live Synced');
 }
 
 async function processIncomingBroadcastSignal(signal) {
