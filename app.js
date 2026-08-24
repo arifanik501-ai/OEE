@@ -47,6 +47,7 @@ const EXCEL_COLUMNS = [
   { col: 'AE', label: 'Alu. Ash Extraction', code: 30, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
   { col: 'AF', label: 'Robot Problems', code: 31, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
   { col: 'AG', label: 'Alu. Recipe Problem', code: 32, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AG_LOSS', label: 'Speed/Cap. Loss (Min)', width: 36, isFormula: true, formula: '=IF(AND(E{r}>0,H{r}>0),ROUND(MAX(0,H{r}*(1-F{r}/E{r})),0),0)', zone: 'purple', isLossDt: true, webOnly: true, align: 'right' },
   
   // KPI Columns AH to AL (Cyan Zone)
   { col: 'AH', label: 'Total Down Time (Mins)', width: 40, isFormula: true, formula: '=SUM(K{r}:AG{r})', zone: 'cyan', align: 'right' },
@@ -328,7 +329,7 @@ function getRowsPerDay(tabId = ACTIVE_TAB) {
   return getMachinesForTab(tabId).length;
 }
 
-const TIME_COLUMNS = ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI'];
+const TIME_COLUMNS = ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AG_LOSS', 'AH', 'AI'];
 
 function getTimeGroupInfo(tabId, machineIdx) {
   const tabInfo = SHEET_TABS[tabId];
@@ -1535,6 +1536,57 @@ function recalculateRow(rowObj) {
   rowObj.I.val = expDt;
   rowObj.I.formula = `=IF(E${r}<>"",30,0)`;
 
+  // AG_LOSS: Daily Speed / Capacity Loss Downtime (Min)
+  let effectivePlan = plan;
+  if (groupInfo.isSlave) {
+    const dayStartRow = r - mIdx;
+    const masterRow = SheetState.rows.find(row => row.row === (dayStartRow + groupInfo.masterIdx));
+    if (masterRow && masterRow.H) {
+      effectivePlan = Number(masterRow.H.val) || 0;
+    }
+  }
+
+  let lossDt = 0;
+  let hasValidLossData = false;
+
+  if (groupInfo.count > 1) {
+    const dayStartRow = r - mIdx;
+    let groupPerfSum = 0;
+    let activeProducts = 0;
+
+    for (let i = 0; i < groupInfo.count; i++) {
+      const gRow = SheetState.rows.find(row => row.row === (dayStartRow + groupInfo.masterIdx + i));
+      if (gRow) {
+        const gCap = Number(gRow.E?.val) || 0;
+        const gAct = Number(gRow.F?.val) || 0;
+        if (gCap > 0) {
+          groupPerfSum += (gAct / gCap);
+          activeProducts++;
+        }
+      }
+    }
+
+    if (effectivePlan > 0 && activeProducts > 0) {
+      hasValidLossData = true;
+      const avgPerf = groupPerfSum / activeProducts;
+      if (avgPerf < 1) {
+        lossDt = Math.round(effectivePlan * (1 - avgPerf));
+      }
+    }
+  } else {
+    if (cap > 0 && plan > 0) {
+      hasValidLossData = true;
+      const achRate = act / cap;
+      if (achRate < 1) {
+        lossDt = Math.round(plan * (1 - achRate));
+      }
+    }
+  }
+
+  if (!rowObj.AG_LOSS) rowObj.AG_LOSS = {};
+  rowObj.AG_LOSS.val = hasValidLossData ? lossDt : '-';
+  rowObj.AG_LOSS.formula = `=IF(AND(E${r}>0,H${r}>0),ROUND(MAX(0,H${r}*(1-F${r}/E${r})),0),0)`;
+
   // AH: Total Down Time = SUM(K:AG)
   let sumDt = 0;
   let hasAnyDt = false;
@@ -1615,7 +1667,7 @@ function recalculateAllFormulas() {
 }
 
 function recalculateTotalRow() {
-  const totals = { E: 0, F: 0, G: 0, H: 0, I: 0, J: 0, AH: 0 };
+  const totals = { E: 0, F: 0, G: 0, H: 0, I: 0, J: 0, AH: 0, AG_LOSS: 0 };
   EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => totals[c.col] = 0);
   const rowsPerDay = getRowsPerDay();
 
@@ -1628,12 +1680,13 @@ function recalculateTotalRow() {
     const mIdx = (r.row - 6) % rowsPerDay;
     const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
 
-    // Time-related columns are summed ONLY from master rows (no duplication!)
+    // Time & Downtime-related columns are summed ONLY from master rows (no duplication across multi-product machines!)
     if (groupInfo.isMaster) {
       totals.H += Number(r.H?.val) || 0;
       totals.I += Number(r.I?.val) || 0;
       totals.J += (typeof r.J?.val === 'number' ? r.J.val : 0);
       totals.AH += Number(r.AH?.val) || 0;
+      totals.AG_LOSS += (typeof r.AG_LOSS?.val === 'number' ? r.AG_LOSS.val : 0);
 
       EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => {
         totals[c.col] += Number(r[c.col]?.val) || 0;
@@ -3375,6 +3428,8 @@ function renderExcelTable() {
         td.className = 'cell-readonly-fixed';
       } else if (colLetter === 'J') {
         td.className = 'cell-formula-runtime';
+      } else if (colDef.isLossDt) {
+        td.className = 'cell-loss-dt';
       } else if (colDef.isDt) {
         td.className = 'cell-downtime';
       } else if (colLetter === 'AH') {
@@ -3391,6 +3446,13 @@ function renderExcelTable() {
 
       const cellVal = rowObj[colLetter]?.val;
       td.textContent = formatCellValue(cellVal, colDef);
+
+      const hasEnteredVal = (cellVal !== null && cellVal !== undefined && cellVal !== '' && cellVal !== '-' && cellVal != 0);
+      if (hasEnteredVal || (colLetter === 'AM' && cellVal && String(cellVal).trim().length > 0)) {
+        td.classList.add('cell-has-data');
+      } else {
+        td.classList.remove('cell-has-data');
+      }
 
       if (colDef.align === 'right') td.classList.add('text-right', 'font-mono');
       if (colDef.align === 'center') td.classList.add('text-center');
@@ -4159,7 +4221,19 @@ function saveCellUpdate(colLetter, rowNum, newVal, colDef) {
     rowObj[colLetter].val = cleanNum;
   }
 
-  recalculateRow(rowObj);
+  const tabInfo = SHEET_TABS[ACTIVE_TAB];
+  if (tabInfo && tabInfo.timeGroups) {
+    const rowsPerDay = getRowsPerDay();
+    const mIdx = (rowNum - 6) % rowsPerDay;
+    const dayStart = rowNum - mIdx;
+    for (let i = 0; i < rowsPerDay; i++) {
+      const targetRowObj = SheetState.rows.find(r => r.row === (dayStart + i));
+      if (targetRowObj) recalculateRow(targetRowObj);
+    }
+  } else {
+    recalculateRow(rowObj);
+  }
+
   recalculateTotalRow();
   saveSheetData(false);
 
@@ -4193,6 +4267,13 @@ function updateDirectRowDisplay(rowNum) {
 
     const cellVal = rowObj[colLetter]?.val;
     td.textContent = formatCellValue(cellVal, colDef);
+
+    const hasEnteredVal = (cellVal !== null && cellVal !== undefined && cellVal !== '' && cellVal !== '-' && cellVal != 0);
+    if (hasEnteredVal || (colLetter === 'AM' && cellVal && String(cellVal).trim().length > 0)) {
+      td.classList.add('cell-has-data');
+    } else {
+      td.classList.remove('cell-has-data');
+    }
 
     if (rowObj[colLetter]?.formula) {
       td.dataset.formula = rowObj[colLetter].formula;
@@ -4426,7 +4507,19 @@ function saveModalEntry(andNext = false) {
     rowObj[col].val = sanitizeNumericValue(v);
   });
 
-  recalculateRow(rowObj);
+  const tabInfo = SHEET_TABS[ACTIVE_TAB];
+  if (tabInfo && tabInfo.timeGroups) {
+    const rowsPerDay = getRowsPerDay();
+    const mIdx = (modalActiveRow - 6) % rowsPerDay;
+    const dayStart = modalActiveRow - mIdx;
+    for (let i = 0; i < rowsPerDay; i++) {
+      const targetRowObj = SheetState.rows.find(r => r.row === (dayStart + i));
+      if (targetRowObj) recalculateRow(targetRowObj);
+    }
+  } else {
+    recalculateRow(rowObj);
+  }
+
   recalculateTotalRow();
   saveSheetData(false);
   updateSingleRowDisplay(modalActiveRow);
@@ -4665,6 +4758,23 @@ function handleClipboardPaste(text) {
   });
 
   if (modifiedCount > 0) {
+    const tabInfo = SHEET_TABS[ACTIVE_TAB];
+    if (tabInfo && tabInfo.timeGroups) {
+      const rowsPerDay = getRowsPerDay();
+      const daysDone = new Set();
+      affectedRows.forEach(r => {
+        const mIdx = (r - 6) % rowsPerDay;
+        const dayStart = r - mIdx;
+        if (!daysDone.has(dayStart)) {
+          daysDone.add(dayStart);
+          for (let i = 0; i < rowsPerDay; i++) {
+            const targetRowObj = SheetState.rows.find(row => row.row === (dayStart + i));
+            if (targetRowObj) recalculateRow(targetRowObj);
+          }
+        }
+      });
+    }
+
     recalculateTotalRow();
     saveSheetData(false);
     affectedRows.forEach(r => updateSingleRowDisplay(r));
@@ -4729,6 +4839,23 @@ function deleteSelectedRange(setZero = false) {
   }
 
   if (modifiedCount > 0) {
+    const tabInfo = SHEET_TABS[ACTIVE_TAB];
+    if (tabInfo && tabInfo.timeGroups) {
+      const rowsPerDay = getRowsPerDay();
+      const daysDone = new Set();
+      affectedRows.forEach(r => {
+        const mIdx = (r - 6) % rowsPerDay;
+        const dayStart = r - mIdx;
+        if (!daysDone.has(dayStart)) {
+          daysDone.add(dayStart);
+          for (let i = 0; i < rowsPerDay; i++) {
+            const targetRowObj = SheetState.rows.find(row => row.row === (dayStart + i));
+            if (targetRowObj) recalculateRow(targetRowObj);
+          }
+        }
+      });
+    }
+
     recalculateTotalRow();
     saveSheetData(false);
 
@@ -5941,7 +6068,7 @@ async function exportExcelFile() {
             cRej.border = borderThin;
 
             // Merged KPI Columns (Cols 6 to 10)
-            wsYearly.mergeCells(`F${row1Num}:F${row2Num}`);
+wsYearly.mergeCells(`F${row1Num}:F${row2Num}`);
             const cAvail = wsYearly.getCell(`F${row1Num}`);
             if (hasData || m.plannedTimeMins > 0) {
               cAvail.value = m.availability;
@@ -6046,14 +6173,28 @@ async function exportExcelFile() {
         // ─── STANDARD PRODUCTION WORKSHEET ───
         const ws = workbook.addWorksheet(tabInfo.name, {
           views: [{ showGridLines: true, state: 'frozen', ySplit: 5, xSplit: 4 }],
-          properties: { tabColor: { argb: tabInfo.colorArgb } }
+          properties: {
+            tabColor: { argb: tabInfo.colorArgb }
+          }
         });
 
+        // Use strictly exportable columns (standard 39 columns A to AM, excluding webOnly columns)
+        const exportCols = EXCEL_COLUMNS.filter(c => !c.webOnly);
+
         // Set column widths
-        ws.columns = EXCEL_COLUMNS.map(c => ({
+        ws.columns = exportCols.map(c => ({
           key: c.col,
           width: c.col === 'AM' ? 28 : (c.col === 'D' ? 22 : (c.col === 'A' ? 12 : (c.col === 'B' || c.col === 'C' ? 8 : 6.5)))
         }));
+
+        // Set outlineLevel and hidden on 23 Downtime columns (K to AG - Initial Collapsed View)
+        exportCols.forEach((c, idx) => {
+          if (c.isDt) {
+            const col = ws.getColumn(idx + 1);
+            col.outlineLevel = 1;
+            col.hidden = true;
+          }
+        });
 
         // Row 1: MEP FAN LTD. (Banner)
         ws.mergeCells('A1:AM1');
@@ -6091,7 +6232,7 @@ async function exportExcelFile() {
           right: { style: 'thin', color: { argb: 'FF000000' } }
         };
 
-        EXCEL_COLUMNS.forEach((c, idx) => {
+        exportCols.forEach((c, idx) => {
           const cell = ws.getRow(4).getCell(idx + 1);
           cell.value = c.label;
           cell.font = { name: 'Times New Roman', size: 9, bold: true, color: { argb: 'FF000000' } };
@@ -6126,7 +6267,7 @@ async function exportExcelFile() {
 
         // Compute Tab Totals
         const tabTotals = { E: 0, F: 0, G: 0, H: 0, I: 0, J: 0, AH: 0 };
-        EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => tabTotals[c.col] = 0);
+        exportCols.filter(c => c.isDt).forEach(c => tabTotals[c.col] = 0);
         const rowsPerDay = getRowsPerDay(tabId);
         rowsData.forEach(r => {
           tabTotals.E += Number(r.E?.val) || 0;
@@ -6141,7 +6282,7 @@ async function exportExcelFile() {
             tabTotals.I += Number(r.I?.val) || 0;
             tabTotals.J += (typeof r.J?.val === 'number' ? r.J.val : 0);
             tabTotals.AH += Number(r.AH?.val) || 0;
-            EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => tabTotals[c.col] += Number(r[c.col]?.val) || 0);
+            exportCols.filter(c => c.isDt).forEach(c => tabTotals[c.col] += Number(r[c.col]?.val) || 0);
           }
         });
         tabTotals.AI = tabTotals.H > 0 ? (tabTotals.J / tabTotals.H) : 0;
@@ -6155,7 +6296,7 @@ async function exportExcelFile() {
         tTitle.value = 'Total:';
         ws.getRow(5).height = 22;
 
-        for (let colIdx = 1; colIdx <= EXCEL_COLUMNS.length; colIdx++) {
+        for (let colIdx = 1; colIdx <= exportCols.length; colIdx++) {
           const cell = ws.getRow(5).getCell(colIdx);
           cell.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
@@ -6168,7 +6309,7 @@ async function exportExcelFile() {
           };
 
           if (colIdx >= 5) {
-            const colDef = EXCEL_COLUMNS[colIdx - 1];
+            const colDef = exportCols[colIdx - 1];
             const val = tabTotals[colDef.col];
             if (colDef.isPercent) {
               cell.value = val || 0;
@@ -6192,7 +6333,7 @@ async function exportExcelFile() {
           const mIdx = rIdx % rowsPerDay;
           const groupInfo = getTimeGroupInfo(tabId, mIdx);
 
-          EXCEL_COLUMNS.forEach((colDef, cIdx) => {
+          exportCols.forEach((colDef, cIdx) => {
             const colIdx = cIdx + 1;
             const colLetter = colDef.col;
             const isTimeCol = TIME_COLUMNS.includes(colLetter);
@@ -6227,14 +6368,23 @@ async function exportExcelFile() {
               horizontal: colDef.align || (colDef.isNumeric || colDef.isPercent ? 'right' : 'center')
             };
 
-            // Background Fill
+            // Background Fill - deeper accent shade when data is entered!
+            const hasEnteredData = (val !== null && val !== undefined && val !== '' && val !== '-' && val != 0);
+
             let fillArgb = 'FFFFFFFF';
             if (isFriday) {
-              fillArgb = 'FFE3F8E9'; // Light Green
+              fillArgb = hasEnteredData ? 'FFBBF7D0' : 'FFE3F8E9'; // Deeper Mint Green when filled on Friday
             } else if (colDef.isDt) {
-              fillArgb = 'FFE8DDFE'; // Soft Lilac Downtime
+              fillArgb = hasEnteredData ? 'FFDDD6FE' : 'FFF3E8FF'; // Deeper Lilac/Purple when downtime is entered
             } else if (colDef.col === 'AH') {
-              fillArgb = 'FFC8F0FA'; // Soft Cyan Total DT
+              fillArgb = 'FFD6F1FA'; // Soft Cyan Total DT
+            } else if (colDef.isFormula || colDef.isPercent) {
+              fillArgb = 'FFE2F2FC'; // Soft Ice-Blue KPI
+            } else if (colDef.isReadOnly) {
+              fillArgb = 'FFF1F5F9'; // Fixed Grey
+            } else {
+              // Editable input cells (Capacity E, Actual F, Rejection G, Plan H, Remarks AM)
+              fillArgb = hasEnteredData ? 'FFE0F2FE' : 'FFFFFFFF'; // Deeper Soft Sky Blue when entered!
             }
 
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillArgb } };
@@ -6293,7 +6443,9 @@ async function exportExcelFile() {
                 const rStart = dayStart + group.startIdx;
                 const rEnd = rStart + group.count - 1;
                 TIME_COLUMNS.forEach(colLetter => {
-                  const colIdx = EXCEL_COLUMNS.findIndex(c => c.col === colLetter) + 1;
+                  const cIdx = exportCols.findIndex(c => c.col === colLetter);
+                  if (cIdx === -1) return; // Skip webOnly columns like AG_LOSS!
+                  const colIdx = cIdx + 1;
                   try {
                     ws.mergeCells(rStart, colIdx, rEnd, colIdx);
                     ws.getCell(rStart, colIdx).alignment = { vertical: 'middle', horizontal: 'right' };
