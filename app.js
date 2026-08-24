@@ -1899,10 +1899,9 @@ function getTabProductionOutputSummary(tabId, year, monthIndex) {
   if (tabId === ACTIVE_TAB && monthIndex === MonthYearState.monthIndex && year === MonthYearState.year) {
     rowsData = SheetState.rows;
   } else {
-    const key = getStorageKey(tabId, year, monthIndex);
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try { rowsData = JSON.parse(saved); } catch(e) { rowsData = []; }
+    const localData = getStoredLocalData(tabId, year, monthIndex);
+    if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
+      rowsData = localData.rows;
     } else if (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined') {
       rowsData = INITIAL_EXCEL_ROWS;
     } else {
@@ -2287,10 +2286,9 @@ function getTabDowntimeRunningStatus(tabId, year, monthIndex) {
   if (tabId === ACTIVE_TAB && monthIndex === MonthYearState.monthIndex && year === MonthYearState.year) {
     rowsData = SheetState.rows;
   } else {
-    const key = getStorageKey(tabId, year, monthIndex);
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try { rowsData = JSON.parse(saved); } catch(e) { rowsData = []; }
+    const localData = getStoredLocalData(tabId, year, monthIndex);
+    if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
+      rowsData = localData.rows;
     } else if (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined') {
       rowsData = INITIAL_EXCEL_ROWS;
     } else {
@@ -6324,64 +6322,78 @@ function exportPDFReport() {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
     const year = MonthYearState.year;
-    const tabInfo = SHEET_TABS[ACTIVE_TAB];
+    const tabInfo = SHEET_TABS[ACTIVE_TAB] || { name: 'Report' };
 
     doc.setFillColor(0, 51, 102);
-    doc.rect(0, 0, 297, 20, 'F');
+    doc.rect(0, 0, 297, 18, 'F');
 
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont('times', 'bold');
-    doc.text('MEP FAN LTD.', 14, 9);
+    doc.text('MEP FAN LTD.', 14, 8);
 
     doc.setFontSize(9);
     doc.setFont('times', 'normal');
-    doc.text(`Production Performance Analysis Report — ${tabInfo.name} (${monthName} ${year})`, 14, 15);
+    doc.text(`${tabInfo.name} — (${monthName} ${year})`, 14, 14);
 
-    const headers = [['Date', 'Day', 'Shift', 'Machine', 'Cap', 'Actual', 'Rej', 'Plan', 'Run', 'Total DT', 'Avail %', 'Perf %', 'Qual %', 'OEE %', 'Remarks']];
+    if (tabInfo.isSummary) {
+      const table = document.getElementById('excelMainTable');
+      if (table) {
+        doc.autoTable({
+          html: table,
+          startY: 22,
+          theme: 'grid',
+          headStyles: { fillColor: [0, 51, 102], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+          styles: { fontSize: 7, cellPadding: 1.5, font: 'times' },
+          alternateRowStyles: { fillColor: [248, 250, 252] }
+        });
+      }
+    } else {
+      const headers = [['Date', 'Day', 'Shift', 'Machine', 'Cap', 'Actual', 'Rej', 'Plan', 'Run', 'Total DT', 'Avail %', 'Perf %', 'Qual %', 'OEE %', 'Remarks']];
 
-    const t = SheetState.totals;
-    const bodyData = [
-      [
-        'Total:', '', '', '',
-        t.E || 0, t.F || 0, t.G || 0, t.H || 0, t.J || 0, t.AH || 0,
-        `${((t.AI || 0) * 100).toFixed(0)}%`,
-        `${((t.AJ || 0) * 100).toFixed(0)}%`,
-        `${((t.AK || 0) * 100).toFixed(0)}%`,
-        `${((t.AL || 0) * 100).toFixed(0)}%`,
-        ''
-      ]
-    ];
+      const t = SheetState.totals;
+      const bodyData = [
+        [
+          'Total:', '', '', '',
+          t.E || 0, t.F || 0, t.G || 0, t.H || 0, t.J || 0, t.AH || 0,
+          `${((t.AI || 0) * 100).toFixed(0)}%`,
+          `${((t.AJ || 0) * 100).toFixed(0)}%`,
+          `${((t.AK || 0) * 100).toFixed(0)}%`,
+          `${((t.AL || 0) * 100).toFixed(0)}%`,
+          ''
+        ]
+      ];
 
-    SheetState.rows.forEach(r => {
-      bodyData.push([
-        r.A?.val || '',
-        r.B?.val || '',
-        r.C?.val || 'Morning',
-        r.D?.val || '',
-        r.E?.val || '',
-        r.F?.val || '',
-        r.G?.val || '',
-        r.H?.val || '',
-        r.J?.val || '-',
-        r.AH?.val || 0,
-        `${((r.AI?.val || 0) * 100).toFixed(0)}%`,
-        `${((r.AJ?.val || 0) * 100).toFixed(0)}%`,
-        `${((r.AK?.val || 0) * 100).toFixed(0)}%`,
-        `${((r.AL?.val || 0) * 100).toFixed(0)}%`,
-        r.AM?.val || ''
-      ]);
-    });
+      SheetState.rows.forEach(r => {
+        bodyData.push([
+          r.A?.val || '',
+          r.B?.val || '',
+          r.C?.val || 'Morning',
+          r.D?.val || '',
+          r.E?.val || '',
+          r.F?.val || '',
+          r.G?.val || '',
+          r.H?.val || '',
+          r.J?.val || '-',
+          r.AH?.val || 0,
+          `${((r.AI?.val || 0) * 100).toFixed(0)}%`,
+          `${((r.AJ?.val || 0) * 100).toFixed(0)}%`,
+          `${((r.AK?.val || 0) * 100).toFixed(0)}%`,
+          `${((r.AL?.val || 0) * 100).toFixed(0)}%`,
+          r.AM?.val || ''
+        ]);
+      });
 
-    doc.autoTable({
-      head: headers,
-      body: bodyData,
-      startY: 24,
-      theme: 'grid',
-      headStyles: { fillColor: [0, 51, 102], textColor: 255, fontStyle: 'bold', fontSize: 7 },
-      styles: { fontSize: 6.5, cellPadding: 1.5, font: 'times' },
-      alternateRowStyles: { fillColor: [248, 250, 252] }
-    });
+      doc.autoTable({
+        head: headers,
+        body: bodyData,
+        startY: 22,
+        theme: 'grid',
+        headStyles: { fillColor: [0, 51, 102], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+        styles: { fontSize: 6.5, cellPadding: 1.5, font: 'times' },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+    }
 
     doc.save(`MEP_FAN_${ACTIVE_TAB}_${monthName}_${year}_Report.pdf`);
     showToast('📄 PDF Report downloaded', 'success');
