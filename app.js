@@ -873,6 +873,8 @@ function onMonthYearChange() {
   recalculateAllFormulas();
   renderExcelTable();
   selectInitialCell();
+  setupRealtimeBroadcastListener();
+  syncAllCloudData(false);
 }
 
 function selectInitialCell() {
@@ -921,33 +923,51 @@ function generateBlankMonthRows(tabId, year, monthIndex) {
   return rows;
 }
 
-function loadSheetData() {
-  const key = getStorageKey(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
+function getStoredLocalData(tabId, year, monthIndex) {
+  const key = getStorageKey(tabId, year, monthIndex);
   const saved = localStorage.getItem(key);
-  const expectedRowsCount = getDaysInSelectedMonth() * getRowsPerDay(ACTIVE_TAB);
-  const expectedMachines = getMachinesForTab(ACTIVE_TAB);
-
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      // Validate that saved data matches current machine count and names
-      if (Array.isArray(parsed) && parsed.length === expectedRowsCount) {
-        let matches = true;
-        const rowsPerDay = expectedMachines.length;
-        for (let i = 0; i < parsed.length; i++) {
-          const mIdx = i % rowsPerDay;
-          if (parsed[i].D?.val !== expectedMachines[mIdx]) {
-            matches = false;
-            break;
-          }
-        }
-        if (matches) {
-          SheetState.rows = parsed;
-          return;
+  if (!saved) return null;
+  try {
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed)) {
+      let hasInputs = false;
+      for (const r of parsed) {
+        if (r.E?.val || r.F?.val || r.G?.val || r.H?.val) {
+          hasInputs = true;
+          break;
         }
       }
-    } catch (e) {
-      console.error('Error parsing stored excel data:', e);
+      return { rows: parsed, updatedAt: hasInputs ? 1 : 0 };
+    } else if (parsed && Array.isArray(parsed.rows)) {
+      return parsed;
+    }
+  } catch (e) {
+    console.error('Error parsing stored excel data:', e);
+  }
+  return null;
+}
+
+function loadSheetData() {
+  const expectedRowsCount = getDaysInSelectedMonth() * getRowsPerDay(ACTIVE_TAB);
+  const expectedMachines = getMachinesForTab(ACTIVE_TAB);
+  const localData = getStoredLocalData(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
+
+  if (localData && Array.isArray(localData.rows)) {
+    const parsed = localData.rows;
+    if (parsed.length === expectedRowsCount) {
+      let matches = true;
+      const rowsPerDay = expectedMachines.length;
+      for (let i = 0; i < parsed.length; i++) {
+        const mIdx = i % rowsPerDay;
+        if (parsed[i].D?.val !== expectedMachines[mIdx]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        SheetState.rows = parsed;
+        return;
+      }
     }
   }
 
@@ -1076,50 +1096,36 @@ function updateCloudStatusUI(status, text) {
   }
 }
 
-// ─── INCHARGE: INSTANT DUAL-SAVE (REST API + SDK) TO CLOUD ───────────────────
-function pushSheetDataToCloud(tabId, year, monthIndex, rowsData) {
+// ─── INCHARGE & USER: INSTANT DUAL-SAVE (REST API + SDK) TO CLOUD ─────────────
+function pushSheetDataToCloud(tabId, year, monthIndex, rowsData, timestamp = Date.now()) {
   if (!tabId || SHEET_TABS[tabId]?.isSummary) return;
 
-  const key = `${tabId}_${year}_${monthIndex}`;
-  if (cloudSyncDebounceTimers[key]) {
-    clearTimeout(cloudSyncDebounceTimers[key]);
+  const payload = {
+    rows: cleanDataForFirebase(rowsData),
+    tabId: tabId,
+    year: year,
+    monthIndex: monthIndex,
+    updatedAt: timestamp,
+    updatedBy: CurrentUser ? CurrentUser.name : 'Incharge',
+    userId: CurrentUser ? CurrentUser.id : 'unknown'
+  };
+
+  // 1. Firebase SDK Write (Instant WebSockets)
+  if (firebaseDb) {
+    firebaseDb.ref(`mep_oee_v2/data/${year}/${monthIndex}/${tabId}`).set(payload).then(() => {
+      updateCloudStatusUI('synced', 'Local + Cloud Saved');
+    }).catch(() => {});
   }
 
-  cloudSyncDebounceTimers[key] = setTimeout(async () => {
-    try {
-      updateCloudStatusUI('syncing', 'Saving to Cloud...');
-      const payload = {
-        rows: cleanDataForFirebase(rowsData),
-        tabId: tabId,
-        year: year,
-        monthIndex: monthIndex,
-        updatedAt: Date.now(),
-        updatedBy: CurrentUser ? CurrentUser.name : 'Incharge',
-        userId: CurrentUser ? CurrentUser.id : 'unknown'
-      };
-
-      // 1. Guaranteed HTTPS REST API Write
-      const restUrl = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}/${tabId}.json`;
-      await fetch(restUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      // 2. Firebase SDK Write (if available)
-      if (firebaseDb) {
-        firebaseDb.ref(`mep_oee_v2/data/${year}/${monthIndex}/${tabId}`).set(payload).catch(() => {});
-      }
-
-      console.log(`☁️ [Cloud Sync] Successfully pushed ${tabId} for ${year}-${monthIndex}`);
-      updateCloudStatusUI('synced', 'Cloud Synced');
-      const autoSave = document.getElementById('autoSaveIndicator');
-      if (autoSave) autoSave.textContent = '🟢 Local + Cloud Saved';
-    } catch (err) {
-      console.error('Firebase Cloud write error:', err);
-      updateCloudStatusUI('offline', 'Local Saved (Offline)');
-    }
-  }, 150);
+  // 2. Guaranteed REST API Write (Standard HTTP PUT without 64KB quota issue)
+  const restUrl1 = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}/${tabId}.json`;
+  fetch(restUrl1, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(() => {
+    updateCloudStatusUI('synced', 'Local + Cloud Saved');
+  }).catch(() => {});
 }
 
 // ─── ADMIN: CONSOLIDATE & BROADCAST ALL DATA LIVE ─────────────────────────────
@@ -1132,73 +1138,107 @@ async function adminBroadcastLiveData() {
     const year = MonthYearState.year;
     const monthIndex = MonthYearState.monthIndex;
 
-    // 1. Save current active tab locally & push
+    // 1. Save current active tab locally first
     saveSheetData(false);
 
-    // 2. Fetch all department entries from Firebase REST API
+    // 2. Fetch existing cloud departments from Firebase REST API (with SDK fallback)
     let cloudDepts = {};
     try {
-      const restUrl = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}.json`;
-      const res = await fetch(restUrl);
-      if (res.ok) {
-        cloudDepts = (await res.json()) || {};
-      }
-    } catch(e) {
-      console.warn('REST fetch error, trying SDK:', e);
       if (firebaseDb) {
         const snap = await firebaseDb.ref(`mep_oee_v2/data/${year}/${monthIndex}`).once('value');
         cloudDepts = snap.val() || {};
       }
+    } catch(e) {}
+
+    if (!cloudDepts || Object.keys(cloudDepts).length === 0) {
+      try {
+        const restUrl = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}.json`;
+        const res = await fetch(restUrl);
+        if (res.ok) {
+          cloudDepts = (await res.json()) || {};
+        }
+      } catch(e) {}
     }
 
     const consolidated = {};
 
-    // 3. For all 9 production departments: prefer cloud if present, otherwise merge from localStorage
+    // 3. For all 9 production departments: build complete dataset
     Object.keys(SHEET_TABS).forEach(tabId => {
       if (!SHEET_TABS[tabId].isSummary) {
-        const cloudItem = cloudDepts[tabId];
-        const storageKey = getStorageKey(tabId, year, monthIndex);
-        const localRaw = localStorage.getItem(storageKey);
-        let localParsed = null;
-        if (localRaw) {
-          try { localParsed = JSON.parse(localRaw); } catch(e) {}
-        }
-
-        if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
-          consolidated[tabId] = cloudItem;
-          localStorage.setItem(storageKey, JSON.stringify(cloudItem.rows));
-        } else if (localParsed && Array.isArray(localParsed) && localParsed.length > 0) {
+        if (tabId === ACTIVE_TAB && SheetState.rows && SheetState.rows.length > 0) {
           consolidated[tabId] = {
-            rows: localParsed,
+            rows: cleanDataForFirebase(SheetState.rows),
             tabId: tabId,
+            year: year,
+            monthIndex: monthIndex,
             updatedAt: Date.now(),
             updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
           };
-          // Push to cloud branch so it is preserved
-          fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}/${tabId}.json`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(consolidated[tabId])
-          }).catch(() => {});
+          return;
+        }
+
+        const cloudItem = cloudDepts[tabId];
+        const localData = getStoredLocalData(tabId, year, monthIndex);
+        const localUpdated = localData ? (localData.updatedAt || 0) : 0;
+        const cloudUpdated = cloudItem ? (cloudItem.updatedAt || 0) : 0;
+
+        if (localData && Array.isArray(localData.rows) && localData.rows.length > 0 && localUpdated >= cloudUpdated) {
+          consolidated[tabId] = {
+            rows: cleanDataForFirebase(localData.rows),
+            tabId: tabId,
+            year: year,
+            monthIndex: monthIndex,
+            updatedAt: localUpdated || Date.now(),
+            updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
+          };
+        } else if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
+          consolidated[tabId] = cloudItem;
+          const storageKey = getStorageKey(tabId, year, monthIndex);
+          localStorage.setItem(storageKey, JSON.stringify(cloudItem));
+        } else if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
+          consolidated[tabId] = {
+            rows: cleanDataForFirebase(localData.rows),
+            tabId: tabId,
+            year: year,
+            monthIndex: monthIndex,
+            updatedAt: Date.now(),
+            updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
+          };
+        } else {
+          const rows = (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined')
+            ? INITIAL_EXCEL_ROWS
+            : generateBlankMonthRows(tabId, year, monthIndex);
+          consolidated[tabId] = {
+            rows: cleanDataForFirebase(rows),
+            tabId: tabId,
+            year: year,
+            monthIndex: monthIndex,
+            updatedAt: Date.now(),
+            updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
+          };
         }
       }
     });
 
     const deptKeys = Object.keys(consolidated);
-    if (deptKeys.length === 0) {
-      showToast('⚠️ কোনো ডিপার্টমেন্টের ডাটা পাওয়া যায়নি।', 'warning');
-      return;
+
+    // 4. Publish Master Live Broadcast via Firebase SDK (Instant WebSockets)
+    const cleanedConsolidated = cleanDataForFirebase(consolidated);
+    if (firebaseDb) {
+      await firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`).set(cleanedConsolidated);
     }
 
-    // 4. Publish Master Live Broadcast via REST PUT
-    const liveBroadcastUrl = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`;
-    await fetch(liveBroadcastUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cleanDataForFirebase(consolidated))
-    });
+    // 5. REST PUT Backup
+    try {
+      const liveBroadcastUrl = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`;
+      await fetch(liveBroadcastUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanedConsolidated)
+      });
+    } catch(e) {}
 
-    // 5. Fire Global Broadcast Signal
+    // 6. Fire Global Broadcast Signal
     const timestamp = Date.now();
     const signalPayload = {
       timestamp: timestamp,
@@ -1207,23 +1247,25 @@ async function adminBroadcastLiveData() {
       monthIndex: monthIndex
     };
 
-    await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/broadcast_signal.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(signalPayload)
-    });
-
     if (firebaseDb) {
-      firebaseDb.ref('mep_oee_v2/broadcast_signal').set(signalPayload).catch(() => {});
+      await firebaseDb.ref('mep_oee_v2/broadcast_signal').set(signalPayload);
     }
 
-    // 6. Recalculate & re-render admin view
+    try {
+      await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/broadcast_signal.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(signalPayload)
+      });
+    } catch(e) {}
+
+    // 7. Recalculate & re-render admin view
     loadSheetData();
     recalculateAllFormulas();
     renderExcelTable();
     updateCloudStatusUI('synced', 'Live Broadcasted');
 
-    showToast(`🎉 সফলভাবে ${deptKeys.length}টি ডিপার্টমেন্টের ডাটা লাইভ ব্রডকাস্ট করা হয়েছে! সকল কম্পিউটারে লাইভ আপডেট সম্পন্ন।`, 'success');
+    showToast(`🎉 সফলভাবে ${deptKeys.length}টি ডিপার্টমেন্টের ডাটা লাইভ ব্রডকাস্ট করা হয়েছে! সকল ডিভাইসে লাইভ আপডেট সম্পন্ন।`, 'success');
   } catch (err) {
     console.error('Error broadcasting live data:', err);
     showToast('❌ লাইভ ব্রডকাস্ট করতে সমস্যা হয়েছে: ' + (err.message || ''), 'error');
@@ -1233,25 +1275,121 @@ async function adminBroadcastLiveData() {
   }
 }
 
-// ─── CLIENTS: REALTIME BROADCAST LISTENER (PROTECTS INCHARGE DATA) ────────────
+// ─── CLIENTS: REALTIME BROADCAST & INSTANT WEBSOCKET LISTENERS ───────────────
+let activeBroadcastRef = null;
+let activeDataRef = null;
+
 function setupRealtimeBroadcastListener() {
+  const year = MonthYearState.year;
+  const monthIndex = MonthYearState.monthIndex;
+
   if (firebaseDb) {
+    // 1. Instant Global Broadcast Signal Listener via WebSocket
+    firebaseDb.ref('mep_oee_v2/broadcast_signal').off();
     firebaseDb.ref('mep_oee_v2/broadcast_signal').on('value', async (snap) => {
       const signal = snap.val();
       if (signal) processIncomingBroadcastSignal(signal);
     });
+
+    // 2. Detach previous month/year listeners
+    if (activeBroadcastRef) activeBroadcastRef.off();
+    if (activeDataRef) activeDataRef.off();
+
+    // 3. Instant Realtime Live Broadcast WebSocket Listener
+    activeBroadcastRef = firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`);
+    activeBroadcastRef.on('value', (snap) => {
+      const liveData = snap.val();
+      if (liveData && typeof liveData === 'object') {
+        applyIncomingBroadcastData(liveData);
+      }
+    });
+
+    // 4. Instant Realtime Collaborative Department Updates Listener
+    activeDataRef = firebaseDb.ref(`mep_oee_v2/data/${year}/${monthIndex}`);
+    activeDataRef.on('child_changed', (snap) => {
+      const tabId = snap.key;
+      const cloudItem = snap.val();
+      if (tabId && cloudItem && Array.isArray(cloudItem.rows)) {
+        applySingleTabCloudUpdate(tabId, cloudItem);
+      }
+    });
   }
 
-  // Periodic fallback check every 8 seconds for all client browsers
-  setInterval(async () => {
-    try {
-      const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/broadcast_signal.json`);
-      if (res.ok) {
-        const signal = await res.json();
-        if (signal) processIncomingBroadcastSignal(signal);
+  // Periodic high-speed fallback check every 3 seconds for non-WebSocket connections
+  if (!window._mepSyncInterval) {
+    window._mepSyncInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/broadcast_signal.json`);
+        if (res.ok) {
+          const signal = await res.json();
+          if (signal) processIncomingBroadcastSignal(signal);
+        }
+      } catch(e) {}
+    }, 3000);
+  }
+}
+
+function applyIncomingBroadcastData(liveData) {
+  if (!liveData || typeof liveData !== 'object') return;
+  const year = MonthYearState.year;
+  const monthIndex = MonthYearState.monthIndex;
+  let validCount = 0;
+
+  Object.keys(liveData).forEach(tabId => {
+    const cloudItem = liveData[tabId];
+    if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
+      const localData = getStoredLocalData(tabId, year, monthIndex);
+      const localUpdated = localData ? (localData.updatedAt || 0) : 0;
+      const cloudUpdated = cloudItem.updatedAt || 0;
+
+      // If user has newer local edits, do not overwrite
+      if (localData && localUpdated > cloudUpdated && localUpdated > 0) {
+        return;
       }
-    } catch(e) {}
-  }, 8000);
+
+      const storageKey = getStorageKey(tabId, year, monthIndex);
+      localStorage.setItem(storageKey, JSON.stringify(cloudItem));
+      validCount++;
+    }
+  });
+
+  if (validCount > 0) {
+    if (!SheetState.isEditing) {
+      loadSheetData();
+      recalculateAllFormulas();
+      renderExcelTable();
+    }
+    updateCloudStatusUI('synced', 'Live Synced');
+  }
+}
+
+function applySingleTabCloudUpdate(tabId, cloudItem) {
+  if (!tabId || !cloudItem || !Array.isArray(cloudItem.rows)) return;
+  const year = MonthYearState.year;
+  const monthIndex = MonthYearState.monthIndex;
+
+  const localData = getStoredLocalData(tabId, year, monthIndex);
+  const localUpdated = localData ? (localData.updatedAt || 0) : 0;
+  const cloudUpdated = cloudItem.updatedAt || 0;
+
+  if (localData && localUpdated > cloudUpdated && localUpdated > 0) return;
+
+  const storageKey = getStorageKey(tabId, year, monthIndex);
+  localStorage.setItem(storageKey, JSON.stringify(cloudItem));
+
+  if (tabId === ACTIVE_TAB) {
+    if (!SheetState.isEditing) {
+      loadSheetData();
+      recalculateAllFormulas();
+      renderExcelTable();
+    }
+  } else {
+    recalculateAllFormulas();
+    if (SHEET_TABS[ACTIVE_TAB]?.isSummary) {
+      renderExcelTable();
+    }
+  }
+  updateCloudStatusUI('synced', 'Live Synced');
 }
 
 async function processIncomingBroadcastSignal(signal) {
@@ -1267,51 +1405,22 @@ async function processIncomingBroadcastSignal(signal) {
     if (signal.year === year && signal.monthIndex === monthIndex) {
       try {
         let liveData = null;
-        try {
-          const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`);
-          if (res.ok) liveData = await res.json();
-        } catch(e) {
-          if (firebaseDb) {
-            const snap = await firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`).once('value');
-            liveData = snap.val();
-          }
+        if (firebaseDb) {
+          const snap = await firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`).once('value');
+          liveData = snap.val();
+        }
+        if (!liveData) {
+          try {
+            const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`);
+            if (res.ok) liveData = await res.json();
+          } catch(e) {}
         }
 
         if (liveData && typeof liveData === 'object' && Object.keys(liveData).length > 0) {
-          let validCount = 0;
-          const myAllowedDepts = (CurrentUser && CurrentUser.allowedDepts) ? CurrentUser.allowedDepts : [];
-
-          Object.keys(liveData).forEach(tabId => {
-            const item = liveData[tabId];
-            if (item && Array.isArray(item.rows) && item.rows.length > 0) {
-              // INCHARGE DATA PROTECTION:
-              // If this incharge is working on this tab and has local data, DO NOT overwrite their active department!
-              if (CurrentUser && CurrentUser.id !== 'admin' && myAllowedDepts.includes(tabId)) {
-                const localKey = getStorageKey(tabId, year, monthIndex);
-                const localVal = localStorage.getItem(localKey);
-                if (localVal) {
-                  // Incharge has local data: preserve it and re-sync to cloud
-                  try {
-                    const parsed = JSON.parse(localVal);
-                    pushSheetDataToCloud(tabId, year, monthIndex, parsed);
-                  } catch(e) {}
-                  return;
-                }
-              }
-
-              const storageKey = getStorageKey(tabId, year, monthIndex);
-              localStorage.setItem(storageKey, JSON.stringify(item.rows));
-              validCount++;
-            }
-          });
-
-          loadSheetData();
-          recalculateAllFormulas();
-          renderExcelTable();
-          updateCloudStatusUI('synced', 'Live Synced');
+          applyIncomingBroadcastData(liveData);
 
           if (!isInitial && CurrentUser && CurrentUser.id !== 'admin') {
-            showToast('📢 অ্যাডমিন কর্তৃক লাইভ ডাটা আপডেট করা হয়েছে! স্ক্রিনে সর্বশেষ ডাটা চলে এসেছে।', 'info');
+            showToast('📢 লাইভ ডাটা পাবলিশ হয়েছে! স্ক্রিনে সর্বশেষ ডাটা চলে এসেছে।', 'info');
           }
         }
       } catch(e) {
@@ -1355,19 +1464,24 @@ async function syncAllCloudData(showFeedback = true) {
     }
 
     let updatedCount = 0;
-    const myAllowedDepts = (CurrentUser && CurrentUser.allowedDepts) ? CurrentUser.allowedDepts : [];
 
     if (monthData && typeof monthData === 'object') {
       Object.keys(monthData).forEach(tabId => {
-        const item = monthData[tabId];
-        if (item && Array.isArray(item.rows) && item.rows.length > 0) {
-          if (CurrentUser && CurrentUser.id !== 'admin' && myAllowedDepts.includes(tabId)) {
-            const localKey = getStorageKey(tabId, year, monthIndex);
-            if (localStorage.getItem(localKey)) return;
+        const cloudItem = monthData[tabId];
+        if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
+          const localData = getStoredLocalData(tabId, year, monthIndex);
+          const localUpdated = localData ? (localData.updatedAt || 0) : 0;
+          const cloudUpdated = cloudItem.updatedAt || 0;
+
+          // CRITICAL: If local data is newer or has unsaved edits, PRESERVE IT and push to cloud!
+          if (localData && localUpdated >= cloudUpdated && localUpdated > 0) {
+            pushSheetDataToCloud(tabId, year, monthIndex, localData.rows, localUpdated);
+            return;
           }
 
+          // Otherwise update local storage with cloud data
           const storageKey = getStorageKey(tabId, year, monthIndex);
-          localStorage.setItem(storageKey, JSON.stringify(item.rows));
+          localStorage.setItem(storageKey, JSON.stringify(cloudItem));
           updatedCount++;
         }
       });
@@ -1378,6 +1492,8 @@ async function syncAllCloudData(showFeedback = true) {
       recalculateAllFormulas();
       renderExcelTable();
       updateCloudStatusUI('synced', 'Cloud Synced');
+    } else {
+      updateCloudStatusUI('synced', 'Local + Cloud Synced');
     }
 
     if (showFeedback) {
@@ -1399,12 +1515,21 @@ async function syncAllCloudData(showFeedback = true) {
 function saveSheetData(pushHistory = true) {
   if (pushHistory) pushHistoryState();
   try {
+    const now = Date.now();
     const key = getStorageKey(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
-    localStorage.setItem(key, JSON.stringify(SheetState.rows));
+    const dataObj = {
+      rows: SheetState.rows,
+      updatedAt: now,
+      tabId: ACTIVE_TAB,
+      year: MonthYearState.year,
+      monthIndex: MonthYearState.monthIndex,
+      updatedBy: CurrentUser ? CurrentUser.name : 'User'
+    };
+    localStorage.setItem(key, JSON.stringify(dataObj));
     triggerSaveIndicator();
 
-    // Instant Dual-Save to Firebase Cloud
-    pushSheetDataToCloud(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
+    // Instant Non-blocking Dual-Save to Firebase Cloud with keepalive
+    pushSheetDataToCloud(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows, now);
   } catch (e) {
     console.error('Failed to save to localStorage:', e);
   }
@@ -1570,10 +1695,9 @@ function getTabMonthlySummary(tabId, year, monthIndex) {
   if (tabId === ACTIVE_TAB && monthIndex === MonthYearState.monthIndex && year === MonthYearState.year) {
     rowsData = SheetState.rows;
   } else {
-    const key = getStorageKey(tabId, year, monthIndex);
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try { rowsData = JSON.parse(saved); } catch(e) { rowsData = []; }
+    const localData = getStoredLocalData(tabId, year, monthIndex);
+    if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
+      rowsData = localData.rows;
     } else if (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined') {
       rowsData = INITIAL_EXCEL_ROWS;
     } else {
@@ -2064,6 +2188,139 @@ function renderProductionOutputReport(table) {
   table.appendChild(tbody);
 }
 
+// ─── EXECUTIVE PRODUCTION OUTPUT SUMMARY TABLE RENDERER ───────────────────────
+function renderSummaryProductionReport(table) {
+  const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
+  const year = MonthYearState.year;
+  const headers = [
+    'Machine No.',
+    'Total Running (Hrs)',
+    'Total Capacity (Pcs)',
+    'Target / Hr (Pcs)',
+    'Actual Prd. (Pcs)',
+    'Actual Prd. / Hr',
+    'Total Achievement (%)',
+    'Total Rejection (Pcs)'
+  ];
+
+  // 1. Colgroup with exact % widths to guarantee 100% full table coverage
+  const colgroup = document.createElement('colgroup');
+  const widths = ['23%', '11%', '11%', '11%', '11%', '11%', '11%', '11%'];
+  widths.forEach(w => {
+    const col = document.createElement('col');
+    col.style.width = w;
+    colgroup.appendChild(col);
+  });
+  table.appendChild(colgroup);
+
+  // 2. Thead
+  const thead = document.createElement('thead');
+
+  const tr1 = document.createElement('tr');
+  tr1.className = 'mep-banner-row1';
+  const th1 = document.createElement('th');
+  th1.colSpan = headers.length;
+  th1.textContent = 'MEP FAN LTD.';
+  tr1.appendChild(th1);
+  thead.appendChild(tr1);
+
+  const tr2 = document.createElement('tr');
+  tr2.className = 'mep-banner-row2';
+  const th2 = document.createElement('th');
+  th2.colSpan = headers.length;
+  th2.textContent = `Production Output Summary Report (${monthName} ${year})`;
+  tr2.appendChild(th2);
+  thead.appendChild(tr2);
+
+  const trH = document.createElement('tr');
+  headers.forEach((h, idx) => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    th.style.fontWeight = 'bold';
+    th.style.padding = '8px 6px';
+    th.style.textAlign = idx === 0 ? 'left' : (idx === 6 ? 'center' : 'right');
+    th.style.border = '1px solid #000000';
+    th.style.backgroundColor = (idx === 0) ? '#7EC8E3' : ((idx === 6) ? '#38B6FF' : '#56C5D0');
+    th.style.color = '#000000';
+    trH.appendChild(th);
+  });
+  thead.appendChild(trH);
+  table.appendChild(thead);
+
+  // 3. Tbody
+  const tbody = document.createElement('tbody');
+  const grandTotals = { runMins: 0, cap: 0, act: 0, rej: 0 };
+
+  Object.keys(SHEET_TABS).forEach(tabId => {
+    if (SHEET_TABS[tabId].isSummary) return;
+    const s = getTabProductionOutputSummary(tabId, year, MonthYearState.monthIndex);
+    grandTotals.runMins += s.runningMins;
+    grandTotals.cap += s.capacityPcs;
+    grandTotals.act += s.actualPrdPcs;
+    grandTotals.rej += s.rejectionPcs;
+
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.title = `Click to view ${s.name}`;
+    tr.addEventListener('click', () => switchTab(tabId));
+
+    const isHighAch = s.achievement >= 0.95;
+
+    tr.innerHTML = `
+      <td style="font-weight:bold; color:#1E40AF; text-align:left; border:1px solid #CBD5E1; padding:6px 8px; background:#F8FAFC;">
+        ${s.name}
+      </td>
+      <td style="text-align:right; font-weight:bold; border:1px solid #CBD5E1; padding:6px 8px;">
+        ${s.runHours > 0 ? s.runHours.toFixed(1) : '-'}
+      </td>
+      <td style="text-align:right; font-weight:bold; border:1px solid #CBD5E1; padding:6px 8px;">
+        ${s.capacityPcs > 0 ? s.capacityPcs.toLocaleString() : '-'}
+      </td>
+      <td style="text-align:right; border:1px solid #CBD5E1; padding:6px 8px;">
+        ${s.targetPerHr > 0 ? s.targetPerHr.toLocaleString() : '-'}
+      </td>
+      <td style="text-align:right; font-weight:bold; color:#0F766E; border:1px solid #CBD5E1; padding:6px 8px; background:#F0FDFA;">
+        ${s.actualPrdPcs > 0 ? s.actualPrdPcs.toLocaleString() : '-'}
+      </td>
+      <td style="text-align:right; border:1px solid #CBD5E1; padding:6px 8px;">
+        ${s.actualPerHr > 0 ? s.actualPerHr.toLocaleString() : '-'}
+      </td>
+      <td style="text-align:center; font-weight:bold; border:1px solid #CBD5E1; padding:6px 8px; ${isHighAch ? 'background:#E0F2FE; color:#0369A1;' : ''}">
+        ${s.capacityPcs > 0 ? (s.achievement * 100).toFixed(1) + '%' : '-'}
+      </td>
+      <td style="text-align:right; font-weight:bold; color:#B91C1C; border:1px solid #CBD5E1; padding:6px 8px; background:#FEF2F2;">
+        ${s.rejectionPcs > 0 ? s.rejectionPcs.toLocaleString() : '0'}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Grand Total Row
+  const totalRunHrs = Math.round((grandTotals.runMins / 60) * 10) / 10;
+  const totalTargetPerHr = totalRunHrs > 0 ? Math.round(grandTotals.cap / totalRunHrs) : 0;
+  const totalActualPerHr = totalRunHrs > 0 ? Math.round(grandTotals.act / totalRunHrs) : 0;
+  const totalAch = grandTotals.cap > 0 ? (grandTotals.act / grandTotals.cap) : 0;
+
+  const trTotal = document.createElement('tr');
+  trTotal.style.backgroundColor = '#EBF4FF';
+  trTotal.style.fontWeight = 'bold';
+  trTotal.style.borderTop = '2px solid #1E40AF';
+  trTotal.style.borderBottom = '2px solid #1E40AF';
+
+  trTotal.innerHTML = `
+    <td style="text-align:left; border:1px solid #CBD5E1; padding:8px 8px; color:#1E3A8A;">Total:</td>
+    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px;">${totalRunHrs > 0 ? totalRunHrs.toFixed(1) : '-'}</td>
+    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px;">${grandTotals.cap > 0 ? grandTotals.cap.toLocaleString() : '-'}</td>
+    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px;">${totalTargetPerHr > 0 ? totalTargetPerHr.toLocaleString() : '-'}</td>
+    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px; color:#0F766E;">${grandTotals.act > 0 ? grandTotals.act.toLocaleString() : '-'}</td>
+    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px;">${totalActualPerHr > 0 ? totalActualPerHr.toLocaleString() : '-'}</td>
+    <td style="text-align:center; border:1px solid #CBD5E1; padding:8px 8px; color:#0369A1;">${grandTotals.cap > 0 ? (totalAch * 100).toFixed(1) + '%' : '-'}</td>
+    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px; color:#B91C1C;">${grandTotals.rej.toLocaleString()}</td>
+  `;
+  tbody.appendChild(trTotal);
+  table.appendChild(tbody);
+}
+
 // ─── TAB DOWNTIME & RUNNING TIME STATUS CALCULATOR ────────────────────────────
 function getTabDowntimeRunningStatus(tabId, year, monthIndex) {
   let rowsData = [];
@@ -2287,10 +2544,9 @@ function getTabOEESummary(tabId, year, monthIndex) {
   if (tabId === ACTIVE_TAB && monthIndex === MonthYearState.monthIndex && year === MonthYearState.year) {
     rowsData = SheetState.rows;
   } else {
-    const key = getStorageKey(tabId, year, monthIndex);
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try { rowsData = JSON.parse(saved); } catch(e) { rowsData = []; }
+    const localData = getStoredLocalData(tabId, year, monthIndex);
+    if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
+      rowsData = localData.rows;
     } else if (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined') {
       rowsData = INITIAL_EXCEL_ROWS;
     } else {
@@ -3215,6 +3471,11 @@ function renderExcelTable() {
   });
 
   table.appendChild(tbody);
+
+  // Default select cell E6 if no active cell exists so Arrow keys work immediately!
+  if (!SheetState.selected || !document.querySelector(`.mep-excel-table [data-col="${SheetState.selected.colLetter}"][data-row="${SheetState.selected.row}"]`)) {
+    setTimeout(() => selectCell('E', 6), 10);
+  }
 }
 
 function formatCellValue(val, colDef, isTotalRow = false) {
@@ -3260,29 +3521,39 @@ function selectCell(colLetter, rowNum, resetRange = true) {
     const masterRow = rowNum - ((rowNum - 6) % rowsPerDay);
     targetTd = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${masterRow}"]`);
   }
+
+  // Handle merged time group cells (e.g. APC in Fan Auto Powder Coating)
+  if (!targetTd && TIME_COLUMNS.includes(colLetter)) {
+    const tabInfo = SHEET_TABS[ACTIVE_TAB];
+    if (tabInfo && tabInfo.timeGroups) {
+      const rowsPerDay = getRowsPerDay();
+      const mIdx = (rowNum - 6) % rowsPerDay;
+      const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
+      if (groupInfo.isSlave) {
+        const dayStartRow = rowNum - mIdx;
+        const masterRow = dayStartRow + groupInfo.masterIdx;
+        targetTd = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${masterRow}"]`);
+      }
+    }
+  }
+
   if (!targetTd) return;
 
   targetTd.classList.add('selected-cell');
-
-  const colDef = EXCEL_COLUMNS.find(c => c.col === colLetter);
-  
-  if (rowNum !== 5 && colDef && !colDef.isReadOnly && !colDef.isFormula) {
-    const fh = document.createElement('div');
-    fh.className = 'excel-fill-handle';
-    fh.addEventListener('mousedown', onFillHandleMouseDown);
-    targetTd.appendChild(fh);
-  }
 
   SheetState.selected = { row: rowNum, colLetter: colLetter, element: targetTd };
   if (resetRange) {
     SheetState.rangeSelection = { start: { col: colLetter, row: rowNum }, end: { col: colLetter, row: rowNum } };
   }
 
+  attachFillHandle(targetTd);
+
   // Update Name Box
   const nameBox = document.getElementById('activeCellAddress');
   if (nameBox) nameBox.textContent = `${colLetter}${rowNum}`;
 
   // Update Formula Bar Input
+  const colDef = EXCEL_COLUMNS.find(c => c.col === colLetter);
   const formulaInput = document.getElementById('formulaBarInput');
   if (formulaInput) {
     if (colDef?.isReadOnly) {
@@ -3303,15 +3574,31 @@ function selectCell(colLetter, rowNum, resetRange = true) {
   updateRangeStats();
 }
 
+function attachFillHandle(targetTd) {
+  if (!targetTd) return;
+  document.querySelectorAll('.excel-fill-handle').forEach(fh => fh.remove());
+
+  const colLetter = targetTd.dataset.col;
+  const rowNum = Number(targetTd.dataset.row);
+  const colDef = EXCEL_COLUMNS.find(c => c.col === colLetter);
+
+  if (rowNum === 5 || isRowLocked(rowNum) || colDef?.isReadOnly) return;
+
+  const fh = document.createElement('div');
+  fh.className = 'excel-fill-handle';
+  fh.title = 'Drag to AutoFill (Hold Ctrl for Series)';
+  fh.addEventListener('mousedown', onFillHandleMouseDown);
+  targetTd.appendChild(fh);
+}
+
 function clearSelectionStyles() {
   document.querySelectorAll('.mep-excel-table td.selected-cell, .mep-excel-table th.selected-cell').forEach(td => {
     td.classList.remove('selected-cell');
-    const fh = td.querySelector('.excel-fill-handle');
-    if (fh) fh.remove();
   });
   document.querySelectorAll('.mep-excel-table td.in-range-selection').forEach(td => {
     td.classList.remove('in-range-selection');
   });
+  document.querySelectorAll('.excel-fill-handle').forEach(fh => fh.remove());
 }
 
 function onCellMouseDown(colLetter, rowNum, e) {
@@ -3376,6 +3663,13 @@ function highlightSelectedRange() {
     }
   }
 
+  // Attach fill handle to bottom-right cell of the selection range
+  const brCol = EXCEL_COLUMNS[maxC].col;
+  const brTd = document.querySelector(`.mep-excel-table td[data-col="${brCol}"][data-row="${maxR}"]`);
+  if (brTd) {
+    attachFillHandle(brTd);
+  }
+
   updateRangeStats(minR, maxR, minC, maxC);
 }
 
@@ -3418,65 +3712,345 @@ function updateRangeStats(minR, maxR, minC, maxC) {
   setText('statAverage', `AVERAGE: ${avg}`);
 }
 
-// ─── EXCEL FILL HANDLE DRAG ───────────────────────────────────────────────────
+// ─── EXCEL FILL HANDLE & AUTOFILL ENGINE ──────────────────────────────────────
+function computeAutoFillVal(targetR, targetCIdx, srcMinR, srcMaxR, srcMinC, srcMaxC, fillDir, isCtrl) {
+  if (fillDir === 'down' || fillDir === 'up') {
+    const colLetter = EXCEL_COLUMNS[targetCIdx].col;
+    const sourceVals = [];
+    for (let r = srcMinR; r <= srcMaxR; r++) {
+      const rowObj = SheetState.rows.find(row => row.row === r);
+      sourceVals.push(rowObj ? (rowObj[colLetter]?.val ?? '') : '');
+    }
+
+    const K = sourceVals.length;
+    if (K === 0) return '';
+
+    // 1. Single cell source
+    if (K === 1) {
+      const v = sourceVals[0];
+      if (v === '' || v === null || v === undefined) return '';
+
+      const num = Number(v);
+      if (!isNaN(num) && typeof v !== 'boolean' && v !== '') {
+        if (isCtrl) {
+          // Increment series (e.g. 1 -> 2, 3, 4...)
+          const offset = (fillDir === 'down') ? (targetR - srcMaxR) : (srcMinR - targetR);
+          return fillDir === 'down' ? (num + offset) : (num - offset);
+        } else {
+          // Copy cell (e.g. 5 -> 5, 5, 5...)
+          return num;
+        }
+      }
+      return v; // Copy text
+    }
+
+    // 2. Multiple cells source (e.g. [1, 2] -> 3, 4, 5...)
+    const nums = sourceVals.map(v => (v !== '' && v !== null && !isNaN(Number(v))) ? Number(v) : null);
+    const allNumeric = nums.every(n => n !== null);
+
+    if (allNumeric) {
+      let step = (K === 2) ? (nums[1] - nums[0]) : ((nums[K - 1] - nums[0]) / (K - 1));
+      if (fillDir === 'down') {
+        const offset = targetR - srcMaxR;
+        const res = nums[K - 1] + (step * offset);
+        return Math.round(res * 100) / 100;
+      } else if (fillDir === 'up') {
+        const offset = srcMinR - targetR;
+        const res = nums[0] - (step * offset);
+        return Math.round(res * 100) / 100;
+      }
+    }
+
+    // Pattern cycle for non-numeric or irregular text
+    if (fillDir === 'down') {
+      const offset = targetR - srcMaxR;
+      const idx = (offset - 1) % K;
+      return sourceVals[idx];
+    } else {
+      const offset = srcMinR - targetR;
+      const idx = (K - 1 - ((offset - 1) % K) + K) % K;
+      return sourceVals[idx];
+    }
+  } else if (fillDir === 'right' || fillDir === 'left') {
+    const rowObj = SheetState.rows.find(row => row.row === targetR);
+    const sourceVals = [];
+    for (let c = srcMinC; c <= srcMaxC; c++) {
+      const colLetter = EXCEL_COLUMNS[c].col;
+      sourceVals.push(rowObj ? (rowObj[colLetter]?.val ?? '') : '');
+    }
+
+    const K = sourceVals.length;
+    if (K === 0) return '';
+
+    if (K === 1) {
+      const v = sourceVals[0];
+      if (v === '' || v === null || v === undefined) return '';
+      const num = Number(v);
+      if (!isNaN(num) && typeof v !== 'boolean' && v !== '') {
+        if (isCtrl) {
+          const offset = (fillDir === 'right') ? (targetCIdx - srcMaxC) : (srcMinC - targetCIdx);
+          return fillDir === 'right' ? (num + offset) : (num - offset);
+        } else {
+          return num;
+        }
+      }
+      return v;
+    }
+
+    const nums = sourceVals.map(v => (v !== '' && v !== null && !isNaN(Number(v))) ? Number(v) : null);
+    const allNumeric = nums.every(n => n !== null);
+
+    if (allNumeric) {
+      let step = (K === 2) ? (nums[1] - nums[0]) : ((nums[K - 1] - nums[0]) / (K - 1));
+      if (fillDir === 'right') {
+        const offset = targetCIdx - srcMaxC;
+        const res = nums[K - 1] + (step * offset);
+        return Math.round(res * 100) / 100;
+      } else {
+        const offset = srcMinC - targetCIdx;
+        const res = nums[0] - (step * offset);
+        return Math.round(res * 100) / 100;
+      }
+    }
+
+    if (fillDir === 'right') {
+      const offset = targetCIdx - srcMaxC;
+      const idx = (offset - 1) % K;
+      return sourceVals[idx];
+    } else {
+      const offset = srcMinC - targetCIdx;
+      const idx = (K - 1 - ((offset - 1) % K) + K) % K;
+      return sourceVals[idx];
+    }
+  }
+
+  return '';
+}
+
 function onFillHandleMouseDown(e) {
   e.stopPropagation();
   e.preventDefault();
 
-  const sourceCell = SheetState.selected;
-  if (!sourceCell || isRowLocked(sourceCell.row) || sourceCell.row === 5) return;
+  if (CurrentUser && CurrentUser.isReadOnly) {
+    showToast('🔒 ভিউ মোড: ডাটা পরিবর্তন করা সম্ভব নয়।', 'warning');
+    return;
+  }
+
+  const start = SheetState.rangeSelection?.start || SheetState.selected;
+  const end = SheetState.rangeSelection?.end || SheetState.selected;
+  if (!start || !end) return;
+
+  const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
+  const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
+  if (startCIdx === -1 || endCIdx === -1) return;
+
+  const srcMinC = Math.min(startCIdx, endCIdx);
+  const srcMaxC = Math.max(startCIdx, endCIdx);
+  const srcMinR = Math.min(start.row, end.row);
+  const srcMaxR = Math.min(Math.max(start.row, end.row), getMaxActiveRow());
+
+  let isCtrl = e.ctrlKey;
+  let currentHover = { row: srcMaxR, cIdx: srcMaxC };
+
+  // Create or get floating preview tooltip
+  let tooltip = document.querySelector('.excel-autofill-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'excel-autofill-tooltip';
+    document.body.appendChild(tooltip);
+  }
+
+  const updatePreview = (targetRow, targetCIdx, ctrlPressed, mouseX, mouseY) => {
+    document.querySelectorAll('.mep-excel-table td.in-autofill-preview').forEach(td => td.classList.remove('in-autofill-preview'));
+
+    const maxActive = getMaxActiveRow();
+    targetRow = Math.max(6, Math.min(targetRow, maxActive));
+    targetCIdx = Math.max(0, Math.min(targetCIdx, EXCEL_COLUMNS.length - 1));
+
+    let fillDir = 'none';
+    let pMinR = srcMinR, pMaxR = srcMaxR, pMinC = srcMinC, pMaxC = srcMaxC;
+
+    const dRowDown = targetRow - srcMaxR;
+    const dRowUp = srcMinR - targetRow;
+    const dColRight = targetCIdx - srcMaxC;
+    const dColLeft = srcMinC - targetCIdx;
+
+    const maxDelta = Math.max(dRowDown, dRowUp, dColRight, dColLeft);
+
+    if (maxDelta > 0) {
+      if (maxDelta === dRowDown) {
+        fillDir = 'down';
+        pMaxR = targetRow;
+      } else if (maxDelta === dRowUp) {
+        fillDir = 'up';
+        pMinR = targetRow;
+      } else if (maxDelta === dColRight) {
+        fillDir = 'right';
+        pMaxC = targetCIdx;
+      } else if (maxDelta === dColLeft) {
+        fillDir = 'left';
+        pMinC = targetCIdx;
+      }
+    }
+
+    if (fillDir !== 'none') {
+      for (let r = pMinR; r <= pMaxR; r++) {
+        if (isRowLocked(r) || r === 5) continue;
+        for (let c = pMinC; c <= pMaxC; c++) {
+          const isInsideSource = (r >= srcMinR && r <= srcMaxR && c >= srcMinC && c <= srcMaxC);
+          if (!isInsideSource) {
+            const colLetter = EXCEL_COLUMNS[c].col;
+            const td = document.querySelector(`.mep-excel-table td[data-col="${colLetter}"][data-row="${r}"]`);
+            if (td) td.classList.add('in-autofill-preview');
+          }
+        }
+      }
+
+      const previewVal = computeAutoFillVal(targetRow, targetCIdx, srcMinR, srcMaxR, srcMinC, srcMaxC, fillDir, ctrlPressed);
+      if (mouseX && mouseY) {
+        tooltip.textContent = `${previewVal !== null && previewVal !== undefined ? previewVal : ''}`;
+        tooltip.style.left = `${mouseX + 16}px`;
+        tooltip.style.top = `${mouseY + 12}px`;
+        tooltip.style.display = 'block';
+      }
+    } else {
+      tooltip.style.display = 'none';
+    }
+
+    return { fillDir, pMinR, pMaxR, pMinC, pMaxC };
+  };
 
   const onMouseMove = (moveEvent) => {
+    isCtrl = moveEvent.ctrlKey;
     const targetTd = moveEvent.target.closest('td');
-    if (targetTd && targetTd.dataset.row) {
-      onCellMouseEnter(targetTd.dataset.col, Number(targetTd.dataset.row));
+    if (targetTd && targetTd.dataset.row && targetTd.dataset.col) {
+      const r = Number(targetTd.dataset.row);
+      const cIdx = EXCEL_COLUMNS.findIndex(c => c.col === targetTd.dataset.col);
+      if (r && cIdx !== -1) {
+        currentHover = { row: r, cIdx };
+      }
+    }
+    updatePreview(currentHover.row, currentHover.cIdx, isCtrl, moveEvent.clientX, moveEvent.clientY);
+  };
+
+  const onKeyDown = (keyEvent) => {
+    if (keyEvent.key === 'Control') {
+      isCtrl = true;
+      updatePreview(currentHover.row, currentHover.cIdx, isCtrl, tooltip.offsetLeft - 16, tooltip.offsetTop - 12);
     }
   };
 
-  const onMouseUp = () => {
+  const onKeyUp = (keyEvent) => {
+    if (keyEvent.key === 'Control') {
+      isCtrl = false;
+      updatePreview(currentHover.row, currentHover.cIdx, isCtrl, tooltip.offsetLeft - 16, tooltip.offsetTop - 12);
+    }
+  };
+
+  const onMouseUp = (upEvent) => {
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
+    document.removeEventListener('keydown', onKeyDown);
+    document.removeEventListener('keyup', onKeyUp);
 
-    const start = SheetState.rangeSelection.start;
-    const end = SheetState.rangeSelection.end;
-    if (start && end && (start.row !== end.row || start.col !== end.col)) {
-      const sourceRow = SheetState.rows.find(r => r.row === sourceCell.row);
-      const sourceVal = sourceRow ? sourceRow[sourceCell.colLetter]?.val : '';
+    if (tooltip) tooltip.style.display = 'none';
+    document.querySelectorAll('.mep-excel-table td.in-autofill-preview').forEach(td => td.classList.remove('in-autofill-preview'));
 
-      const maxActive = getMaxActiveRow();
-      const minR = Math.min(start.row, end.row);
-      const maxR = Math.min(Math.max(start.row, end.row), maxActive);
-      const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
-      const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
-      const minC = Math.min(startCIdx, endCIdx);
-      const maxC = Math.max(startCIdx, endCIdx);
+    isCtrl = upEvent.ctrlKey || isCtrl;
+    const { fillDir, pMinR, pMaxR, pMinC, pMaxC } = updatePreview(currentHover.row, currentHover.cIdx, isCtrl, 0, 0);
 
-      pushHistoryState();
+    if (fillDir === 'none') return;
 
-      for (let r = minR; r <= maxR; r++) {
+    pushHistoryState();
+
+    let updatedCount = 0;
+    const affectedRows = new Set();
+
+    if (fillDir === 'down' || fillDir === 'up') {
+      for (let c = srcMinC; c <= srcMaxC; c++) {
+        const colDef = EXCEL_COLUMNS[c];
+        if (colDef.isReadOnly || colDef.isFormula) continue;
+
+        if (fillDir === 'down') {
+          for (let r = srcMaxR + 1; r <= pMaxR; r++) {
+            if (isRowLocked(r) || r === 5) continue;
+            const targetRow = SheetState.rows.find(row => row.row === r);
+            if (!targetRow) continue;
+
+            const val = computeAutoFillVal(r, c, srcMinR, srcMaxR, srcMinC, srcMaxC, fillDir, isCtrl);
+            if (!targetRow[colDef.col]) targetRow[colDef.col] = {};
+            targetRow[colDef.col].val = val;
+            affectedRows.add(targetRow);
+            updatedCount++;
+          }
+        } else if (fillDir === 'up') {
+          for (let r = srcMinR - 1; r >= pMinR; r--) {
+            if (isRowLocked(r) || r === 5) continue;
+            const targetRow = SheetState.rows.find(row => row.row === r);
+            if (!targetRow) continue;
+
+            const val = computeAutoFillVal(r, c, srcMinR, srcMaxR, srcMinC, srcMaxC, fillDir, isCtrl);
+            if (!targetRow[colDef.col]) targetRow[colDef.col] = {};
+            targetRow[colDef.col].val = val;
+            affectedRows.add(targetRow);
+            updatedCount++;
+          }
+        }
+      }
+    } else if (fillDir === 'right' || fillDir === 'left') {
+      for (let r = srcMinR; r <= srcMaxR; r++) {
         if (isRowLocked(r) || r === 5) continue;
         const targetRow = SheetState.rows.find(row => row.row === r);
         if (!targetRow) continue;
-        for (let c = minC; c <= maxC; c++) {
-          const colDef = EXCEL_COLUMNS[c];
-          if (!colDef.isFormula && !colDef.isReadOnly) {
+
+        if (fillDir === 'right') {
+          for (let c = srcMaxC + 1; c <= pMaxC; c++) {
+            const colDef = EXCEL_COLUMNS[c];
+            if (colDef.isReadOnly || colDef.isFormula) continue;
+
+            const val = computeAutoFillVal(r, c, srcMinR, srcMaxR, srcMinC, srcMaxC, fillDir, isCtrl);
             if (!targetRow[colDef.col]) targetRow[colDef.col] = {};
-            targetRow[colDef.col].val = sourceVal;
+            targetRow[colDef.col].val = val;
+            affectedRows.add(targetRow);
+            updatedCount++;
+          }
+        } else if (fillDir === 'left') {
+          for (let c = srcMinC - 1; c >= pMinC; c--) {
+            const colDef = EXCEL_COLUMNS[c];
+            if (colDef.isReadOnly || colDef.isFormula) continue;
+
+            const val = computeAutoFillVal(r, c, srcMinR, srcMaxR, srcMinC, srcMaxC, fillDir, isCtrl);
+            if (!targetRow[colDef.col]) targetRow[colDef.col] = {};
+            targetRow[colDef.col].val = val;
+            affectedRows.add(targetRow);
+            updatedCount++;
           }
         }
-        recalculateRow(targetRow);
       }
-
-      recalculateTotalRow();
-      saveSheetData(false);
-      renderExcelTable();
-      selectCell(sourceCell.colLetter, sourceCell.row);
-      showToast('✨ Auto-filled cells', 'success');
     }
+
+    affectedRows.forEach(row => recalculateRow(row));
+    recalculateTotalRow();
+    saveSheetData(false);
+    renderExcelTable();
+
+    // Select the newly filled expanded range
+    const newStartCol = EXCEL_COLUMNS[pMinC].col;
+    const newEndCol = EXCEL_COLUMNS[pMaxC].col;
+    SheetState.rangeSelection = {
+      start: { col: newStartCol, row: pMinR },
+      end: { col: newEndCol, row: pMaxR }
+    };
+    highlightSelectedRange();
+
+    const isSeries = isCtrl || (srcMaxR - srcMinR >= 1) || (srcMaxC - srcMinC >= 1);
+    showToast(`✨ AutoFill: ${updatedCount} cells ${isSeries ? 'series completed' : 'copied'} successfully`, 'success');
   };
 
   document.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseup', onMouseUp);
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('keyup', onKeyUp);
 }
 
 // ─── STRICT NUMERIC SANITIZER ────────────────────────────────────────────────
@@ -3581,6 +4155,14 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
       e.preventDefault();
       input.blur();
       navigateSelection(e.shiftKey ? -1 : 1, 0);
+    } else if (e.key === 'ArrowUp' && colLetter !== 'AM') {
+      e.preventDefault();
+      input.blur();
+      navigateSelection(0, -1);
+    } else if (e.key === 'ArrowDown' && colLetter !== 'AM') {
+      e.preventDefault();
+      input.blur();
+      navigateSelection(0, 1);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       SheetState.isEditing = false;
@@ -3668,30 +4250,39 @@ function updateTotalRowDisplay() {
 
 // ─── KEYBOARD NAVIGATION ENGINE ───────────────────────────────────────────────
 function navigateSelection(dCol, dRow) {
-  const cur = SheetState.selected;
-  if (!cur) return;
-
-  const colIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
-  let newColIdx = colIdx + dCol;
-  let newRowNum = cur.row + dRow;
-
-  if (newColIdx < 0) {
-    newColIdx = EXCEL_COLUMNS.length - 1;
-    newRowNum -= 1;
-  } else if (newColIdx >= EXCEL_COLUMNS.length) {
-    newColIdx = 4;
-    newRowNum += 1;
+  let cur = SheetState.selected;
+  if (!cur) {
+    selectCell('E', 6);
+    return;
   }
 
+  const colIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
+  let newColIdx = colIdx;
+  let newRowNum = cur.row;
+
   const maxActive = getMaxActiveRow();
-  if (newRowNum < 5) newRowNum = 5;
-  if (newRowNum > maxActive) newRowNum = maxActive;
+
+  // Ctrl+Arrow big jump navigation
+  if (Math.abs(dCol) >= 50) {
+    newColIdx = dCol > 0 ? (EXCEL_COLUMNS.length - 1) : 4;
+  } else {
+    newColIdx = Math.max(0, Math.min(EXCEL_COLUMNS.length - 1, colIdx + dCol));
+  }
+
+  if (Math.abs(dRow) >= 50) {
+    newRowNum = dRow > 0 ? maxActive : 6;
+  } else {
+    newRowNum = Math.max(6, Math.min(maxActive, cur.row + dRow));
+  }
 
   const newColLetter = EXCEL_COLUMNS[newColIdx].col;
   selectCell(newColLetter, newRowNum);
 
+  // Smooth auto-scroll into view
   const target = document.querySelector(`.mep-excel-table [data-col="${newColLetter}"][data-row="${newRowNum}"]`);
-  if (target) target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  if (target) {
+    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
 }
 
 // ─── ADVANCED QUICK ROW ENTRY MODAL ───────────────────────────────────────────
@@ -5518,10 +6109,9 @@ async function exportExcelFile() {
         if (tabId === ACTIVE_TAB) {
           rowsData = SheetState.rows;
         } else {
-          const key = getStorageKey(tabId, year, MonthYearState.monthIndex);
-          const saved = localStorage.getItem(key);
-          if (saved) {
-            rowsData = JSON.parse(saved);
+          const localData = getStoredLocalData(tabId, year, MonthYearState.monthIndex);
+          if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
+            rowsData = localData.rows;
           } else if (tabId === 'fan_lathe' && year === 2026 && MonthYearState.monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined') {
             rowsData = INITIAL_EXCEL_ROWS;
           } else {
@@ -6118,6 +6708,31 @@ function bindExcelEvents() {
       }
     }
   });
+
+  // Automatically flush and persist any active cell edit on browser refresh or navigation
+  const flushAndSaveOnUnload = () => {
+    if (SheetState.isEditing && SheetState.activeInput) {
+      const cur = SheetState.selected;
+      if (cur && cur.row !== 5 && !isRowLocked(cur.row)) {
+        const colDef = EXCEL_COLUMNS.find(c => c.col === cur.colLetter);
+        if (colDef && !colDef.isReadOnly && !colDef.isFormula) {
+          const rowObj = SheetState.rows.find(r => r.row === cur.row);
+          if (rowObj) {
+            const rawVal = SheetState.activeInput.value.trim();
+            const cleanVal = (cur.colLetter === 'AM') ? (rawVal === '' ? null : rawVal) : sanitizeNumericValue(rawVal);
+            if (!rowObj[cur.colLetter]) rowObj[cur.colLetter] = {};
+            rowObj[cur.colLetter].val = cleanVal;
+            recalculateRow(rowObj);
+            recalculateTotalRow();
+          }
+        }
+      }
+    }
+    saveSheetData(false);
+  };
+
+  window.addEventListener('beforeunload', flushAndSaveOnUnload);
+  window.addEventListener('pagehide', flushAndSaveOnUnload);
 
   initContextMenu();
 }
