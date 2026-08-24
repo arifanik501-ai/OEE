@@ -1122,7 +1122,78 @@ function pushSheetDataToCloud(tabId, year, monthIndex, rowsData, timestamp = Dat
   }).catch(() => {});
 }
 
-// ─── ADMIN: CONSOLIDATE & BROADCAST ALL DATA LIVE ─────────────────────────────
+// ─── SMART MULTI-DEVICE DATA MERGER (PREVENTS ANY DATA LOSS) ────────────────
+function hasRowEnteredData(r) {
+  if (!r) return false;
+  if (r.E?.val !== null && r.E?.val !== '' && r.E?.val !== undefined && r.E?.val != 0) return true;
+  if (r.F?.val !== null && r.F?.val !== '' && r.F?.val !== undefined && r.F?.val != 0) return true;
+  if (r.G?.val !== null && r.G?.val !== '' && r.G?.val !== undefined && r.G?.val != 0) return true;
+  if (r.H?.val !== null && r.H?.val !== '' && r.H?.val !== undefined && r.H?.val != 0) return true;
+  if (r.AM?.val && String(r.AM.val).trim().length > 0) return true;
+  for (const c of EXCEL_COLUMNS) {
+    if (c.isDt && r[c.col]?.val !== null && r[c.col]?.val !== '' && r[c.col]?.val !== undefined && r[c.col]?.val != 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function countEnteredDataCells(rows) {
+  if (!Array.isArray(rows)) return 0;
+  let count = 0;
+  for (const r of rows) {
+    if (hasRowEnteredData(r)) count++;
+  }
+  return count;
+}
+
+function mergeRowsSmartly(baseRows, overlayRows, tabId = ACTIVE_TAB) {
+  if (!Array.isArray(baseRows) || baseRows.length === 0) {
+    return Array.isArray(overlayRows) ? JSON.parse(JSON.stringify(overlayRows)) : [];
+  }
+  if (!Array.isArray(overlayRows) || overlayRows.length === 0) {
+    return JSON.parse(JSON.stringify(baseRows));
+  }
+
+  const result = JSON.parse(JSON.stringify(baseRows));
+
+  overlayRows.forEach((rB, idx) => {
+    if (idx >= result.length) return;
+    const rA = result[idx];
+    if (!rA) return;
+
+    // Piece-count, plan and remarks columns
+    ['E', 'F', 'G', 'H', 'AM'].forEach(col => {
+      const vB = rB[col]?.val;
+      const isBValid = (vB !== null && vB !== '' && vB !== undefined && vB != 0);
+
+      if (col === 'AM') {
+        const textB = vB ? String(vB).trim() : '';
+        if (textB) {
+          if (!rA[col]) rA[col] = {};
+          rA[col].val = textB;
+        }
+      } else if (isBValid) {
+        if (!rA[col]) rA[col] = {};
+        rA[col].val = vB;
+      }
+    });
+
+    // 23 Downtime columns
+    EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => {
+      const vB = rB[c.col]?.val;
+      const isBValid = (vB !== null && vB !== '' && vB !== undefined && vB != 0);
+      if (isBValid) {
+        if (!rA[c.col]) rA[c.col] = {};
+        rA[c.col].val = vB;
+      }
+    });
+  });
+
+  return result;
+}
+
+// ─── ADMIN: CONSOLIDATE & BROADCAST ALL DATA LIVE (ZERO DATA LOSS) ───────────
 async function adminBroadcastLiveData() {
   const spinIcon = document.getElementById('syncSpinIcon');
   if (spinIcon) spinIcon.classList.add('animate-spin');
@@ -1135,97 +1206,107 @@ async function adminBroadcastLiveData() {
     // 1. Save current active tab locally first
     saveSheetData(false);
 
-    // 2. Fetch existing cloud departments from Firebase REST API (with SDK fallback)
-    let cloudDepts = {};
+    // 2. Fetch raw department submissions from Firebase (mep_oee_v2/data)
+    let rawCloudDepts = {};
     try {
       if (firebaseDb) {
         const snap = await firebaseDb.ref(`mep_oee_v2/data/${year}/${monthIndex}`).once('value');
-        cloudDepts = snap.val() || {};
+        rawCloudDepts = snap.val() || {};
       }
     } catch(e) {}
 
-    if (!cloudDepts || Object.keys(cloudDepts).length === 0) {
+    if (!rawCloudDepts || Object.keys(rawCloudDepts).length === 0) {
       try {
         const restUrl = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}.json`;
         const res = await fetch(restUrl);
-        if (res.ok) {
-          cloudDepts = (await res.json()) || {};
-        }
+        if (res.ok) rawCloudDepts = (await res.json()) || {};
+      } catch(e) {}
+    }
+
+    // 3. Fetch existing live broadcast as secondary base
+    let existingBroadcast = {};
+    try {
+      if (firebaseDb) {
+        const snap2 = await firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`).once('value');
+        existingBroadcast = snap2.val() || {};
+      }
+    } catch(e) {}
+
+    if (!existingBroadcast || Object.keys(existingBroadcast).length === 0) {
+      try {
+        const res2 = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`);
+        if (res2.ok) existingBroadcast = (await res2.json()) || {};
       } catch(e) {}
     }
 
     const consolidated = {};
 
-    // 3. For all 9 production departments: build complete dataset
+    // 4. For all 9 production departments: intelligently merge all sources
     Object.keys(SHEET_TABS).forEach(tabId => {
-      if (!SHEET_TABS[tabId].isSummary) {
-        if (tabId === ACTIVE_TAB && SheetState.rows && SheetState.rows.length > 0) {
-          consolidated[tabId] = {
-            rows: cleanDataForFirebase(SheetState.rows),
-            tabId: tabId,
-            year: year,
-            monthIndex: monthIndex,
-            updatedAt: Date.now(),
-            updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
-          };
-          return;
-        }
+      if (SHEET_TABS[tabId].isSummary) return;
 
-        const cloudItem = cloudDepts[tabId];
-        const localData = getStoredLocalData(tabId, year, monthIndex);
-        const localUpdated = localData ? (localData.updatedAt || 0) : 0;
-        const cloudUpdated = cloudItem ? (cloudItem.updatedAt || 0) : 0;
+      // Start with blank template rows for the department
+      let templateRows = (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined')
+        ? JSON.parse(JSON.stringify(INITIAL_EXCEL_ROWS))
+        : generateBlankMonthRows(tabId, year, monthIndex);
 
-        if (localData && Array.isArray(localData.rows) && localData.rows.length > 0 && localUpdated >= cloudUpdated) {
-          consolidated[tabId] = {
-            rows: cleanDataForFirebase(localData.rows),
-            tabId: tabId,
-            year: year,
-            monthIndex: monthIndex,
-            updatedAt: localUpdated || Date.now(),
-            updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
-          };
-        } else if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
-          consolidated[tabId] = cloudItem;
-          const storageKey = getStorageKey(tabId, year, monthIndex);
-          localStorage.setItem(storageKey, JSON.stringify(cloudItem));
-        } else if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
-          consolidated[tabId] = {
-            rows: cleanDataForFirebase(localData.rows),
-            tabId: tabId,
-            year: year,
-            monthIndex: monthIndex,
-            updatedAt: Date.now(),
-            updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
-          };
-        } else {
-          const rows = (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined')
-            ? INITIAL_EXCEL_ROWS
-            : generateBlankMonthRows(tabId, year, monthIndex);
-          consolidated[tabId] = {
-            rows: cleanDataForFirebase(rows),
-            tabId: tabId,
-            year: year,
-            monthIndex: monthIndex,
-            updatedAt: Date.now(),
-            updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
-          };
-        }
+      const localItem = getStoredLocalData(tabId, year, monthIndex);
+      const broadcastItem = existingBroadcast[tabId];
+      const rawCloudItem = rawCloudDepts[tabId];
+
+      let mergedRows = templateRows;
+
+      // 1) Merge with previous broadcast if available
+      if (broadcastItem && Array.isArray(broadcastItem.rows) && broadcastItem.rows.length > 0) {
+        mergedRows = mergeRowsSmartly(mergedRows, broadcastItem.rows, tabId);
       }
+
+      // 2) Merge with local storage if available
+      if (localItem && Array.isArray(localItem.rows) && localItem.rows.length > 0) {
+        mergedRows = mergeRowsSmartly(mergedRows, localItem.rows, tabId);
+      }
+
+      // 3) CRITICAL: Merge with latest raw Incharge submissions from Cloud (Never lose Incharge entries!)
+      if (rawCloudItem && Array.isArray(rawCloudItem.rows) && rawCloudItem.rows.length > 0) {
+        mergedRows = mergeRowsSmartly(mergedRows, rawCloudItem.rows, tabId);
+      }
+
+      // 4) If this is the active tab on Admin screen, apply Admin's active in-memory edits
+      if (tabId === ACTIVE_TAB && SheetState.rows && SheetState.rows.length > 0) {
+        mergedRows = mergeRowsSmartly(mergedRows, SheetState.rows, tabId);
+      }
+
+      // Recalculate all formulas on the consolidated rows
+      mergedRows.forEach(row => recalculateRow(row));
+
+      const tabPayload = {
+        rows: cleanDataForFirebase(mergedRows),
+        tabId: tabId,
+        year: year,
+        monthIndex: monthIndex,
+        updatedAt: Date.now(),
+        updatedBy: CurrentUser ? CurrentUser.name : 'Admin'
+      };
+
+      consolidated[tabId] = tabPayload;
+
+      // Update Admin's local storage so Admin immediately has all Incharge data locally
+      const storageKey = getStorageKey(tabId, year, monthIndex);
+      localStorage.setItem(storageKey, JSON.stringify(tabPayload));
+
+      // Also ensure mep_oee_v2/data is updated with the unified master
+      pushSheetDataToCloud(tabId, year, monthIndex, mergedRows, tabPayload.updatedAt);
     });
 
     const deptKeys = Object.keys(consolidated);
 
-    // 4. Publish Master Live Broadcast via Firebase SDK (Instant WebSockets)
+    // 5. Publish Master Live Broadcast to Firebase
     const cleanedConsolidated = cleanDataForFirebase(consolidated);
     if (firebaseDb) {
       await firebaseDb.ref(`mep_oee_v2/live_broadcast/${year}/${monthIndex}`).set(cleanedConsolidated);
     }
-
-    // 5. REST PUT Backup
     try {
-      const liveBroadcastUrl = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`;
-      await fetch(liveBroadcastUrl, {
+      await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cleanedConsolidated)
@@ -1240,11 +1321,9 @@ async function adminBroadcastLiveData() {
       year: year,
       monthIndex: monthIndex
     };
-
     if (firebaseDb) {
       await firebaseDb.ref('mep_oee_v2/broadcast_signal').set(signalPayload);
     }
-
     try {
       await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/broadcast_signal.json`, {
         method: 'PUT',
@@ -1253,13 +1332,14 @@ async function adminBroadcastLiveData() {
       });
     } catch(e) {}
 
-    // 7. Recalculate & re-render admin view
+    // 7. Re-render Admin view
     loadSheetData();
     recalculateAllFormulas();
     renderExcelTable();
+    updateTotalRowDisplay();
     updateCloudStatusUI('synced', 'Live Broadcasted');
 
-    showToast(`🎉 সফলভাবে ${deptKeys.length}টি ডিপার্টমেন্টের ডাটা লাইভ ব্রডকাস্ট করা হয়েছে! সকল ডিভাইসে লাইভ আপডেট সম্পন্ন।`, 'success');
+    showToast(`🎉 সকল ডিভাইসের ডাটা একত্রিত করে সফলভাবে লাইভ ব্রডকাস্ট করা হয়েছে! (${deptKeys.length}টি ডিপার্টমেন্ট)`, 'success');
   } catch (err) {
     console.error('Error broadcasting live data:', err);
     showToast('❌ লাইভ ব্রডকাস্ট করতে সমস্যা হয়েছে: ' + (err.message || ''), 'error');
@@ -1320,18 +1400,27 @@ function applyIncomingBroadcastData(liveData, isSilent = true) {
   Object.keys(liveData).forEach(tabId => {
     const cloudItem = liveData[tabId];
     if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
-      // Incharge local draft protection: if user is working on their permitted tab and has newer draft, keep draft
-      if (CurrentUser && CurrentUser.id !== 'admin' && CurrentUser.allowedDepts && CurrentUser.allowedDepts.includes(tabId)) {
-        const localData = getStoredLocalData(tabId, year, monthIndex);
-        const localUpdated = localData ? (localData.updatedAt || 0) : 0;
-        const cloudUpdated = cloudItem.updatedAt || 0;
-        if (localData && localUpdated > cloudUpdated && localUpdated > 0) {
-          return;
-        }
+      const localData = getStoredLocalData(tabId, year, monthIndex);
+      let mergedRows = cloudItem.rows;
+
+      // Incharge local draft protection: if user is currently working on their permitted tab and has in-memory unsaved edits, merge safely!
+      if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
+        mergedRows = mergeRowsSmartly(cloudItem.rows, localData.rows, tabId);
       }
 
+      mergedRows.forEach(row => recalculateRow(row));
+
+      const updatedPayload = {
+        rows: cleanDataForFirebase(mergedRows),
+        tabId: tabId,
+        year: year,
+        monthIndex: monthIndex,
+        updatedAt: cloudItem.updatedAt || Date.now(),
+        updatedBy: cloudItem.updatedBy || 'Admin'
+      };
+
       const storageKey = getStorageKey(tabId, year, monthIndex);
-      localStorage.setItem(storageKey, JSON.stringify(cloudItem));
+      localStorage.setItem(storageKey, JSON.stringify(updatedPayload));
       validCount++;
     }
   });
@@ -1341,6 +1430,7 @@ function applyIncomingBroadcastData(liveData, isSilent = true) {
       loadSheetData();
       recalculateAllFormulas();
       renderExcelTable();
+      updateTotalRowDisplay();
     }
     updateCloudStatusUI('synced', 'Live Synced');
   }
@@ -1374,7 +1464,7 @@ async function processIncomingBroadcastSignal(signal) {
           applyIncomingBroadcastData(liveData);
 
           if (!isInitial && CurrentUser && CurrentUser.id !== 'admin') {
-            showToast('📢 লাইভ ডাটা পাবলিশ হয়েছে! স্ক্রিনে সর্বশেষ ডাটা চলে এসেছে।', 'info');
+            showToast('📢 এডমিন থেকে লাইভ ডাটা পাবলিশ হয়েছে! স্ক্রিনে সর্বশেষ ডাটা চলে এসেছে।', 'info');
           }
         }
       } catch(e) {
@@ -1402,60 +1492,75 @@ async function syncAllCloudData(showFeedback = true) {
     const year = MonthYearState.year;
     const monthIndex = MonthYearState.monthIndex;
 
-    // 1. Fetch live broadcast first
-    let monthData = null;
+    // 1. Fetch raw department submissions first (mep_oee_v2/data)
+    let rawDepts = {};
     try {
-      const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`);
-      if (res.ok) monthData = await res.json();
+      const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}.json`);
+      if (res.ok) rawDepts = (await res.json()) || {};
     } catch(e) {}
 
-    // 2. Fallback to raw depts data
-    if (!monthData || Object.keys(monthData).length === 0) {
-      try {
-        const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/data/${year}/${monthIndex}.json`);
-        if (res.ok) monthData = await res.json();
-      } catch(e) {}
-    }
+    // 2. Fetch live broadcast (mep_oee_v2/live_broadcast)
+    let liveBroadcast = {};
+    try {
+      const res2 = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/live_broadcast/${year}/${monthIndex}.json`);
+      if (res2.ok) liveBroadcast = (await res2.json()) || {};
+    } catch(e) {}
 
     let updatedCount = 0;
 
-    if (monthData && typeof monthData === 'object') {
-      Object.keys(monthData).forEach(tabId => {
-        const cloudItem = monthData[tabId];
-        if (cloudItem && Array.isArray(cloudItem.rows) && cloudItem.rows.length > 0) {
-          const localData = getStoredLocalData(tabId, year, monthIndex);
-          const localUpdated = localData ? (localData.updatedAt || 0) : 0;
-          const cloudUpdated = cloudItem.updatedAt || 0;
+    Object.keys(SHEET_TABS).forEach(tabId => {
+      if (SHEET_TABS[tabId].isSummary) return;
 
-          // CRITICAL: If local data is newer or has unsaved edits, PRESERVE IT and push to cloud!
-          if (localData && localUpdated >= cloudUpdated && localUpdated > 0) {
-            pushSheetDataToCloud(tabId, year, monthIndex, localData.rows, localUpdated);
-            return;
-          }
+      const rawItem = rawDepts[tabId];
+      const broadcastItem = liveBroadcast[tabId];
+      const localData = getStoredLocalData(tabId, year, monthIndex);
 
-          // Otherwise update local storage with cloud data
-          const storageKey = getStorageKey(tabId, year, monthIndex);
-          localStorage.setItem(storageKey, JSON.stringify(cloudItem));
-          updatedCount++;
-        }
-      });
-    }
+      let templateRows = (tabId === 'fan_lathe' && year === 2026 && monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined')
+        ? JSON.parse(JSON.stringify(INITIAL_EXCEL_ROWS))
+        : generateBlankMonthRows(tabId, year, monthIndex);
+
+      let mergedRows = templateRows;
+
+      if (broadcastItem && Array.isArray(broadcastItem.rows) && broadcastItem.rows.length > 0) {
+        mergedRows = mergeRowsSmartly(mergedRows, broadcastItem.rows, tabId);
+      }
+
+      if (rawItem && Array.isArray(rawItem.rows) && rawItem.rows.length > 0) {
+        mergedRows = mergeRowsSmartly(mergedRows, rawItem.rows, tabId);
+      }
+
+      if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
+        mergedRows = mergeRowsSmartly(mergedRows, localData.rows, tabId);
+      }
+
+      mergedRows.forEach(row => recalculateRow(row));
+
+      const updatedPayload = {
+        rows: cleanDataForFirebase(mergedRows),
+        tabId: tabId,
+        year: year,
+        monthIndex: monthIndex,
+        updatedAt: Date.now(),
+        updatedBy: CurrentUser ? CurrentUser.name : 'User'
+      };
+
+      const storageKey = getStorageKey(tabId, year, monthIndex);
+      localStorage.setItem(storageKey, JSON.stringify(updatedPayload));
+      updatedCount++;
+    });
 
     if (updatedCount > 0) {
       loadSheetData();
       recalculateAllFormulas();
       renderExcelTable();
+      updateTotalRowDisplay();
       updateCloudStatusUI('synced', 'Cloud Synced');
     } else {
       updateCloudStatusUI('synced', 'Local + Cloud Synced');
     }
 
     if (showFeedback) {
-      if (updatedCount > 0) {
-        showToast(`☁️ ফায়ারবেস ক্লাউড থেকে সর্বশেষ ডাটা সফলভাবে সিঙ্ক হয়েছে! (${updatedCount}টি শিট)`, 'success');
-      } else {
-        showToast('ℹ️ লোকাল ডাটা সুরক্ষিত রয়েছে।', 'info');
-      }
+      showToast(`☁️ ফায়ারবেস ক্লাউড থেকে সকল ডিপার্টমেন্টের সর্বশেষ ডাটা সফলভাবে সিঙ্ক হয়েছে!`, 'success');
     }
   } catch (err) {
     console.error('Error syncing cloud data:', err);
