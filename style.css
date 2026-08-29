@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════════
-   MEP FAN LTD. - Exact Visual Replica of Excel Sheet (Book1.xlsx)
-   Times New Roman Typography + Multi-Tab Support (Fan Lathe & Fan Auto Powder Coating)
+   MEP FAN LTD. - Ultra-Premium Industrial OEE Spreadsheet Engine
+   Luxury Color Grading • Soft Pastel Gradients • Precision Excel Grid
    ══════════════════════════════════════════════════════════════════════ */
 
 * {
@@ -10,9 +10,9 @@
 }
 
 body {
-  font-family: 'Times New Roman', Times, serif;
-  background-color: #0B192C;
-  color: #000000;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #0F172A;
+  color: #0F172A;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -20,9 +20,11 @@ body {
   user-select: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Hide Number Input Spinners Across All Browsers */
+/* Hide Number Input Spinners */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none !important;
@@ -34,29 +36,29 @@ input[type=number] {
   appearance: textfield !important;
 }
 
-/* Custom Scrollbars */
+/* Crisp Modern Scrollbars */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B192C;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 6px;
-  border: 2px solid #0B192C;
+  background: #CBD5E1;
+  border-radius: 4px;
+  border: 2px solid #F1F5F9;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94A3B8;
 }
 
 /* Top Toolbar */
 .top-action-bar {
-  background: #082B55;
-  border-bottom: 2px solid #2C5EA8;
-  height: 64px;
-  min-height: 64px;
+  background: #153B73 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  height: 64px !important;
+  min-height: 64px !important;
   padding: 0 24px;
   display: flex;
   align-items: center;
@@ -64,61 +66,64 @@ input[type=number] {
   gap: 16px;
   flex-shrink: 0;
   color: #FFFFFF;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* Formula Bar (fx) */
+/* Formula Bar (fx) - Modern Office 365 Styling */
 .formula-bar-box {
-  background: #FFFFFF;
-  border-bottom: 1px solid #94A3B8;
-  padding: 3px 8px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 4px 16px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .cell-name-box {
-  width: 60px;
-  background: #F1F5F9;
-  border: 1px solid #64748B;
-  border-radius: 2px;
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold;
-  font-size: 13px;
-  color: #000000;
+  width: 68px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #0F172A;
   text-align: center;
-  padding: 1px 3px;
+  padding: 3px 4px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .fx-label {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Inter', sans-serif;
   font-style: italic;
-  font-weight: bold;
-  font-size: 16px;
-  color: #475569;
+  font-weight: 800;
+  font-size: 14px;
+  color: #64748B;
+  user-select: none;
 }
 
 .formula-input-field {
   flex: 1;
   border: 1px solid #CBD5E1;
-  border-radius: 2px;
-  padding: 2px 6px;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 13px;
-  font-weight: bold;
-  color: #000000;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0F172A;
   background: #FFFFFF;
   outline: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 .formula-input-field:focus {
-  border-color: #0054A6;
-  box-shadow: 0 0 0 1px #0054A6;
+  border-color: #107C41;
+  box-shadow: 0 0 0 2px rgba(16, 124, 65, 0.15);
 }
 .formula-input-field:read-only {
-  background-color: #F8FAFC;
+  background-color: #F1F5F9;
   color: #64748B;
   cursor: not-allowed;
 }
@@ -127,160 +132,172 @@ input[type=number] {
 .excel-viewport {
   flex: 1;
   overflow: auto;
-  background-color: #FFFFFF;
+  background-color: #F4F7FA !important;
   position: relative;
   width: 100%;
+  padding: 0 12px 14px 12px !important;
 }
 
-/* ─── EXACT EXCEL TABLE STRUCTURE (PERFECT SUBTLE FIT) ───────────────────── */
+/* ─── PREMIUM EXCEL 365 TABLE STRUCTURE ─────────────────────────────────── */
 .mep-excel-table {
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 11.5px;
-  font-weight: bold;
-  width: 98.5% !important;
-  margin: 4px auto !important;
+  font-weight: 600;
+  margin: 0 auto 14px auto !important;
   background-color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #CBD5E1;
+  border-top: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+  overflow: visible;
 }
 
-/* Body Cells Borders & Bold Typography */
+/* 1. Entry Sheet Tabs (39 Columns - High Precision Fixed Pixel Layout) */
+.mep-excel-table.mep-entry-table {
+  width: 2584px !important;
+  min-width: 2584px !important;
+  max-width: 2584px !important;
+}
+
+/* 2. Executive Summary Reports (OEE Report, Production Output, Status, Yearly OEE) */
+/* Designed to fit 100% screen width at 90% and 100% zoom with ZERO horizontal scroll */
+.mep-excel-table.mep-summary-table {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Total Downtime Report (28 columns) fits 100% smoothly */
+.mep-excel-table.mep-dt-summary-table {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Body Cells Borders & Clean Typography */
 .mep-excel-table tbody td {
-  border-right: 1px solid #475569;
-  border-bottom: 1px solid #64748B;
-  padding: 2px 3px;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+  padding: 2px 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
   position: relative;
   height: 25px;
-  color: #000000;
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold;
+  color: #0F172A;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
   font-size: 11.5px;
   background-color: #FFFFFF;
 }
 
 .mep-excel-table tbody td:first-child {
-  border-left: 1px solid #475569;
-}
-
-/* ─── BOLD DAY SEPARATOR BORDER (END OF EACH DATE'S ROWS ACROSS ALL COLUMNS) ── */
-.mep-excel-table tbody tr.row-day-end td,
-.mep-excel-table tbody td.cell-day-end-border,
-.mep-excel-table tbody td[data-col="A"],
-.mep-excel-table tbody td[data-col="B"],
-.mep-excel-table tbody td[data-col="C"] {
-  border-bottom: 2.5px solid #000000 !important;
+  border-left: 1px solid #CBD5E1 !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   100% OPAQUE SOLID STICKY THEAD
+   SOLID STICKY THEAD - CORPORATE ENTERPRISE THEME (#153B73)
    ══════════════════════════════════════════════════════════════════════════════ */
 .mep-excel-table thead {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: #003366;
+  background-color: #153B73;
 }
 
 .mep-excel-table thead th,
 .mep-excel-table thead td {
   background-clip: padding-box;
-  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
 }
 
 /* Row 1: MEP FAN LTD. */
 .mep-banner-row1 th {
-  background: #0054A6 !important;
-  background: linear-gradient(180deg, #1C75BC 0%, #0054A6 50%, #003366 100%) !important;
+  background: #153B73 !important;
   color: #FFFFFF !important;
   text-align: center !important;
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold;
-  letter-spacing: 2px;
-  font-size: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  font-size: 15px;
   height: 35px;
-  border: 1px solid #002244 !important;
-  border-bottom: none !important;
+  border: 1px solid #153B73 !important;
+  border-bottom: 1px solid #1E293B !important;
 }
 
 /* Row 2: Production Performance Analysis Report */
 .mep-banner-row2 th {
-  background: #003366 !important;
-  color: #FFFFFF !important;
+  background: #1E293B !important;
+  color: #F8FAFC !important;
   text-align: center !important;
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold;
-  font-size: 13px;
-  height: 23px;
-  border: 1px solid #002244 !important;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  height: 24px;
+  border: 1px solid #1E293B !important;
   border-top: none !important;
-  border-bottom: none !important;
+  border-bottom: 1px solid #334155 !important;
 }
 
-/* Row 3: Dark Navy Blue Bar with Section Name (e.g. Fan Lathe) */
+/* Row 3: Department / Section Bar */
 .mep-banner-row3 th {
-  background: #00334E !important;
+  background: #234A85 !important;
   color: #FFFFFF !important;
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold !important;
-  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700 !important;
+  font-size: 12px;
   text-align: center !important;
-  letter-spacing: 1.5px;
-  height: 23px;
+  letter-spacing: 1px;
+  height: 25px;
   vertical-align: middle !important;
-  border: 1px solid #002244 !important;
+  border: 1px solid #234A85 !important;
   border-top: none !important;
-  border-bottom: none !important;
+  border-bottom: 1px solid #1E3A8A !important;
 }
 
 /* Row 4: Column Header Row (Horizontal & Vertical Headers) */
 .h-header-cell {
-  height: 185px !important;
+  height: 180px !important;
   vertical-align: middle !important;
   text-align: center !important;
-  padding: 6px 6px !important;
-  color: #091E42 !important;
-  font-weight: 800 !important;
+  padding: 6px 4px !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
   font-size: 11.5px;
-  border-right: 1px solid #000000 !important;
-  border-bottom: 1px solid #000000 !important;
-  border-top: 1px solid #002244 !important;
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  background: #F1F5F9 !important;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #94A3B8 !important;
+  border-top: 1px solid #234A85 !important;
+  font-family: 'Inter', sans-serif !important;
   white-space: normal;
   line-height: 1.25;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 .h-header-cell:first-child {
-  border-left: 1px solid #000000 !important;
+  border-left: 1px solid #CBD5E1 !important;
 }
 
 .v-header-cell {
-  height: 185px !important;
+  height: 180px !important;
   vertical-align: bottom !important;
   text-align: center !important;
   padding: 6px 1px 6px 1px !important;
-  color: #091E42 !important;
-  font-weight: 800 !important;
-  border-right: 1px solid #000000 !important;
-  border-bottom: 1px solid #000000 !important;
-  border-top: 1px solid #002244 !important;
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #94A3B8 !important;
+  border-top: 1px solid #234A85 !important;
+  font-family: 'Inter', sans-serif !important;
   overflow: hidden;
   user-select: none;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 .v-header-cell:first-child {
-  border-left: 1px solid #000000 !important;
+  border-left: 1px solid #CBD5E1 !important;
 }
 
 .v-header-text {
@@ -291,287 +308,425 @@ input[type=number] {
   text-align: left;
   line-height: 1.2;
   letter-spacing: 0.25px;
-  max-height: 172px;
+  max-height: 168px;
   padding: 4px 0 6px 0;
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Inter', sans-serif !important;
   font-size: 11px !important;
   font-weight: 800 !important;
-  color: #091E42 !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: geometricPrecision;
 }
 
-/* Column Header Color Zones (Optimized High Contrast & Brightness) */
+/* ─── LUXURY COLUMN HEADER COLOR ZONES (ELEGANT SOFT-COLOR GRADIENTS) ──────── */
 .zone-sky {
-  background: #93C5FD !important; /* High contrast soft sky */
+  background: linear-gradient(180deg, #F0F9FF 0%, #BAE6FD 100%) !important;
+  border-right: 1px solid #7DD3FC !important;
+  border-bottom: 2.5px solid #0284C7 !important;
 }
-
-.zone-purple {
-  background: #C4B5FD !important; /* High contrast bright lilac purple */
-}
-
-.zone-cyan {
-  background: #67E8F9 !important; /* High contrast vibrant cyan */
-}
-
-/* Row 5: Total Row (Top Red Bar above Day 1) - Center Aligned & Bold */
-.mep-total-row th,
-.mep-total-row td {
-  background: #C00000 !important;
-  color: #FFFFFF !important;
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-  border-right: 1px solid #7F0000 !important;
-  border-bottom: 2.5px solid #000000 !important;
-  border-top: 1px solid #7F0000 !important;
-  font-size: 12px;
-  padding: 2px 3px !important;
-  height: 26px;
-}
-
-.mep-total-row td:first-child {
-  border-left: 1px solid #7F0000 !important;
-}
-
-.mep-total-row td.total-title-cell,
-.mep-total-row th.total-title-cell {
-  background: #B20000 !important;
-  text-align: center !important;
-  font-size: 13px;
-  font-weight: bold !important;
-  letter-spacing: 1px;
-}
-
-/* 4. Body Cell Styling - Distinctive Light Colors for Fixed & Formula Cells */
-.cell-readonly-fixed {
-  background-color: #F1F5F9 !important; /* Soft Slate Tint for Fixed Date, Day, Shift, Machine Name */
-  cursor: default !important;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 11.5px;
-  font-weight: bold !important;
-  color: #000000 !important;
-  padding: 1px 2px !important;
-}
-
-.cell-formula-runtime {
-  background-color: #E2F2FC !important; /* Soft Ice-Blue for Auto Total Run Time (Col J) */
-  text-align: right;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 11.5px;
-  font-weight: bold !important;
-  color: #000000 !important;
-  padding: 1px 2px !important;
-}
-
-.cell-downtime {
-  background-color: #F3E8FF !important; /* Soft Lavender for 23 Editable Downtime Inputs */
-  text-align: right;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 11.5px;
-  font-weight: bold !important;
-  color: #000000 !important;
-  padding: 1px 2px !important;
-}
-
-.cell-total-dt {
-  background-color: #D6F1FA !important; /* Soft Cyan for Auto Total Down Time (Col AH) */
-  text-align: right;
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold !important;
-  font-size: 11.5px;
-  color: #000000 !important;
-  padding: 1px 2px !important;
-}
-
-.cell-loss-dt {
-  background-color: #FEF3C7 !important; /* Soft warm amber for auto Speed/Cap Loss Downtime (Col AG_LOSS) */
-  text-align: right;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 11.5px;
-  font-weight: bold !important;
-  color: #92400E !important;
-  padding: 1px 2px !important;
-}
-
-.cell-kpi {
-  background-color: #E2F2FC !important; /* Soft Ice-Blue for Auto KPI Formulas (Cols AI-AL) */
-  text-align: right;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 11.5px;
-  font-weight: bold !important;
-  color: #000000 !important;
-  padding: 1px 2px !important;
-}
-
-.cell-white {
-  background-color: #FFFFFF !important; /* Pure Crisp White for Blank Editable Input Cells */
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 11.5px;
-  font-weight: bold !important;
-  color: #000000 !important;
-  padding: 1px 2px !important;
-}
-
-/* ─── ENTERED / FILLED CELL HIGHLIGHTING (DEEPER CONTRAST SHADE) ───────────── */
-.cell-white.cell-has-data {
-  background-color: #E0F2FE !important; /* Deeper soft sky blue when data is entered */
+.zone-sky .v-header-text {
   color: #0369A1 !important;
 }
 
-.cell-downtime.cell-has-data {
-  background-color: #DDD6FE !important; /* Deeper rich lilac/purple when downtime is entered */
-  color: #4C1D95 !important;
+.zone-purple {
+  background: linear-gradient(180deg, #FAF5FF 0%, #DDD6FE 100%) !important;
+  border-right: 1px solid #C4B5FD !important;
+  border-bottom: 3px solid #7C3AED !important;
+}
+.zone-purple .v-header-text {
+  color: #581C87 !important;
 }
 
-.cell-loss-dt.cell-has-data {
-  background-color: #FDE68A !important; /* Deeper warm amber when speed loss occurs */
-  color: #78350F !important;
+.zone-purple-loss {
+  background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%) !important;
+  border-right: 1px solid #FCD34D !important;
+  border-bottom: 3px solid #D97706 !important;
+}
+.zone-purple-loss .v-header-text {
+  color: #92400E !important;
 }
 
-/* ─── FRIDAY LIGHT GREEN ROW STYLING ───────────────────────────────────────── */
+.zone-total-dt {
+  background: linear-gradient(180deg, #FFE4E6 0%, #FECDD3 100%) !important;
+  border-right: 1px solid #FDA4AF !important;
+  border-bottom: 3px solid #E11D48 !important;
+}
+.zone-total-dt .v-header-text {
+  color: #9F1239 !important;
+}
+
+.zone-cyan {
+  background: linear-gradient(180deg, #F0FDFA 0%, #A5F3FC 100%) !important;
+  border-right: 1px solid #67E8F9 !important;
+  border-bottom: 3px solid #0891B2 !important;
+}
+.zone-cyan .v-header-text {
+  color: #0E7490 !important;
+}
+
+/* ─── ROW 5: EXECUTIVE PLATINUM & GOLD ACCOUNTING TOTAL ROW ─────────────────── */
+.mep-excel-table thead tr.mep-total-row th,
+.mep-excel-table thead tr.mep-total-row td {
+  background: #0F172A !important;
+  color: #FFFFFF !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  text-align: right !important;
+  vertical-align: middle !important;
+  border-right: 1px solid #334155 !important;
+  border-top: 1.5px solid #0F172A !important;
+  border-bottom: 3px double #F59E0B !important;
+  font-size: 11px !important;
+  padding: 2px 4px !important;
+  height: 28px !important;
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  box-sizing: border-box !important;
+}
+
+.mep-excel-table thead tr.mep-total-row td:first-child {
+  border-left: 1px solid #334155 !important;
+}
+
+.mep-excel-table thead tr.mep-total-row td.total-title-cell,
+.mep-excel-table thead tr.mep-total-row th.total-title-cell {
+  background: #091E42 !important;
+  color: #FBBF24 !important;
+  text-align: center !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* Deep Section Divider Border between Production (Col J) and Downtime (Col K) */
+.mep-excel-table thead th[title*="Total Prd. Run Time"],
+.mep-excel-table thead tr.mep-total-row td[data-col="J"] {
+  border-right: 2.5px solid #64748B !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   HIGH-CONTRAST VIVID COLORS FOR TOTAL ROW KPIS (ROW 5)
+   ══════════════════════════════════════════════════════════════════════════════ */
+.mep-excel-table thead tr.mep-total-row td[data-col="AK"] {
+  background: #0F172A !important;
+  color: #F87171 !important; /* Vivid Coral Red */
+  font-weight: 900 !important;
+}
+
+.mep-excel-table thead tr.mep-total-row td[data-col="AL"] {
+  background: #0F172A !important;
+  color: #38BDF8 !important; /* Vivid Sky Blue */
+  font-weight: 900 !important;
+}
+
+.mep-excel-table thead tr.mep-total-row td[data-col="AM"] {
+  background: #0F172A !important;
+  color: #FBBF24 !important; /* Vivid Gold */
+  font-weight: 900 !important;
+}
+
+.mep-excel-table thead tr.mep-total-row td[data-col="AK"] {
+  background: #0F172A !important;
+  color: #4ADE80 !important; /* Vivid Mint Green */
+  font-weight: 900 !important;
+}
+
+.mep-excel-table thead tr.mep-total-row td[data-col="AL"] {
+  background: #0F172A !important;
+  color: #818CF8 !important; /* Vivid Electric Lilac */
+  font-weight: 900 !important;
+}
+
+.mep-excel-table thead tr.mep-total-row td[data-col="AM"] {
+  background: #0F172A !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PREMIUM CELL COLOR GRADING (ELEGANT INDUSTRIAL PALETTE) - BODY CELLS ONLY
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Fixed Metadata Cells (Cols A-D: Date, Day, Shift, Machine Name) */
+.mep-excel-table tbody td.cell-readonly-fixed {
+  background: #F8FAFC !important;
+  cursor: default !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  padding: 1px 4px !important;
+  border-right: 1px solid #E2E8F0 !important;
+}
+
+.mep-excel-table tbody td.cell-date-secondary {
+  color: #64748B !important;
+  font-weight: 500 !important;
+}
+
+.mep-excel-table tbody td[data-col="D"] {
+  background: #FFFFFF !important;
+  font-weight: 700 !important;
+  color: #0F172A !important;
+  text-align: left !important;
+  padding-left: 8px !important;
+}
+
+/* Production Parameters (Cols E - H) */
+.mep-excel-table tbody td.cell-white {
+  background-color: #FFFFFF !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600 !important;
+  color: #0F172A !important;
+  padding: 1px 4px !important;
+}
+
+/* Capacity (Col E) */
+.mep-excel-table tbody td[data-col="E"] {
+  background: #F0F7FD !important;
+  color: #0369A1 !important;
+  font-weight: 700 !important;
+}
+
+/* Actual Production (Col F) */
+.mep-excel-table tbody td[data-col="F"] {
+  background: #F0FDF4 !important;
+  color: #15803D !important;
+  font-weight: 800 !important;
+}
+
+/* Rejection (Col G) */
+.mep-excel-table tbody td[data-col="G"] {
+  background: #FFF1F2 !important;
+  color: #BE123C !important;
+  font-weight: 700 !important;
+}
+
+/* Planned Time (Col H) */
+.mep-excel-table tbody td[data-col="H"] {
+  background: #F8FAFC !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+/* Expected Downtime (Col I) */
+.mep-excel-table tbody td[data-col="I"] {
+  background: #F0FDFA !important;
+  color: #0D9488 !important;
+  font-weight: 600 !important;
+}
+
+/* Auto Total Production Run Time (Col J) - Deep Section Divider Border */
+.mep-excel-table tbody td.cell-formula-runtime,
+.mep-excel-table tbody td[data-col="J"] {
+  background: #E0F2FE !important;
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 800 !important;
+  color: #0284C7 !important;
+  padding: 1px 4px !important;
+  border-right: 2.5px solid #64748B !important;
+}
+
+/* 23 Downtime Columns (Cols K to AG) - Soft Light Purple / Lavender Zone */
+.mep-excel-table tbody td.cell-downtime {
+  background-color: #FAF5FF !important;
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600 !important;
+  color: #8B5CF6 !important;
+  padding: 1px 4px !important;
+  border-right: 1px solid #DDD6FE !important;
+  border-bottom: 1px solid #DDD6FE !important;
+}
+
+.mep-excel-table tbody td.cell-downtime.cell-has-data {
+  background: linear-gradient(180deg, #EDE9FE 0%, #DDD6FE 100%) !important;
+  color: #5B21B6 !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  box-shadow: inset 0 0 0 1px #C4B5FD;
+}
+
+/* Speed / Capacity Loss Downtime (Col AG_LOSS) */
+.mep-excel-table tbody td.cell-loss-dt {
+  background: linear-gradient(180deg, #FFFBEB 0%, #FEF3C7 100%) !important;
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700 !important;
+  color: #92400E !important;
+  padding: 1px 4px !important;
+  border-right: 1px solid #FCD34D !important;
+  border-bottom: 1px solid #FDE68A !important;
+}
+
+.mep-excel-table tbody td.cell-loss-dt.cell-has-data {
+  background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%) !important;
+  color: #92400E !important;
+  font-weight: 800 !important;
+}
+
+/* Auto Total Downtime (Col AH) */
+.mep-excel-table tbody td.cell-total-dt {
+  background: linear-gradient(180deg, #FFF1F2 0%, #FEE2E2 100%) !important;
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+  font-weight: 900 !important;
+  font-size: 11.5px;
+  color: #DC2626 !important;
+  padding: 1px 4px !important;
+  border-right: 2px solid #FDA4AF !important;
+  border-bottom: 1px solid #FECDD3 !important;
+}
+
+/* ─── KPI METRICS (Cols AI - AL) ───────────────────────────────────────────── */
+.mep-excel-table tbody td.cell-kpi {
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 800 !important;
+  padding: 1px 4px !important;
+}
+
+/* Availability % (Col AI) */
+.mep-excel-table tbody td[data-col="AL"] {
+  background: #F0F7FD !important;
+  color: #0369A1 !important;
+  font-weight: 800 !important;
+}
+
+/* Performance % (Col AJ) */
+.mep-excel-table tbody td[data-col="AM"] {
+  background: #FFFDF5 !important;
+  color: #B45309 !important;
+  font-weight: 800 !important;
+}
+
+/* Quality % (Col AK) */
+.mep-excel-table tbody td[data-col="AK"] {
+  background: #F0FDF4 !important;
+  color: #15803D !important;
+  font-weight: 800 !important;
+}
+
+/* OEE % (Col AL - Premium Royal Indigo Champion KPI) */
+.mep-excel-table tbody td[data-col="AL"] {
+  background: linear-gradient(180deg, #EEF2FF 0%, #E0E7FF 100%) !important;
+  color: #4338CA !important;
+  font-weight: 900 !important;
+  box-shadow: inset 0 0 0 1px #C7D2FE;
+}
+
+/* Remarks (Col AM) */
+.mep-excel-table tbody td[data-col="AM"] {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+}
+
+/* ─── DAY SEPARATOR BORDER (END OF EACH DATE'S ROWS ACROSS ALL COLUMNS) ── */
+.mep-excel-table tbody tr.row-day-end td,
+.mep-excel-table tbody td.cell-day-end-border {
+  border-bottom: 2.5px solid #475569 !important;
+}
+
+/* ─── DAY STATUS & LOCKED STATES ───────────────────────────────────────────── */
 .row-friday td {
-  background-color: #E3F8E9 !important;
-  font-weight: bold !important;
+  background: linear-gradient(90deg, #F0FDF4 0%, #ECFDF5 50%, #F0FDF4 100%) !important;
+  font-weight: 600 !important;
 }
 
 .row-friday td.cell-readonly-fixed {
-  background-color: #E3F8E9 !important;
+  background: #DCFCE7 !important;
+  color: #166534 !important;
 }
 
-.row-friday td.cell-white.cell-has-data {
-  background-color: #BBF7D0 !important; /* Deeper crisp green for entered cells on Friday */
-  color: #14532D !important;
-}
-
-.row-friday td.cell-downtime {
-  background-color: #E8F5EE !important;
-}
-
-.row-friday td.cell-downtime.cell-has-data {
-  background-color: #DDD6FE !important;
-  color: #4C1D95 !important;
-}
-
-.row-friday td.cell-total-dt {
-  background-color: #CEF3DE !important;
-}
-
-.row-friday td.cell-kpi {
-  background-color: #E3F8E9 !important;
-}
-
-/* ─── TODAY'S ROW & UNCLICKABLE LOCKED FUTURE DAYS ─────────────────────────── */
 .row-today td {
-  background-color: #FEFCE8 !important;
-  font-weight: bold !important;
+  background: linear-gradient(90deg, #FFFBEB 0%, #FEFCE8 50%, #FFFBEB 100%) !important;
+  font-weight: 700 !important;
 }
 
-.row-today td.cell-downtime {
-  background-color: #EFE4FF !important;
-}
-
-.row-today td.cell-total-dt {
-  background-color: #D6F5FD !important;
-}
-
-/* Locked Future Date Rows */
 .row-locked td {
   background-color: #F8FAFC !important;
-  color: #94A3B8 !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
   cursor: not-allowed !important;
-  opacity: 0.65;
+  opacity: 1 !important;
   pointer-events: none !important;
   user-select: none !important;
 }
 
-.row-locked.row-friday td {
-  background-color: #EDFAF2 !important;
-  color: #6EE7B7 !important;
-}
-
-.row-locked td.cell-downtime {
-  background-color: #F3EEFA !important;
-  color: #A78BFA !important;
-}
-
-.row-locked td.cell-total-dt {
-  background-color: #EDF9FC !important;
-  color: #7DD3FC !important;
-}
-
-/* 6. Excel Selection, Range Selection & Fill Handle */
-.mep-excel-table {
-  user-select: none !important;
-  -webkit-user-select: none !important;
-}
-
+/* ─── SIGNATURE EXCEL 365 SELECTION, FOCUS & FILL HANDLE ─────────────────── */
 .mep-excel-table td.selected-cell,
 .mep-excel-table th.selected-cell {
-  outline: 2px solid #1D4ED8 !important;
-  outline-offset: -2px;
-  background-color: #BFDBFE !important;
+  outline: 2.5px solid #107C41 !important;
+  outline-offset: -1px;
+  background-color: rgba(16, 124, 65, 0.08) !important;
+  box-shadow: 0 0 0 1px rgba(16, 124, 65, 0.3), inset 0 0 8px rgba(16, 124, 65, 0.15) !important;
   z-index: 25;
 }
 
 .mep-excel-table td.in-range-selection {
-  background-color: #DBEAFE !important;
-  box-shadow: inset 0 0 0 1px #93C5FD !important;
+  background-color: rgba(16, 124, 65, 0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(16, 124, 65, 0.35) !important;
   z-index: 20;
 }
 
 .mep-excel-table td.in-autofill-preview {
-  background-color: rgba(37, 99, 235, 0.18) !important;
-  outline: 2px dashed #1D4ED8 !important;
-  outline-offset: -2px;
+  background-color: rgba(16, 124, 65, 0.14) !important;
+  outline: 2px dashed #107C41 !important;
+  outline-offset: -1px;
   z-index: 28;
 }
 
 .mep-excel-table td.excel-copied-cell {
-  outline: 2px dashed #16A34A !important;
-  outline-offset: -2px;
-  background-color: rgba(22, 163, 74, 0.12) !important;
+  outline: 2px dashed #107C41 !important;
+  outline-offset: -1px;
+  background-color: rgba(16, 124, 65, 0.08) !important;
 }
 
 .excel-fill-handle {
   position: absolute;
-  right: -3px;
-  bottom: -3px;
-  width: 8px;
-  height: 8px;
-  background-color: #1D4ED8;
+  right: -3.5px;
+  bottom: -3.5px;
+  width: 7.5px;
+  height: 7.5px;
+  background: linear-gradient(135deg, #15803D 0%, #166534 100%);
   border: 1.5px solid #FFFFFF;
+  border-radius: 1.5px;
   cursor: crosshair;
   z-index: 35;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   transition: transform 0.1s ease;
 }
 
 .excel-fill-handle:hover {
-  background-color: #1E40AF;
-  transform: scale(1.2);
+  background: #0D6535;
+  transform: scale(1.3);
 }
 
 .excel-autofill-tooltip {
   position: fixed;
   background-color: #0F172A;
   color: #FFFFFF;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Inter', sans-serif;
   font-size: 11.5px;
-  font-weight: bold;
+  font-weight: 600;
   padding: 3px 8px;
   border-radius: 4px;
   pointer-events: none;
   z-index: 99999;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   border: 1px solid #334155;
   white-space: nowrap;
-  letter-spacing: 0.3px;
 }
 
-/* 7. Inline Editor Input */
+/* Inline Editor Input */
 .cell-edit-input {
   position: absolute;
   top: 0;
@@ -579,13 +734,13 @@ input[type=number] {
   width: 100%;
   height: 100%;
   background-color: #FFFFFF;
-  color: #000000;
-  border: 2px solid #2563EB;
+  color: #0F172A;
+  border: 2px solid #107C41;
   outline: none;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 1px 3px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 1px 4px;
   z-index: 40;
   text-align: right;
   -webkit-appearance: none !important;
@@ -593,13 +748,7 @@ input[type=number] {
   appearance: textfield !important;
 }
 
-.cell-edit-input::-webkit-outer-spin-button,
-.cell-edit-input::-webkit-inner-spin-button {
-  -webkit-appearance: none !important;
-  margin: 0 !important;
-}
-
-/* 8. Remarks Auto-Expansion (Table Cell & Floating Input Editor) */
+/* Remarks Input */
 .mep-excel-table td[data-col="AM"] {
   white-space: normal !important;
   word-break: break-word !important;
@@ -620,15 +769,15 @@ input[type=number] {
   min-height: 100%;
   height: auto;
   background-color: #FFFFFF !important;
-  color: #000000 !important;
-  border: 2px solid #0054A6 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+  color: #0F172A !important;
+  border: 2px solid #107C41 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
   padding: 4px 6px !important;
-  font-family: 'Times New Roman', Times, serif !important;
-  font-size: 12px !important;
-  font-weight: bold !important;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
   outline: none !important;
-  border-radius: 2px;
+  border-radius: 3px;
   box-sizing: border-box;
   z-index: 200;
   resize: none;
@@ -637,10 +786,10 @@ input[type=number] {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   BOTTOM SHEET TABS (EXACT EXCEL WORKBOOK TABS - NO WRAPPING / NO SQUISHING)
+   BOTTOM SHEET TABS (COLOR-CODED WORKBOOK TABS WITH SIGNATURE ACCENTS)
    ══════════════════════════════════════════════════════════════════════════════ */
 .bottom-sheet-bar {
-  background-color: #0B192C;
+  background-color: #0F172A;
   border-top: 1px solid #1E293B;
   display: flex;
   align-items: center;
@@ -650,30 +799,29 @@ input[type=number] {
   flex-shrink: 0;
   color: #94A3B8;
   font-size: 11.5px;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .sheet-tabs-container {
   display: flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: 2px;
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-
 .sheet-tabs-container::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  display: none;
 }
 
 .tab-nav-arrow-btn {
   background: #1E293B;
   color: #94A3B8;
   border: 1px solid #334155;
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 1px 6px;
   font-size: 10px;
   cursor: pointer;
@@ -684,7 +832,6 @@ input[type=number] {
   flex-shrink: 0;
   transition: all 0.15s ease;
 }
-
 .tab-nav-arrow-btn:hover {
   background: #334155;
   color: #FFFFFF;
@@ -692,161 +839,93 @@ input[type=number] {
 
 .sheet-tab-btn {
   background-color: #1E293B;
-  color: #CBD5E1;
-  padding: 3px 14px;
-  font-weight: bold;
+  color: #94A3B8;
+  padding: 3px 12px;
+  font-weight: 600;
   border-radius: 4px 4px 0 0;
-  font-size: 12px;
+  font-size: 11.5px;
   border: 1px solid #334155;
-  border-bottom: 3px solid transparent;
-  font-family: 'Times New Roman', Times, serif;
+  border-bottom: none;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   outline: none;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
   user-select: none;
   white-space: nowrap !important;
   flex-shrink: 0 !important;
   height: 26px;
 }
-
 .sheet-tab-btn:hover {
-  filter: brightness(1.15);
+  background-color: #334155;
   color: #FFFFFF;
 }
 
 .sheet-tab-btn.active-tab {
   background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  font-weight: 800 !important;
+  border-top: 3px solid #107C41 !important;
   border-color: #CBD5E1 !important;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+  border-bottom: none !important;
   height: 28px;
+  box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.12);
 }
 
-/* ─── 10 DISTINCT TAB COLOR THEMES (EXACT EXCEL TAB COLORS) ────────────────── */
-/* 0. Total Downtime Report - Executive Gold / Navy */
-.sheet-tab-btn[data-tab="summary_downtime"] {
-  border-bottom: 3.5px solid #F59E0B !important;
-  background-color: #0F172A;
-  color: #FBBF24;
-}
-.sheet-tab-btn[data-tab="summary_downtime"]:hover {
-  background-color: #1E293B;
-  color: #FDE68A;
+/* Individual Tab Signature Top Highlights */
+.sheet-tab-btn[data-tab="summary_oee_yearly"].active-tab {
+  border-top: 3px solid #EA580C !important;
+  color: #C2410C !important;
 }
 .sheet-tab-btn[data-tab="summary_downtime"].active-tab {
-  border-top: 3.5px solid #F59E0B !important;
-  color: #B45309 !important;
-  background-color: #FFFFFF !important;
-}
-
-/* 1. Fan Lathe - Royal Blue */
-.sheet-tab-btn[data-tab="fan_lathe"] {
-  border-bottom: 3.5px solid #0054A6 !important;
-}
-.sheet-tab-btn[data-tab="fan_lathe"]:hover {
-  background-color: #003366;
-}
-.sheet-tab-btn[data-tab="fan_lathe"].active-tab {
-  border-top: 3.5px solid #0054A6 !important;
-  color: #0054A6 !important;
-}
-
-/* 2. Fan Auto Powder Coating - Vibrant Purple */
-.sheet-tab-btn[data-tab="fan_powder"] {
-  border-bottom: 3.5px solid #8B5CF6 !important;
-}
-.sheet-tab-btn[data-tab="fan_powder"]:hover {
-  background-color: #6D28D9;
-}
-.sheet-tab-btn[data-tab="fan_powder"].active-tab {
-  border-top: 3.5px solid #8B5CF6 !important;
-  color: #6D28D9 !important;
-}
-
-/* 3. Fan Auto Die Casting - Emerald Green */
-.sheet-tab-btn[data-tab="fan_die_casting"] {
-  border-bottom: 3.5px solid #10B981 !important;
-}
-.sheet-tab-btn[data-tab="fan_die_casting"]:hover {
-  background-color: #047857;
-}
-.sheet-tab-btn[data-tab="fan_die_casting"].active-tab {
-  border-top: 3.5px solid #10B981 !important;
-  color: #047857 !important;
-}
-
-/* 4. Fan Power Press & Stamping - Amber Gold */
-.sheet-tab-btn[data-tab="fan_power_press"] {
-  border-bottom: 3.5px solid #F59E0B !important;
-}
-.sheet-tab-btn[data-tab="fan_power_press"]:hover {
-  background-color: #B45309;
-}
-.sheet-tab-btn[data-tab="fan_power_press"].active-tab {
-  border-top: 3.5px solid #F59E0B !important;
+  border-top: 3px solid #F59E0B !important;
   color: #B45309 !important;
 }
-
-/* 5. Fan Assemble - Bright Red */
-.sheet-tab-btn[data-tab="fan_assemble"] {
-  border-bottom: 3.5px solid #EF4444 !important;
-}
-.sheet-tab-btn[data-tab="fan_assemble"]:hover {
-  background-color: #B91C1C;
-}
-.sheet-tab-btn[data-tab="fan_assemble"].active-tab {
-  border-top: 3.5px solid #EF4444 !important;
-  color: #DC2626 !important;
-}
-
-/* 6. Fan Armature - Crimson Red */
-.sheet-tab-btn[data-tab="fan_armature"] {
-  border-bottom: 3.5px solid #DC2626 !important;
-}
-.sheet-tab-btn[data-tab="fan_armature"]:hover {
-  background-color: #991B1B;
-}
-.sheet-tab-btn[data-tab="fan_armature"].active-tab {
-  border-top: 3.5px solid #DC2626 !important;
-  color: #B91C1C !important;
-}
-
-/* 7. Fan Rechargeable - Cyan Teal */
-.sheet-tab-btn[data-tab="fan_rechargeable"] {
-  border-bottom: 3.5px solid #06B6D4 !important;
-}
-.sheet-tab-btn[data-tab="fan_rechargeable"]:hover {
-  background-color: #0E7490;
-}
-.sheet-tab-btn[data-tab="fan_rechargeable"].active-tab {
-  border-top: 3.5px solid #06B6D4 !important;
-  color: #0E7490 !important;
-}
-
-/* 8. Exhaust Fan - Cobalt Blue */
-.sheet-tab-btn[data-tab="exhaust_fan"] {
-  border-bottom: 3.5px solid #3B82F6 !important;
-}
-.sheet-tab-btn[data-tab="exhaust_fan"]:hover {
-  background-color: #1D4ED8;
-}
-.sheet-tab-btn[data-tab="exhaust_fan"].active-tab {
-  border-top: 3.5px solid #3B82F6 !important;
+.sheet-tab-btn[data-tab="summary_production"].active-tab {
+  border-top: 3px solid #3B82F6 !important;
   color: #1D4ED8 !important;
 }
-
-/* 9. Capacitor - Crimson Rose */
-.sheet-tab-btn[data-tab="capacitor"] {
-  border-bottom: 3.5px solid #F43F5E !important;
+.sheet-tab-btn[data-tab="summary_status"].active-tab {
+  border-top: 3px solid #10B981 !important;
+  color: #047857 !important;
 }
-.sheet-tab-btn[data-tab="capacitor"]:hover {
-  background-color: #BE123C;
+.sheet-tab-btn[data-tab="summary_oee"].active-tab {
+  border-top: 3px solid #8B5CF6 !important;
+  color: #6D28D9 !important;
+}
+.sheet-tab-btn[data-tab="fan_lathe"].active-tab {
+  border-top: 3px solid #0054A6 !important;
+  color: #0054A6 !important;
+}
+.sheet-tab-btn[data-tab="fan_powder"].active-tab {
+  border-top: 3px solid #8B5CF6 !important;
+  color: #6D28D9 !important;
+}
+.sheet-tab-btn[data-tab="fan_die_casting"].active-tab {
+  border-top: 3px solid #10B981 !important;
+  color: #047857 !important;
+}
+.sheet-tab-btn[data-tab="fan_power_press"].active-tab {
+  border-top: 3px solid #F59E0B !important;
+  color: #B45309 !important;
+}
+.sheet-tab-btn[data-tab="fan_armature"].active-tab {
+  border-top: 3px solid #E11D48 !important;
+  color: #BE123C !important;
+}
+.sheet-tab-btn[data-tab="fan_rechargeable"].active-tab {
+  border-top: 3px solid #06B6D4 !important;
+  color: #0E7490 !important;
+}
+.sheet-tab-btn[data-tab="exhaust_fan"].active-tab {
+  border-top: 3px solid #3B82F6 !important;
+  color: #1D4ED8 !important;
 }
 .sheet-tab-btn[data-tab="capacitor"].active-tab {
-  border-top: 3.5px solid #F43F5E !important;
+  border-top: 3px solid #F43F5E !important;
   color: #BE123C !important;
 }
 
@@ -854,9 +933,9 @@ input[type=number] {
   background: #1E293B;
   color: #F8FAFC;
   padding: 2px 8px;
-  border-radius: 3px;
-  font-family: 'Times New Roman', Times, serif;
-  font-weight: bold;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
   font-size: 11.5px;
   border: 1px solid #334155;
   white-space: nowrap;
@@ -869,14 +948,14 @@ input[type=number] {
   right: 25px;
   z-index: 1500;
   background: #FFFFFF;
-  border: 1px solid #64748B;
+  border: 1px solid #CBD5E1;
   border-radius: 6px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   padding: 6px 10px;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Inter', sans-serif;
 }
 
 /* ─── QUICK ROW ENTRY MODAL (Smart HUD) ─────────────────────────────────────── */
@@ -884,8 +963,8 @@ input[type=number] {
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(3px);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -894,26 +973,26 @@ input[type=number] {
 
 .quick-entry-card {
   background: #FFFFFF;
-  border-radius: 10px;
+  border-radius: 12px;
   max-width: 850px;
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
   border: 1px solid #CBD5E1;
   overflow: hidden;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
 }
 
 .entry-header {
-  background: #003366;
+  background: #0F172A;
   color: #FFFFFF;
-  padding: 12px 18px;
+  padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .entry-body {
@@ -923,12 +1002,12 @@ input[type=number] {
 }
 
 .entry-input-field {
-  border: 1px solid #94A3B8;
-  border-radius: 3px;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
   padding: 4px 8px;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 13.5px;
-  font-weight: bold;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
   width: 100%;
   outline: none;
   -webkit-appearance: none !important;
@@ -936,8 +1015,8 @@ input[type=number] {
   appearance: textfield !important;
 }
 .entry-input-field:focus {
-  border-color: #0054A6;
-  box-shadow: 0 0 0 2px rgba(0, 84, 166, 0.2);
+  border-color: #107C41;
+  box-shadow: 0 0 0 2px rgba(16, 124, 65, 0.15);
 }
 
 .entry-dt-card {
@@ -950,8 +1029,8 @@ input[type=number] {
   justify-content: space-between;
 }
 .entry-dt-card:focus-within {
-  border-color: #9F72DE;
-  background: #FAF5FF;
+  border-color: #107C41;
+  background: #F0FDF4;
 }
 
 /* Context Menu */
@@ -959,28 +1038,28 @@ input[type=number] {
   position: fixed;
   z-index: 1000;
   background-color: #FFFFFF;
-  border: 1px solid #94A3B8;
-  border-radius: 4px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-  padding: 3px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  padding: 4px;
   min-width: 160px;
   font-size: 12px;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .context-menu-row {
-  padding: 5px 8px;
-  border-radius: 3px;
+  padding: 6px 10px;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
   color: #0F172A;
-  font-weight: bold;
+  font-weight: 600;
 }
 .context-menu-row:hover {
   background-color: #F1F5F9;
-  color: #DC2626;
+  color: #0F172A;
 }
 
 /* Toast */
@@ -998,446 +1077,415 @@ input[type=number] {
   background: #0F172A;
   color: #FFFFFF;
   border: 1px solid #334155;
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 8px 14px;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: bold;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Inter', sans-serif;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   EXECUTIVE TOTAL DOWNTIME SUMMARY REPORT STYLING
+   EXECUTIVE SUMMARY REPORTS (TOTAL DOWNTIME, PROD OUTPUT, STATUS, OEE, YEARLY)
    ══════════════════════════════════════════════════════════════════════════════ */
 .summary-dept-cell {
-  background-color: #00AEEF !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
   text-align: left !important;
   padding: 4px 8px !important;
   white-space: nowrap;
-  font-size: 12px !important;
-  border: 1px solid #0077AA !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
 }
 
 .summary-total-row th,
 .summary-total-row td {
-  background-color: #1E5128 !important;
+  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%) !important;
   color: #FFFFFF !important;
-  font-weight: bold !important;
+  font-weight: 800 !important;
   text-align: right !important;
-  font-size: 12px !important;
+  font-size: 11.5px !important;
   padding: 4px 6px !important;
-  border: 1px solid #14361B !important;
+  border-right: 1px solid #334155 !important;
+  border-top: 1.5px solid #0F172A !important;
+  border-bottom: 3px double #F59E0B !important;
 }
 
 .summary-total-row th.summary-total-title {
-  background-color: #1E5128 !important;
-  color: #FFFFFF !important;
+  background: linear-gradient(180deg, #091E42 0%, #0F172A 100%) !important;
+  color: #FDE68A !important;
   text-align: center !important;
-  font-size: 13px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1px;
 }
 
 .summary-data-cell {
   background-color: #FFFFFF !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  color: #0F172A !important;
+  font-weight: 600 !important;
   text-align: right !important;
   padding: 4px 6px !important;
-  font-size: 12px !important;
+  font-size: 11.5px !important;
+  border: 1px solid #E2E8F0 !important;
 }
 
 .summary-highlight-cell {
-  background-color: #FDE8D0 !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F0F9FF 0%, #E0F2FE 100%) !important;
+  color: #0369A1 !important;
+  font-weight: 700 !important;
   text-align: right !important;
   padding: 4px 6px !important;
-  font-size: 12px !important;
+  font-size: 11.5px !important;
+  border: 1px solid #BAE6FD !important;
 }
 
 .summary-kpi-cell {
-  background-color: #D1FAE5 !important;
-  color: #065F46 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #EEF2FF 0%, #E0E7FF 100%) !important;
+  color: #4338CA !important;
+  font-weight: 800 !important;
   text-align: right !important;
   padding: 4px 6px !important;
-  font-size: 12px !important;
+  font-size: 11.5px !important;
+  border: 1px solid #C7D2FE !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   PRODUCTION OUTPUT SUMMARY REPORT STYLING
-   ══════════════════════════════════════════════════════════════════════════════ */
-.sheet-tab-btn[data-tab="summary_production"] {
-  border-bottom-color: #3B82F6;
-  color: #3B82F6;
-  font-weight: bold;
-}
-.sheet-tab-btn[data-tab="summary_production"]:hover {
-  background-color: #3B82F6;
-  color: #FFFFFF;
-}
-.sheet-tab-btn[data-tab="summary_production"].active-tab {
-  background-color: #3B82F6 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 -2px 0 #1D4ED8 inset;
-}
-
+/* Production Output Summary */
 .prod-output-section-cell {
-  background-color: #E8DDFE !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
   text-align: left !important;
   padding: 5px 10px !important;
-  font-size: 12px !important;
-  border: 1px solid #64748B !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
 }
 
 .prod-output-kpi-cell {
-  background-color: #9F72DE !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F0FDF4 0%, #DCFCE7 100%) !important;
+  color: #15803D !important;
+  font-weight: 700 !important;
   text-align: right !important;
   padding: 5px 8px !important;
-  font-size: 12px !important;
-  border: 1px solid #64748B !important;
+  font-size: 11.5px !important;
+  border: 1px solid #BBF7D0 !important;
 }
 
 .prod-output-total-cell {
-  background-color: #FFE699 !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
   text-align: right !important;
   padding: 6px 8px !important;
-  font-size: 13px !important;
-  border: 1px solid #64748B !important;
+  font-size: 12px !important;
+  border-right: 1px solid #334155 !important;
+  border-top: 1.5px solid #0F172A !important;
+  border-bottom: 3px double #F59E0B !important;
 }
 
 .prod-output-total-title {
-  background-color: #FFE699 !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #091E42 0%, #0F172A 100%) !important;
+  color: #FDE68A !important;
+  font-weight: 900 !important;
   text-align: center !important;
-  font-size: 13px !important;
-  border: 1px solid #64748B !important;
+  font-size: 12px !important;
+  border-right: 1px solid #334155 !important;
+  border-top: 1.5px solid #0F172A !important;
+  border-bottom: 3px double #F59E0B !important;
 }
 
-.prod-output-remarks-header {
-  background-color: #FF0000 !important;
-  color: #FFFFFF !important;
-  font-weight: bold !important;
-  font-size: 18px !important;
+.prod-output-remarks-header,
+.status-remarks-header {
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
   text-align: center !important;
   vertical-align: middle !important;
-  letter-spacing: 1px;
-  border: 1px solid #990000 !important;
+  border: 1px solid #CBD5E1 !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   DOWNTIME & RUNNING TIME STATUS REPORT STYLING
-   ══════════════════════════════════════════════════════════════════════════════ */
-.sheet-tab-btn[data-tab="summary_status"] {
-  border-bottom-color: #10B981;
-  color: #10B981;
-  font-weight: bold;
-}
-.sheet-tab-btn[data-tab="summary_status"]:hover {
-  background-color: #10B981;
-  color: #FFFFFF;
-}
-.sheet-tab-btn[data-tab="summary_status"].active-tab {
-  background-color: #10B981 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 -2px 0 #059669 inset;
-}
-
+/* Downtime & Running Status */
 .status-header-cell {
-  background-color: #D5E8D4 !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F0F9FF 0%, #BAE6FD 100%) !important;
+  color: #0369A1 !important;
+  font-weight: 800 !important;
   text-align: center !important;
   vertical-align: middle !important;
   padding: 6px 4px !important;
   font-size: 11.5px !important;
-  border: 1px solid #64748B !important;
-  line-height: 1.2;
+  border: 1px solid #7DD3FC !important;
 }
 
 .status-name-cell {
-  background-color: #E2EFDA !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
   text-align: left !important;
   padding: 5px 12px !important;
   font-size: 11.5px !important;
-  border: 1px solid #64748B !important;
-  white-space: nowrap;
-}
-
-.status-remarks-header {
-  background-color: #FF0000 !important;
-  color: #FFFFFF !important;
-  font-weight: bold !important;
-  font-size: 16px !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-  letter-spacing: 0.5px;
-  border: 1px solid #990000 !important;
+  border: 1px solid #CBD5E1 !important;
 }
 
 .status-subtotal-cell {
-  background-color: #E2E8F0 !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
   text-align: right !important;
   padding: 5px 8px !important;
-  font-size: 12px !important;
-  border: 1px solid #64748B !important;
+  font-size: 11.5px !important;
+  border: 1px solid #334155 !important;
 }
 
 .status-subtotal-title {
-  background-color: #E2E8F0 !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #091E42 0%, #0F172A 100%) !important;
+  color: #FDE68A !important;
+  font-weight: 800 !important;
   text-align: left !important;
   padding-left: 8px !important;
-  font-size: 12px !important;
-  border: 1px solid #64748B !important;
+  font-size: 11.5px !important;
+  border: 1px solid #334155 !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   OEE SUMMARY REPORT STYLING
-   ══════════════════════════════════════════════════════════════════════════════ */
-.sheet-tab-btn[data-tab="summary_oee"] {
-  border-bottom-color: #8B5CF6;
-  color: #8B5CF6;
-  font-weight: bold;
-}
-.sheet-tab-btn[data-tab="summary_oee"]:hover {
-  background-color: #8B5CF6;
-  color: #FFFFFF;
-}
-.sheet-tab-btn[data-tab="summary_oee"].active-tab {
-  background-color: #8B5CF6 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 -2px 0 #6D28D9 inset;
-}
-
+/* OEE Summary */
 .oee-section-cell {
-  background-color: #B8A9EE !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
   text-align: left !important;
   padding: 5px 10px !important;
   font-size: 11.5px !important;
-  border: 1px solid #64748B !important;
-  white-space: nowrap;
+  border: 1px solid #CBD5E1 !important;
 }
 
 .oee-total-cell {
-  background-color: #F8CBAD !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
   text-align: right !important;
   padding: 5px 8px !important;
   font-size: 12px !important;
-  border: 1px solid #64748B !important;
+  border-right: 1px solid #334155 !important;
+  border-top: 1.5px solid #0F172A !important;
+  border-bottom: 3px double #F59E0B !important;
 }
 
 .oee-total-title {
-  background-color: #F8CBAD !important;
-  color: #000000 !important;
-  font-weight: bold !important;
-  text-align: left !important;
-  padding-left: 10px !important;
+  background: linear-gradient(180deg, #091E42 0%, #0F172A 100%) !important;
+  color: #FDE68A !important;
+  font-weight: 900 !important;
+  text-align: center !important;
   font-size: 12px !important;
-  border: 1px solid #64748B !important;
+  border-right: 1px solid #334155 !important;
+  border-top: 1.5px solid #0F172A !important;
+  border-bottom: 3px double #F59E0B !important;
+}
+
+/* Yearly Summary */
+.yearly-month-cell {
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
+  color: #0F172A !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+}
+
+.yearly-sub-cell {
+  background: #FFFFFF !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+.yearly-total-row th,
+.yearly-total-row th,
+.yearly-total-row td {
+  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  text-align: right !important;
+  font-size: 12px !important;
+  padding: 5px 6px !important;
+  border-right: 1px solid #334155 !important;
+  border-top: 1.5px solid #0F172A !important;
+  border-bottom: 3px double #F59E0B !important;
+}
+
+.yearly-total-row th.yearly-total-title {
+  background: linear-gradient(180deg, #091E42 0%, #0F172A 100%) !important;
+  color: #FDE68A !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+  font-size: 12px !important;
+  letter-spacing: 1px;
 }
 
 .oee-achievement-title {
-  background-color: #FCE4D6 !important;
-  color: #002060 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
+  color: #0F172A !important;
+  font-weight: 800 !important;
   text-align: center !important;
   vertical-align: middle !important;
   padding: 6px 12px !important;
-  font-size: 13px !important;
-  border: 2px solid #000000 !important;
-  font-family: 'Times New Roman', Times, serif !important;
-  letter-spacing: 0.5px;
+  font-size: 12px !important;
+  border: 1px solid #CBD5E1 !important;
 }
 
 .oee-achievement-value {
-  background-color: #FCE4D6 !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #EEF2FF 0%, #E0E7FF 100%) !important;
+  color: #4338CA !important;
+  font-weight: 900 !important;
   text-align: center !important;
   vertical-align: middle !important;
   padding: 6px 12px !important;
   font-size: 16px !important;
-  border: 2px solid #000000 !important;
-  font-family: 'Times New Roman', Times, serif !important;
+  border: 1.5px solid #C7D2FE !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   SUMMARY OF OEE (ANNUAL 12-MONTH DASHBOARD) STYLING
-   ══════════════════════════════════════════════════════════════════════════════ */
-.sheet-tab-btn[data-tab="summary_oee_yearly"] {
-  border-bottom-color: #EA580C;
-  color: #EA580C;
-  font-weight: bold;
-}
-.sheet-tab-btn[data-tab="summary_oee_yearly"]:hover {
-  background-color: #EA580C;
-  color: #FFFFFF;
-}
-.sheet-tab-btn[data-tab="summary_oee_yearly"].active-tab {
-  background-color: #EA580C !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 -2px 0 #C2410C inset;
-}
-
-.yearly-month-cell {
-  background-color: #E0F2FE !important;
-  color: #000000 !important;
-  font-weight: bold !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-  padding: 6px 8px !important;
-  font-size: 12px !important;
-  border: 1px solid #64748B !important;
-}
-
+/* Annual 12-Month OEE Summary */
 .yearly-detail-cell {
   background-color: #FFFFFF !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  color: #0F172A !important;
+  font-weight: 600 !important;
   text-align: center !important;
   vertical-align: middle !important;
   padding: 4px 6px !important;
   font-size: 11px !important;
-  border: 1px solid #64748B !important;
+  border: 1px solid #E2E8F0 !important;
 }
 
 .yearly-kpi-cell {
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F0FDF4 0%, #DCFCE7 100%) !important;
+  color: #15803D !important;
+  font-weight: 700 !important;
   text-align: center !important;
   vertical-align: middle !important;
   padding: 6px 4px !important;
   font-size: 11.5px !important;
-  border: 1px solid #64748B !important;
+  border: 1px solid #BBF7D0 !important;
 }
 
 .yearly-ach-cell {
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F0F9FF 0%, #E0F2FE 100%) !important;
+  color: #0369A1 !important;
+  font-weight: 700 !important;
   text-align: center !important;
   vertical-align: middle !important;
   padding: 5px 6px !important;
-  font-size: 12px !important;
-  border: 1px solid #64748B !important;
+  font-size: 11.5px !important;
+  border: 1px solid #BAE6FD !important;
 }
 
 .yearly-ach-highlight {
-  background-color: #38B6FF !important;
-  color: #000000 !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #EEF2FF 0%, #E0E7FF 100%) !important;
+  color: #4338CA !important;
+  font-weight: 800 !important;
   text-align: center !important;
   vertical-align: middle !important;
   padding: 5px 6px !important;
-  font-size: 12px !important;
-  border: 1px solid #64748B !important;
+  font-size: 11.5px !important;
+  border: 1px solid #C7D2FE !important;
 }
 
 .yearly-remarks-cell {
-  background-color: #E0F2FE !important;
-  border: 1px solid #64748B !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
 }
 
 .yearly-month-divider td {
-  border-bottom: 1.5px solid #000000 !important;
+  border-bottom: 1.5px solid #94A3B8 !important;
 }
 
 .yearly-gap-row {
-  height: 10px !important;
+  height: 8px !important;
 }
 
 .yearly-gap-cell {
-  height: 10px !important;
-  background-color: #BFE2F7 !important;
-  border-top: 1.5px solid #000000 !important;
-  border-bottom: 1.5px solid #000000 !important;
-  border-left: 1.5px solid #000000 !important;
-  border-right: 1.5px solid #000000 !important;
+  height: 8px !important;
+  background-color: #F1F5F9 !important;
+  border-top: 1px solid #CBD5E1 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+  border-left: 1px solid #CBD5E1 !important;
+  border-right: 1px solid #CBD5E1 !important;
   padding: 0 !important;
 }
 
-/* ─── OPTION 2: ROYAL GOLD / CHAMPAGNE AMBER RUNNING MONTH ─────────────────── */
 .yearly-month-cell.running-month-active {
-  background-color: #FDE68A !important;
-  color: #78350F !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%) !important;
+  color: #92400E !important;
+  font-weight: 800 !important;
   text-align: center !important;
   vertical-align: middle !important;
-  border: 1.5px solid #D97706 !important;
+  border: 1.5px solid #F59E0B !important;
 }
 
-.running-month-detail {
-  background-color: #FEF3C7 !important;
-  color: #78350F !important;
-  font-weight: bold !important;
-}
-
-.running-month-data {
-  background-color: #FFFBEB !important;
-  color: #000000 !important;
-  font-weight: bold !important;
-}
-
+.running-month-detail,
+.running-month-data,
 .running-month-kpi {
-  background-color: #FEF3C7 !important;
-  color: #78350F !important;
-  font-weight: bold !important;
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
 }
 
 .running-month-ach {
-  background-color: #D97706 !important;
-  color: #FFFFFF !important;
-  font-weight: bold !important;
+  background: linear-gradient(180deg, #F0FDF4 0%, #DCFCE7 100%) !important;
+  color: #15803D !important;
+  font-weight: 800 !important;
 }
 
 .yearly-running-month-row td {
-  border-top: 2px solid #D97706 !important;
+  border-top: 1.5px solid #F59E0B !important;
 }
 
 .yearly-running-month-row-b td {
-  border-bottom: 2px solid #D97706 !important;
+  border-bottom: 1.5px solid #F59E0B !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   ENTERPRISE SCADA / MES INDUSTRIAL LANDING PORTAL (CLEAN WHITE / LIGHT THEME)
+   REFINED ULTRA-PREMIUM LOGIN PORTAL (LINEAR / APPLE / STRIPE RESTLYLED)
+   Principle: Less effects = More premium. Restraint, Spacing, Subtle Glass.
    ══════════════════════════════════════════════════════════════════════════════ */
+
 #loginPortal {
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
   z-index: 99999 !important;
-  background-color: #F1F5F9 !important;
-  background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.028) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.028) 1px, transparent 1px) !important;
-  background-size: 32px 32px !important;
+  background-color: #07111F !important;
   overflow-y: auto !important;
   display: flex !important;
   flex-direction: column !important;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  color: #FFFFFF !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  transition: opacity 0.15s ease, transform 0.15s ease !important;
+  will-change: opacity, transform !important;
+  transform: translateZ(0);
+  isolation: isolate;
+}
+
+/* Restrained Top Glow (Only 6% subtle opacity, calm background) */
+.ambient-glow {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.glow-top {
+  top: -160px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 750px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(56, 120, 220, 0.08) 0%, rgba(7, 17, 31, 0) 70%);
 }
 
 /* Zero-Flicker Pre-paint Display Control */
@@ -1456,235 +1504,1135 @@ html.user-unauthenticated #appMainContainer {
 
 #loginPortal.hidden {
   display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
+/* ─── 1. COMPACT FLOATING HEADER ────────────────────────────────────────────── */
+.portal-glass-header {
+  background: rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+}
+
+.glass-logo-box {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.portal-glass-capsule {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 9999px !important;
+  color: #9FB2D0 !important;
+}
+
+.btn-view-only-pill {
+  background: rgba(16, 185, 129, 0.10) !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  color: #6EE7B7 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 4px 12px !important;
+  border-radius: 9999px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-view-only-pill:hover {
+  background: rgba(16, 185, 129, 0.18) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #FFFFFF !important;
+}
+
+/* ─── 2. REFINED SUBTLE GLASS PROFILE CARDS (295px × 255px Compact Proportions) ─── */
+.user-portal-card {
+  position: relative;
+  width: 100%;
+  max-width: 295px;
+  min-height: 250px;
+  height: 255px;
+  background: rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  padding: 20px 18px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  overflow: hidden;
+  will-change: transform, border-color, box-shadow;
+  transform: translateZ(0);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.user-portal-card:hover {
+  transform: translateY(-3px) translateZ(0) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.user-portal-card:active {
+  transform: translateY(-1px) scale(0.99) translateZ(0) !important;
+}
+
+/* Compact 44px Icon Container */
+.card-icon-container {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  transition: background 0.18s ease;
+}
+
+.user-portal-card:hover .card-icon-container {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* Crisp Typography Hierarchy */
+.card-user-name {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  font-family: 'Inter', sans-serif !important;
+  color: #FFFFFF !important;
+  margin-bottom: 2px !important;
+  letter-spacing: -0.2px;
+}
+
+.card-role-text {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #7E93B5 !important;
+  margin-bottom: 10px !important;
+}
+
+.card-feature-list {
+  width: 100%;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #64748B;
+  line-height: 1.45;
+  margin-bottom: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.card-feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dot-bullet {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Compact Sleek Login Button */
+.card-capsule-btn {
+  margin-top: 10px;
+  width: 100%;
+  height: 32px;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: #FFFFFF !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease !important;
+  pointer-events: none !important;
+}
+
+.user-portal-card:hover .card-capsule-btn {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  color: #FFFFFF !important;
+}
+
+/* Continue as View Only Link */
+.btn-continue-view-only {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #7E93B5 !important;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-continue-view-only:hover {
+  color: #FFFFFF !important;
+}
+
+/* ─── 3. REFINED DARK GLASS PIN MODAL ───────────────────────────────────────── */
 #pinModal {
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
   z-index: 100000 !important;
-  background-color: rgba(15, 23, 42, 0.65) !important;
+  background: rgba(4, 10, 22, 0.78) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-family: 'Inter', sans-serif !important;
 }
 
 #pinModal.hidden {
   display: none !important;
 }
 
-.user-portal-card {
-  position: relative;
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  padding: 0.85rem 0.75rem;
-  min-height: 220px;
-  height: 225px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  user-select: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.user-portal-card:hover {
-  border-color: #0F3D91;
-  box-shadow: 0 6px 16px rgba(15, 61, 145, 0.14);
-  transform: translateY(-2px);
-}
-
-.user-portal-card:hover .card-action-btn {
-  background-color: #0F3D91;
-  border-color: #0F3D91;
-  color: #FFFFFF;
-}
-
-.card-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.35rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.card-user-name {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  font-family: 'Inter', sans-serif;
-  color: #0F172A;
-  margin-bottom: 0.05rem;
-}
-
-.card-role-text {
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748B;
-  margin-bottom: 0.25rem;
-  line-height: 1.2;
-}
-
-.card-role-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1.5px 7px;
-  border-radius: 9999px;
-  margin-bottom: 0.25rem;
-  line-height: 1.2;
-}
-
-.card-action-btn {
-  margin-top: auto;
-  width: 100%;
-  height: 30px;
-  border-radius: 8px;
-  background-color: #F8FAFC;
-  border: 1px solid #CBD5E1;
-  color: #0F3D91;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  transition: all 0.15s ease;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   INDIVIDUAL USER CARD VIBRANT COLOR THEMES & HOVER EFFECTS
-   ══════════════════════════════════════════════════════════════════════════════ */
-.user-card-admin:hover {
-  border-color: #D97706 !important;
-  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.22) !important;
-  transform: translateY(-2px);
-}
-.user-card-admin:hover .card-action-btn {
-  background-color: #D97706 !important;
-  border-color: #D97706 !important;
+.pin-modal-card-glass {
+  background: rgba(11, 20, 36, 0.94) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 24px 60px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 20px !important;
   color: #FFFFFF !important;
+  animation: pinModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.user-card-takbir:hover {
-  border-color: #E11D48 !important;
-  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.22) !important;
-  transform: translateY(-2px);
-}
-.user-card-takbir:hover .card-action-btn {
-  background-color: #E11D48 !important;
-  border-color: #E11D48 !important;
-  color: #FFFFFF !important;
+@keyframes pinModalPop {
+  0% { transform: scale(0.96) translateY(6px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-.user-card-monir:hover {
-  border-color: #059669 !important;
-  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.22) !important;
-  transform: translateY(-2px);
-}
-.user-card-monir:hover .card-action-btn {
-  background-color: #059669 !important;
-  border-color: #059669 !important;
-  color: #FFFFFF !important;
+.glass-icon-box {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
 }
 
-.user-card-anwar:hover {
-  border-color: #0284C7 !important;
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.22) !important;
-  transform: translateY(-2px);
-}
-.user-card-anwar:hover .card-action-btn {
-  background-color: #0284C7 !important;
-  border-color: #0284C7 !important;
-  color: #FFFFFF !important;
-}
-
-.user-card-bikash:hover {
-  border-color: #7C3AED !important;
-  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.22) !important;
-  transform: translateY(-2px);
-}
-.user-card-bikash:hover .card-action-btn {
-  background-color: #7C3AED !important;
-  border-color: #7C3AED !important;
-  color: #FFFFFF !important;
-}
-
-.user-card-anik:hover {
-  border-color: #0D9488 !important;
-  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.22) !important;
-  transform: translateY(-2px);
-}
-.user-card-anik:hover .card-action-btn {
-  background-color: #0D9488 !important;
-  border-color: #0D9488 !important;
-  color: #FFFFFF !important;
-}
-
-/* PIN Modal Dots */
 .pin-dot {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1rem;
+  height: 1rem;
   border-radius: 50%;
-  border: 2px solid #CBD5E1;
-  background-color: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  transition: all 0.12s ease;
 }
 
 .pin-dot.active {
-  background-color: #2563EB;
-  border-color: #2563EB;
+  background: #38BDF8 !important;
+  border-color: #7DD3FC !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5) !important;
+  transform: scale(1.15);
 }
 
-/* Numeric Keypad */
 .numpad-btn {
-  height: 3.25rem;
-  border-radius: 0.625rem;
-  background: #F8FAFC;
-  border: 1px solid #CBD5E1;
-  color: #0F172A;
-  font-size: 1.2rem;
-  font-weight: 700;
+  height: 2.85rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #FFFFFF !important;
+  font-size: 1.15rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   user-select: none;
-  font-family: 'Inter', sans-serif;
+  touch-action: manipulation;
+  transition: all 0.1s ease !important;
 }
 
 .numpad-btn:hover {
-  background: #2563EB;
-  border-color: #2563EB;
-  color: #FFFFFF !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  transform: translateY(-1px);
 }
 
 .numpad-btn:active {
-  background: #1D4ED8;
-  color: #FFFFFF !important;
+  background: rgba(56, 189, 248, 0.3) !important;
+  transform: translateY(1px);
 }
 
-/* Print CSS */
-@media print {
-  body {
-    overflow: visible !important;
-    background-color: #FFFFFF !important;
-  }
-  .no-print {
-    display: none !important;
-  }
-  .excel-viewport {
-    overflow: visible !important;
-  }
-  @page {
-    size: A4 landscape;
-    margin: 4mm;
-  }
+.btn-glass-submit {
+  background: #2563EB !important;
+  border: 1px solid rgba(147, 197, 253, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+.btn-glass-submit:hover {
+  background: #1D4ED8 !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-1px);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   EXECUTIVE SUMMARY REPORTS - LUXURY COLOR SYSTEM
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Summary Report Headers */
+.sum-header-section {
+  background: linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 100%) !important;
+  color: #0F172A !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #64748B !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-cap {
+  background: linear-gradient(180deg, #F0F9FF 0%, #BAE6FD 100%) !important;
+  color: #0369A1 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #0284C7 !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-prod {
+  background: linear-gradient(180deg, #F0FDF4 0%, #BBF7D0 100%) !important;
+  color: #15803D !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #16A34A !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-rej {
+  background: linear-gradient(180deg, #FFF1F2 0%, #FECDD3 100%) !important;
+  color: #BE123C !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #E11D48 !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-avail {
+  background: linear-gradient(180deg, #F0F9FF 0%, #BAE6FD 100%) !important;
+  color: #0369A1 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #0284C7 !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-perf {
+  background: linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%) !important;
+  color: #92400E !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #D97706 !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-qual {
+  background: linear-gradient(180deg, #F0FDF4 0%, #BBF7D0 100%) !important;
+  color: #15803D !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #16A34A !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-oee {
+  background: linear-gradient(180deg, #EEF2FF 0%, #C7D2FE 100%) !important;
+  color: #4338CA !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 900 !important;
+  font-size: 12px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 3px solid #4F46E5 !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-rem {
+  background: linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 100%) !important;
+  color: #334155 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #64748B !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+.sum-header-down {
+  background: linear-gradient(180deg, #FFF1F2 0%, #FECDD3 100%) !important;
+  color: #BE123C !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-bottom: 2.5px solid #E11D48 !important;
+  text-align: center;
+  vertical-align: middle !important;
+  padding: 6px 4px;
+}
+
+/* Summary Report Body Cells */
+.sum-cell-sec {
+  background: #F8FAFC !important;
+  color: #0F172A !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 11.5px;
+  text-align: left !important;
+  padding-left: 10px !important;
+  border-right: 1.5px solid #94A3B8 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-cap {
+  background: #F0F7FD !important;
+  color: #0369A1 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 11.5px;
+  text-align: right !important;
+  padding-right: 8px !important;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-prod {
+  background: #F0FDF4 !important;
+  color: #15803D !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px;
+  text-align: right !important;
+  padding-right: 8px !important;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-rej {
+  background: #FFF1F2 !important;
+  color: #BE123C !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 11.5px;
+  text-align: right !important;
+  padding-right: 8px !important;
+  border-right: 1.5px solid #94A3B8 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-avail {
+  background: #F0F7FD !important;
+  color: #0369A1 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px;
+  text-align: right !important;
+  padding-right: 8px !important;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-perf {
+  background: #FFFDF5 !important;
+  color: #B45309 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px;
+  text-align: right !important;
+  padding-right: 8px !important;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-qual {
+  background: #F0FDF4 !important;
+  color: #15803D !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px;
+  text-align: right !important;
+  padding-right: 8px !important;
+  border-right: 1.5px solid #94A3B8 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-oee {
+  background: linear-gradient(180deg, #EEF2FF 0%, #E0E7FF 100%) !important;
+  color: #4338CA !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 900 !important;
+  font-size: 12px;
+  text-align: right !important;
+  padding-right: 8px !important;
+  box-shadow: inset 0 0 0 1px #C7D2FE;
+  border-right: 1.5px solid #94A3B8 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-rem {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 600;
+  font-size: 11.5px;
+  text-align: left !important;
+  padding-left: 8px !important;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+.sum-cell-down {
+  background: #FFF1F2 !important;
+  color: #DC2626 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px;
+  text-align: right !important;
+  padding-right: 8px !important;
+  border-right: 1px solid #CBD5E1 !important;
+  border-bottom: 1px solid #CBD5E1 !important;
+}
+
+/* Summary Report Total Row (Row at Bottom) */
+.mep-summary-table tr.sum-total-row td,
+.mep-dt-summary-table tr.sum-total-row td {
+  background: #0F172A !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 900 !important;
+  font-size: 11.5px !important;
+  padding: 4px 8px !important;
+  height: 30px !important;
+  border-right: 1px solid #334155 !important;
+  border-top: 1.5px solid #0F172A !important;
+  border-bottom: 3px double #F59E0B !important;
+}
+
+.mep-summary-table tr.sum-total-row td.sum-total-title,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-title {
+  background: #091E42 !important;
+  color: #FBBF24 !important;
+  text-align: center !important;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.mep-summary-table tr.sum-total-row td.sum-total-cap,
+.mep-summary-table tr.sum-total-row td.sum-total-prod,
+.mep-summary-table tr.sum-total-row td.sum-total-planned,
+.mep-summary-table tr.sum-total-row td.sum-total-run,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-cap,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-prod,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-planned,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-run {
+  color: #F8FAFC !important;
+  text-align: right !important;
+}
+
+.mep-summary-table tr.sum-total-row td.sum-total-rej,
+.mep-summary-table tr.sum-total-row td.sum-total-down,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-rej,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-down {
+  color: #F87171 !important;
+  text-align: right !important;
+}
+
+.mep-summary-table tr.sum-total-row td.sum-total-avail,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-avail {
+  color: #38BDF8 !important;
+  text-align: right !important;
+}
+
+.mep-summary-table tr.sum-total-row td.sum-total-perf,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-perf {
+  color: #FBBF24 !important;
+  text-align: right !important;
+}
+
+.mep-summary-table tr.sum-total-row td.sum-total-qual,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-qual {
+  color: #4ADE80 !important;
+  text-align: right !important;
+}
+
+.mep-summary-table tr.sum-total-row td.sum-total-oee,
+.mep-dt-summary-table tr.sum-total-row td.sum-total-oee {
+  color: #818CF8 !important;
+  text-align: right !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   EXACT SUMMARY OF OEE TEMPLATE STYLING (MATCHING OFFICIAL EXCEL TEMPLATE)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Cyan / Ice Blue Header - 100% Solid Crisp Black Text */
+.yearly-template-header {
+  background: linear-gradient(180deg, #A0D2EB 0%, #88CBE8 100%) !important;
+  color: #000000 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1px solid #1E293B !important;
+  padding: 5px 3px !important;
+  opacity: 1 !important;
+  letter-spacing: -0.1px;
+}
+
+/* Month Cell - 100% Solid Opacity */
+.yearly-month-cell {
+  background: #F8FAFC !important;
+  color: #000000 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 12px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1px solid #1E293B !important;
+  padding: 3px 6px !important;
+  opacity: 1 !important;
+}
+
+/* Detail Cell (Total / Total Acheivement (%)) */
+.yearly-detail-cell {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1px solid #1E293B !important;
+  padding: 3px 6px !important;
+  opacity: 1 !important;
+}
+
+/* Data Cells (Capacity, Production, Rejection) - 100% Contrast */
+.yearly-data-cell {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  text-align: right !important;
+  vertical-align: middle !important;
+  border: 1px solid #1E293B !important;
+  padding: 3px 8px !important;
+  opacity: 1 !important;
+}
+
+/* KPI Cells (Availability, Performance, Quality, OEE) */
+.yearly-kpi-cell {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1px solid #1E293B !important;
+  padding: 3px 6px !important;
+  opacity: 1 !important;
+}
+
+/* Remarks Cell */
+.yearly-remarks-cell {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11px !important;
+  border: 1px solid #1E293B !important;
+  padding: 3px 6px !important;
+  opacity: 1 !important;
+}
+
+/* Standard Achievement Cell */
+.yearly-ach-cell {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1px solid #1E293B !important;
+  padding: 3px 6px !important;
+  opacity: 1 !important;
+}
+
+/* Vivid Electric Sky-Blue Highlight for >= 95% Achievement (May, Jun, Jul) */
+.yearly-ach-highlight {
+  background: linear-gradient(180deg, #38BDF8 0%, #0EA5E9 100%) !important;
+  color: #000000 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1px solid #0284C7 !important;
+  padding: 3px 6px !important;
+  opacity: 1 !important;
+  letter-spacing: 0.2px;
+}
+
+/* Running Month (August) Achievement Amber Highlight */
+.yearly-ach-running {
+  background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%) !important;
+  color: #FFFFFF !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border: 1px solid #B45309 !important;
+  padding: 3px 6px !important;
+  opacity: 1 !important;
+  letter-spacing: 0.2px;
+}
+
+/* Running Month (August) Entire Row Golden Background */
+.yearly-row-active-a td,
+.yearly-row-active-b td,
+.running-month-active,
+.running-detail-active,
+.running-data-active,
+.running-kpi-active {
+  background-color: #FEF08A !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+/* Month Ending Boundary Line */
+.yearly-row-normal-b td,
+.yearly-row-active-b td {
+  border-bottom: 2.5px solid #0284C7 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ULTRA-PREMIUM GLASSMORPHISM SYSTEM (TOP ACTION BAR & CONTROLS)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.top-action-bar {
+  background: linear-gradient(135deg, #0A2540 0%, #153B73 55%, #0F294D 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Brand Logo Glass Box */
+.top-brand-logo-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Period Capsule (Frosted Glass Container) */
+.glass-period-capsule {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.18) !important;
+  border-radius: 12px !important;
+  height: 42px !important;
+}
+
+/* Period Select Dropdowns (Glass Pills) */
+.glass-select-pill {
+  background: linear-gradient(135deg, rgba(14, 42, 84, 0.85) 0%, rgba(10, 30, 60, 0.9) 100%) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.glass-select-pill:hover,
+.glass-select-pill:focus {
+  background: linear-gradient(135deg, rgba(20, 56, 110, 0.95) 0%, rgba(14, 42, 84, 0.95) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 0 12px rgba(56, 189, 248, 0.3) !important;
+}
+
+/* LIVE Status Badge (Frosted Emerald Glass) */
+#cloudStatusBadge {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(6, 78, 59, 0.28) 100%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(52, 211, 153, 0.35) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 12px !important;
+  height: 42px !important;
+  transition: all 0.2s ease !important;
+}
+#cloudStatusBadge:hover {
+  border-color: rgba(52, 211, 153, 0.55) !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.45), 0 6px 18px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Current User Badge (Frosted Obsidian Glass) */
+#currentUserBadge {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 12px !important;
+  height: 42px !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+#currentUserBadge:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 6px 18px rgba(0, 0, 0, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+/* Back Button (Frosted Ruby Glass) */
+#btnSwitchUser {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(185, 28, 28, 0.95) 100%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(254, 202, 202, 0.4) !important;
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.5), 0 6px 18px rgba(220, 38, 38, 0.35) !important;
+  border-radius: 12px !important;
+  height: 42px !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+#btnSwitchUser:hover {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.96) 0%, rgba(220, 38, 38, 0.98) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.65), 0 8px 24px rgba(220, 38, 38, 0.48) !important;
+  transform: translateY(-1.5px);
+}
+#btnSwitchUser:active {
+  transform: translateY(0.5px) scale(0.98) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(220, 38, 38, 0.3) !important;
+}
+
+/* Export Excel Button (Frosted Emerald Glass) */
+#btnExportExcel {
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.9) 0%, rgba(21, 128, 61, 0.95) 100%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(187, 247, 208, 0.45) !important;
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.55), 0 6px 18px rgba(16, 124, 65, 0.35) !important;
+  border-radius: 12px !important;
+  height: 42px !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+#btnExportExcel:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.96) 0%, rgba(22, 163, 74, 0.98) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.65) !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), 0 8px 24px rgba(16, 124, 65, 0.48) !important;
+  transform: translateY(-1.5px);
+}
+#btnExportExcel:active {
+  transform: translateY(0.5px) scale(0.98) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(16, 124, 65, 0.3) !important;
+}
+
+/* Save Grid Button (Incharge - Frosted Sapphire Glass) */
+#btnSaveGrid {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(29, 78, 216, 0.95) 100%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(191, 219, 254, 0.45) !important;
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.55), 0 6px 18px rgba(37, 99, 235, 0.35) !important;
+  border-radius: 12px !important;
+  height: 42px !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+#btnSaveGrid:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.96) 0%, rgba(37, 99, 235, 0.98) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.65) !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), 0 8px 24px rgba(37, 99, 235, 0.48) !important;
+  transform: translateY(-1.5px);
+}
+
+.card-action-btn { pointer-events: none !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   HIGH-CONTRAST SOLID BLACK TEXT FOR ALL TABLE BODY CELLS & INPUTS
+   ══════════════════════════════════════════════════════════════════════════════ */
+.mep-excel-table tbody td {
+  color: #000000 !important;
+}
+
+.mep-excel-table tbody td.cell-readonly-fixed,
+.mep-excel-table tbody td.cell-white,
+.mep-excel-table tbody td.cell-downtime,
+.mep-excel-table tbody td.cell-downtime.cell-has-data,
+.mep-excel-table tbody td.cell-loss-dt,
+.mep-excel-table tbody td.cell-loss-dt.cell-has-data,
+.mep-excel-table tbody td.cell-total-dt,
+.mep-excel-table tbody td.cell-kpi,
+.mep-excel-table tbody td.cell-formula-runtime,
+.mep-excel-table tbody td[data-col] {
+  color: #000000 !important;
+}
+
+.cell-edit-input {
+  color: #000000 !important;
+  font-weight: 700 !important;
+  background-color: #FFFFFF !important;
+}
+
+.cell-edit-input-remarks {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  background-color: #FFFFFF !important;
+}
+
+/* Executive Summary Table Cells - Solid Black Text */
+.sum-cell-sec,
+.sum-cell-cap,
+.sum-cell-prod,
+.sum-cell-rej,
+.sum-cell-avail,
+.sum-cell-perf,
+.sum-cell-qual,
+.sum-cell-oee,
+.sum-cell-rem,
+.sum-cell-down {
+  color: #000000 !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   HIGH-CONTRAST DEEP INDUSTRIAL GRID LINES & BORDER SYSTEM
+   ══════════════════════════════════════════════════════════════════════════════ */
+.mep-excel-table {
+  border: 1.5px solid #334155 !important;
+}
+
+/* Master Table Body Cells - Deep Distinct Grid Lines */
+.mep-excel-table tbody td {
+  border-right: 1px solid #64748B !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+.mep-excel-table tbody td:first-child {
+  border-left: 1.5px solid #334155 !important;
+}
+
+.mep-excel-table tbody td:last-child {
+  border-right: 1.5px solid #334155 !important;
+}
+
+/* Fixed Metadata Columns (Cols A-D) */
+.mep-excel-table tbody td.cell-readonly-fixed {
+  border-right: 1px solid #64748B !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+.mep-excel-table tbody td[data-col="D"] {
+  border-right: 2px solid #475569 !important;
+}
+
+/* Production Parameters (Cols E-I) */
+.mep-excel-table tbody td[data-col="E"],
+.mep-excel-table tbody td[data-col="F"],
+.mep-excel-table tbody td[data-col="G"],
+.mep-excel-table tbody td[data-col="H"],
+.mep-excel-table tbody td[data-col="I"] {
+  border-right: 1px solid #64748B !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+/* Deep Section Divider between Production (Col J) and Downtime (Col K) */
+.mep-excel-table thead th[title*="Total Prd. Run Time"],
+.mep-excel-table thead tr.mep-total-row td[data-col="J"],
+.mep-excel-table tbody td.cell-formula-runtime,
+.mep-excel-table tbody td[data-col="J"] {
+  border-right: 3px solid #1E293B !important;
+}
+
+/* Downtime Columns (Cols K to AG) */
+.mep-excel-table tbody td.cell-downtime,
+.mep-excel-table tbody td.cell-loss-dt {
+  border-right: 1px solid #64748B !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+/* Deep Section Divider for Total Downtime (Col AH) */
+.mep-excel-table tbody td.cell-total-dt,
+.mep-excel-table tbody td[data-col="AK"],
+.mep-excel-table thead tr.mep-total-row td[data-col="AK"] {
+  border-right: 3px solid #1E293B !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+/* KPI Columns (Cols AI to AL) */
+.mep-excel-table tbody td.cell-kpi,
+.mep-excel-table tbody td[data-col="AL"],
+.mep-excel-table tbody td[data-col="AM"],
+.mep-excel-table tbody td[data-col="AK"] {
+  border-right: 1px solid #64748B !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+.mep-excel-table tbody td[data-col="AL"] {
+  border-right: 2px solid #475569 !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+.mep-excel-table tbody td[data-col="AM"] {
+  border-right: 1.5px solid #334155 !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+/* Deep Distinct Day Separator Border */
+.mep-excel-table tbody tr.row-day-end td,
+.mep-excel-table tbody td.cell-day-end-border {
+  border-bottom: 3.5px solid #0F172A !important;
+}
+
+/* Table Header Cell Borders */
+.h-header-cell,
+.v-header-cell {
+  border-right: 1px solid #475569 !important;
+  border-bottom: 3px solid #1E293B !important;
+}
+
+.h-header-cell:first-child,
+.v-header-cell:first-child {
+  border-left: 1.5px solid #334155 !important;
+}
+
+/* Total Row (Row 5) */
+.mep-excel-table thead tr.mep-total-row th,
+.mep-excel-table thead tr.mep-total-row td {
+  border-right: 1px solid #475569 !important;
+  border-bottom: 3px double #F59E0B !important;
+}
+
+/* Executive Summary Tables & Cells - Deep Grid Lines */
+.mep-summary-table,
+.mep-dt-summary-table {
+  border: 1.5px solid #334155 !important;
+}
+
+.sum-header-sec,
+.sum-header-cap,
+.sum-header-prod,
+.sum-header-rej,
+.sum-header-avail,
+.sum-header-perf,
+.sum-header-qual,
+.sum-header-oee,
+.sum-header-rem,
+.sum-header-down {
+  border: 1px solid #475569 !important;
+  border-bottom: 3px solid #1E293B !important;
+}
+
+.sum-cell-sec,
+.sum-cell-cap,
+.sum-cell-prod,
+.sum-cell-rej,
+.sum-cell-avail,
+.sum-cell-perf,
+.sum-cell-qual,
+.sum-cell-oee,
+.sum-cell-rem,
+.sum-cell-down {
+  border-right: 1px solid #64748B !important;
+  border-bottom: 1px solid #64748B !important;
+}
+
+.sum-cell-sec {
+  border-right: 2px solid #334155 !important;
+}
+.sum-cell-rej {
+  border-right: 2px solid #334155 !important;
+}
+.sum-cell-qual {
+  border-right: 2px solid #334155 !important;
+}
+.sum-cell-oee {
+  border-right: 2px solid #334155 !important;
+}
+
+/* Yearly Template Tables */
+.yearly-template-header,
+.yearly-month-cell,
+.yearly-detail-cell,
+.yearly-data-cell,
+.yearly-kpi-cell,
+.yearly-remarks-cell,
+.yearly-ach-cell,
+.yearly-ach-highlight,
+.yearly-ach-running {
+  border: 1px solid #334155 !important;
 }

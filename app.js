@@ -1,67 +1,76 @@
 let lastBroadcastTimestamp = 0;
 /**
- * ══════════════════════════════════════════════════════════════════════════════
+ * 
+ * MEP FAN LTD. - Multi-Tab Excel Web Spreadsheet Engine
+ * Tabs:
+ *   - "Fan Lathe" (3 Machines: Rotor, Bottom Cover, Top Cover)
+ *   - "Fan Auto Powder Coating" (4 Machines: APC (Blade), APC (Downpipe), APC (Body, Cover), Blade Rivet)
+/**
+ * 
  * MEP FAN LTD. - Multi-Tab Excel Web Spreadsheet Engine
  * Tabs:
  *   - "Fan Lathe" (3 Machines: Rotor, Bottom Cover, Top Cover)
  *   - "Fan Auto Powder Coating" (4 Machines: APC (Blade), APC (Downpipe), APC (Body, Cover), Blade Rivet)
  * Dynamic Month/Year Selection + Strict Numeric Validation + Real-Time OEE
- * ══════════════════════════════════════════════════════════════════════════════
+ * 
  */
 
 'use strict';
 
-// ─── 39 COLUMNS CONFIGURATION (A to AM - COMPACT FIT FOR 100% ZOOM) ───────────
+// ──────────────────────────────────────────────────────────────────────────
 const EXCEL_COLUMNS = [
-  { col: 'A', label: 'Date', width: 66, isReadOnly: true, zone: 'sky', align: 'center' },
-  { col: 'B', label: 'Day', width: 34, isReadOnly: true, zone: 'sky', align: 'center' },
-  { col: 'C', label: 'Shift', width: 46, isReadOnly: true, zone: 'sky', align: 'center' },
-  { col: 'D', label: 'Machine Name', width: 105, isReadOnly: true, zone: 'sky', align: 'left' },
-  { col: 'E', label: 'Machine Capacity (Pcs)', width: 40, isNumeric: true, zone: 'sky', align: 'right' },
-  { col: 'F', label: 'Actual Prd. (Pcs)', width: 40, isNumeric: true, zone: 'sky', align: 'right' },
-  { col: 'G', label: 'Rejection (Pcs)', width: 32, isNumeric: true, zone: 'sky', align: 'right' },
-  { col: 'H', label: 'Planned Prd. Time (Min)', width: 40, isNumeric: true, zone: 'sky', align: 'right' },
-  { col: 'I', label: 'Expected DownTime (Min)', width: 32, isFormula: true, formula: '=IF(E{r}<>"",30,0)', zone: 'sky', align: 'right' },
-  { col: 'J', label: 'Total Prd. Run Time (Min)', width: 40, isFormula: true, formula: '=H{r}-AH{r}', zone: 'sky', align: 'right' },
+  { col: 'A', label: 'Date', width: 76, isReadOnly: true, zone: 'sky', align: 'center' },
+  { col: 'B', label: 'Day', width: 42, isReadOnly: true, zone: 'sky', align: 'center' },
+  { col: 'C', label: 'Shift', width: 54, isReadOnly: true, zone: 'sky', align: 'center' },
+  { col: 'D', label: 'Machine Name', width: 160, isReadOnly: true, zone: 'sky', align: 'left' },
+  { col: 'E', label: 'Machine Capacity (Pcs)', width: 68, isNumeric: true, zone: 'sky', align: 'right' },
+  { col: 'F', label: 'Actual Prd. (Pcs)', width: 68, isNumeric: true, zone: 'sky', align: 'right' },
+  { col: 'G', label: 'Rejection (Pcs)', width: 50, isNumeric: true, zone: 'sky', align: 'right' },
+  { col: 'H', label: 'Planned Prd. Time (Min)', width: 64, isNumeric: true, zone: 'sky', align: 'right' },
+  { col: 'I', label: 'Expected DownTime (Min)', width: 50, isFormula: true, formula: '=IF(E{r}<>"",30,0)', zone: 'sky', align: 'right' },
+  { col: 'J', label: 'Total Prd. Run Time (Min)', width: 64, isFormula: true, formula: '=H{r}-AH{r}', zone: 'sky', align: 'right' },
   
-  // 23 Downtime columns K to AG (Purple Zone)
-  { col: 'K', label: 'Heater/Coil  Problem', code: 10, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'L', label: 'Power Shutdown', code: 11, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'M', label: 'Machine Breakdown', code: 12, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'N', label: 'Die/ Mold Problem', code: 13, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'O', label: 'Model/ Die Change', code: 14, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'P', label: 'Air Presser Problem', code: 15, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'Q', label: 'Water line Problem', code: 16, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'R', label: 'Lift Problem', code: 17, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'S', label: 'D Coil Insert', code: 18, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'T', label: 'RM Shortage', code: 19, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'U', label: 'Crean Problem', code: 20, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'V', label: 'Worker Absent', code: 21, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'W', label: 'Printer M/C Problem ', code: 22, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'X', label: 'UPS shutdown', code: 23, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'Y', label: 'Load Problem', code: 24, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'Z', label: 'Namaz', code: 25, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AA', label: 'Conveyor Belt Problem', code: 26, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AB', label: 'Fitting Problem', code: 27, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AC', label: 'Gas Presser Problem', code: 28, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AD', label: 'Mold polish & Clean', code: 29, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AE', label: 'Alu. Ash Extraction', code: 30, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AF', label: 'Robot Problems', code: 31, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AG', label: 'Alu. Recipe Problem', code: 32, width: 32, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
-  { col: 'AG_LOSS', label: 'Speed/Cap. Loss (Min)', width: 36, isFormula: true, formula: '=IF(AND(E{r}>0,H{r}>0),ROUND(MAX(0,H{r}*(1-F{r}/E{r})),0),0)', zone: 'purple', isLossDt: true, webOnly: true, align: 'right' },
+  // 26 Downtime columns (Purple Zone)
+  { col: 'K', label: 'Heater/Coil Problem', code: 10, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'L', label: 'Power Shutdown', code: 11, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'M', label: 'Machine Breakdown', code: 12, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'N', label: 'Die/ Mold Problem', code: 13, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'O', label: 'Model/ Die Change', code: 14, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'P', label: 'Air Presser Problem', code: 15, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'Q', label: 'Water line Problem', code: 16, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'R', label: 'QC Test', code: 17, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'S', label: 'D Coil Insert', code: 18, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'T', label: 'RM Shortage', code: 19, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'U', label: 'Crean Problem', code: 20, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'V', label: 'Worker Absent', code: 21, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'W', label: 'Printer M/C Problem', code: 22, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'X', label: 'UPS shutdown', code: 23, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'DT_BOX_MOVING', label: 'Box Moving', code: 24, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'DT_UP_CASTING', label: 'Up Casting Meeting', code: 25, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'DT_SHEET_CUTTING', label: 'Sheet Cutting & Pipe Carry', code: 26, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'Y', label: 'Load Problem', code: 27, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'Z', label: 'Namaz', code: 28, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AA', label: 'Conveyor Belt Problem', code: 29, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AB', label: 'Fitting Problem', code: 30, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AC', label: 'Gas Presser Problem', code: 31, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AD', label: 'Mold polish & Clean', code: 32, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AE', label: 'Alu. Ash Extraction', code: 33, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AF', label: 'Robot Problems', code: 34, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AG', label: 'Alu. Recipe Problem', code: 35, width: 52, isNumeric: true, isDt: true, zone: 'purple', align: 'right' },
+  { col: 'AG_LOSS', label: 'Speed/Cap. Loss (Min)', width: 64, isFormula: true, formula: '=IF(AND(E{r}>0,H{r}>0),ROUND(MAX(0,H{r}*(1-F{r}/E{r})),0),0)', zone: 'purple-loss', isLossDt: true, webOnly: true, align: 'right' },
   
-  // KPI Columns AH to AL (Cyan Zone)
-  { col: 'AH', label: 'Total Down Time (Mins)', width: 40, isFormula: true, formula: '=SUM(K{r}:AG{r})', zone: 'cyan', align: 'right' },
-  { col: 'AI', label: 'Availability (%)', width: 34, isFormula: true, formula: '=IFERROR(J{r}/H{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
-  { col: 'AJ', label: 'Performance (%)', width: 34, isFormula: true, formula: '=IFERROR(F{r}/E{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
-  { col: 'AK', label: 'Quality (%)', width: 34, isFormula: true, formula: '=IFERROR(F{r}/(F{r}+G{r}),"0")', isPercent: true, zone: 'cyan', align: 'right' },
-  { col: 'AL', label: 'OEE (%)', width: 34, isFormula: true, formula: '=IFERROR(AK{r}*AJ{r}*AI{r},"0")', isPercent: true, zone: 'cyan', align: 'right' },
+  // KPI Columns AH to AL (Preserved Original Keys!)
+  { col: 'AH', label: 'Total Down Time (Mins)', width: 68, isFormula: true, formula: '=SUM(K{r}:AG{r})', zone: 'total-dt', isTotalDt: true, align: 'right' },
+  { col: 'AI', label: 'Availability (%)', width: 56, isFormula: true, formula: '=IFERROR(J{r}/H{r},"0")', isPercent: true, zone: 'cyan', isAvail: true, align: 'right' },
+  { col: 'AJ', label: 'Performance (%)', width: 56, isFormula: true, formula: '=IFERROR(F{r}/E{r},"0")', isPercent: true, zone: 'cyan', isPerf: true, align: 'right' },
+  { col: 'AK', label: 'Quality (%)', width: 56, isFormula: true, formula: '=IFERROR(F{r}/(F{r}+G{r}),"0")', isPercent: true, zone: 'cyan', isQual: true, align: 'right' },
+  { col: 'AL', label: 'OEE (%)', width: 56, isFormula: true, formula: '=IFERROR(AK{r}*AJ{r}*AI{r},"0")', isPercent: true, zone: 'cyan', isOee: true, align: 'right' },
   
   // Column AM (Remarks) (Sky Blue Zone) - Only Column that allows text!
-  { col: 'AM', label: 'Remarks', width: 110, zone: 'sky', align: 'left' }
+  { col: 'AM', label: 'Remarks', width: 140, zone: 'sky', isRemarks: true, align: 'left' }
 ];
 
-// ─── MULTI-TAB WORKBOOK CONFIGURATION (SUMMARY + 9 PRODUCTION TABS) ───────────
+// ──────────────────────────────────────────────────────────────────────────
 const SHEET_TABS = {
   summary_oee_yearly: {
     id: 'summary_oee_yearly',
@@ -226,14 +235,13 @@ const SUMMARY_DEPTS = [
   { id: 'capacitor', name: 'Capacitor' }
 ];
 
-// ─── USER ROLES & ACCESS CONTROL CONFIGURATION ───────────────────────────────
 const USERS_CONFIG = {
   admin: {
     id: 'admin',
     name: 'Admin',
     role: 'System Administrator',
     pin: '8250',
-    icon: '👑',
+    icon: '🛡️',
     svgIcon: '<svg class="w-7 h-7 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
     color: '#D97706',
     description: 'Master Administrator • Full System Access',
@@ -330,7 +338,7 @@ function getRowsPerDay(tabId = ACTIVE_TAB) {
   return getMachinesForTab(tabId).length;
 }
 
-const TIME_COLUMNS = ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AG_LOSS', 'AH', 'AI'];
+const TIME_COLUMNS = ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'DT_BOX_MOVING', 'DT_UP_CASTING', 'DT_SHEET_CUTTING', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AG_LOSS', 'AH', 'AI'];
 
 function getTimeGroupInfo(tabId, machineIdx) {
   const tabInfo = SHEET_TABS[tabId];
@@ -352,7 +360,7 @@ function getTimeGroupInfo(tabId, machineIdx) {
   return { isMaster: true, span: 1, masterIdx: machineIdx, isSlave: false, count: 1 };
 }
 
-// ─── MONTH & YEAR CONTROLLER ──────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 const MonthYearState = {
   year: 2026,
   monthIndex: 7, // August
@@ -373,7 +381,7 @@ function getStorageKey(tabId, year, monthIndex) {
   return `mep_oee_v23_${tabId}_${year}_${monthIndex}`;
 }
 
-// ─── DYNAMIC LOCK & TODAY ENGINE ──────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function isDateInCurrentMonth(dayNum) {
   const now = new Date();
   return (
@@ -410,7 +418,7 @@ function isRowLocked(rowNum) {
   return dayNum > curDay;
 }
 
-// ─── APPLICATION STATE ────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 const SheetState = {
   rows: [],
   totals: {},
@@ -424,19 +432,71 @@ const SheetState = {
   searchIndex: 0
 };
 
-// ─── INITIALIZATION & STATE RESTORATION ───────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  restoreAppState();
-  initMonthYearSelectors();
-  initSheetTabButtons();
-  initModalDtInputs();
-  bindExcelEvents();
-  initAuthSystem();
-  initFirebase();
-});
+// ──────────────────────────────────────────────────────────────────────────
+// App startup initialized at bottom of script
 
-// ─── ROLE-BASED AUTHENTICATION & LOGIN SYSTEM ────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
+function bindExcelEvents() {
+  // Save Grid Button
+  document.getElementById('btnSaveGrid')?.addEventListener('click', () => {
+    if (CurrentUser && CurrentUser.isReadOnly) {
+      showToast('Permission Denied: Read-only access.', 'warning');
+      return;
+    }
+    saveSheetData(true);
+    showToast('Changes saved to cloud successfully!', 'success');
+  });
+
+  // Export Excel Button
+  document.getElementById('btnExportExcel')?.addEventListener('click', () => {
+    exportExcelFile();
+  });
+
+  // Export PDF Button
+  document.getElementById('btnExportPdf')?.addEventListener('click', () => {
+    exportPDFReport();
+  });
+
+  // Reset Month Button
+  document.getElementById('btnResetMonth')?.addEventListener('click', () => {
+    if (CurrentUser && CurrentUser.isReadOnly) {
+      showToast('Permission Denied: Read-only access.', 'warning');
+      return;
+    }
+    if (confirm('Are you sure you want to reset this month\'s data?')) {
+      resetCurrentMonthData();
+    }
+  });
+
+  // Quick Entry Modal Close & Save Buttons
+  document.getElementById('btnModalClose')?.addEventListener('click', closeQuickEntryModal);
+  document.getElementById('btnModalSave')?.addEventListener('click', saveQuickEntryModal);
+
+  // Search Bar Buttons
+  document.getElementById('btnOpenSearch')?.addEventListener('click', openSearchBar);
+  document.getElementById('btnCloseSearch')?.addEventListener('click', closeSearchBar);
+
+  // Keyboard Shortcuts & Context Menu
+  initKeyboardShortcuts();
+  initContextMenu();
+}
+
 function initAuthSystem() {
+  updatePortalClock();
+  setInterval(updatePortalClock, 1000);
+
+  // Bind mouse move for dynamic radial spotlight lighting on real glass cards
+  document.querySelectorAll('.user-portal-card').forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--mouse-x', `${x}px`);
+      card.style.setProperty('--mouse-y', `${y}px`);
+    });
+  });
+
+  // Bind profile cards click
   updatePortalClock();
   setInterval(updatePortalClock, 1000);
 
@@ -520,7 +580,7 @@ function updatePortalClock() {
 
   const legacyClock = document.getElementById('portalClock');
   if (legacyClock) {
-    legacyClock.textContent = `🗓️ ${dateStr} • ⏰ ${timeStr} • 🔒 Role-Based Secure Access`;
+    legacyClock.textContent = `${dateStr} • ${timeStr} • MEP FAN LTD. OEE`;
   }
 }
 
@@ -628,7 +688,7 @@ function verifyAndLogin() {
   } else {
     const errEl = document.getElementById('pinErrorMsg');
     if (errEl) {
-      errEl.textContent = '❌ ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।';
+      errEl.textContent = 'Incorrect PIN! Please try again.';
     }
 
     EnteredPin = '';
@@ -673,28 +733,25 @@ function applyUserLogin(user, showWelcome = true) {
   const formulaInput = document.getElementById('formulaBarInput');
 
   if (syncBtn) {
-    if (CurrentUser.id === 'admin') {
-      syncBtn.style.display = 'flex';
-      syncBtn.className = 'h-[44px] px-[20px] py-[10px] rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white border border-emerald-500 text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition';
-      syncBtn.innerHTML = '<span id="syncSpinIcon" class="text-sm inline-block">🟢</span><span>Publish</span>';
-      syncBtn.title = 'সব ডিপার্টমেন্টের ডাটা একত্রিত করে লাইভ পাবলিশ করুন';
-    } else {
-      syncBtn.style.display = 'none'; // Admin ছাড়া সব এন্ট্রি শিট ও ইউজারের জন্য বাটনটি সম্পূর্ণ বাদ
-    }
+    syncBtn.style.display = 'none';
   }
 
   if (CurrentUser.isReadOnly) {
-    if (iconEl) iconEl.innerHTML = '👁️';
-    if (nameEl) nameEl.innerHTML = `<span class="text-amber-300 font-extrabold text-xs block tracking-wide">VIEW ONLY</span><span class="text-slate-300 text-[10px] font-medium block">Read-Only Mode</span>`;
+    if (iconEl) iconEl.innerHTML = '<svg class="w-4 h-4 text-indigo-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+    if (nameEl) nameEl.innerHTML = `<span class="text-amber-300 font-bold text-xs block tracking-wide">VIEW ONLY</span><span class="text-slate-300 text-[10px] font-medium block mt-0.5">Read-Only Mode</span>`;
     if (saveBtn) saveBtn.style.display = 'none';
     if (excelBtn) excelBtn.style.display = 'none';
     if (formulaInput) formulaInput.readOnly = true;
   } else {
     if (iconEl) {
-      iconEl.innerHTML = CurrentUser.id === 'admin' ? '🛡️' : (CurrentUser.svgIcon || CurrentUser.icon);
+      if (CurrentUser.id === 'admin') {
+        iconEl.innerHTML = '<svg class="w-4 h-4 text-amber-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+      } else {
+        iconEl.innerHTML = CurrentUser.svgIcon ? CurrentUser.svgIcon.replace('w-7 h-7', 'w-4 h-4 text-white') : '<svg class="w-4 h-4 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+      }
     }
     if (nameEl) {
-      nameEl.innerHTML = `<span class="text-white font-black text-xs block tracking-wide">${CurrentUser.name.toUpperCase()}</span><span class="text-blue-200 text-[10px] font-medium block">${CurrentUser.role}</span>`;
+      nameEl.innerHTML = `<span class="text-white font-bold text-xs block tracking-wide">${CurrentUser.name.toUpperCase()}</span><span class="text-slate-300 text-[10px] font-medium block mt-0.5">${CurrentUser.role}</span>`;
     }
     if (saveBtn) saveBtn.style.display = 'flex';
     if (excelBtn) excelBtn.style.display = 'flex';
@@ -726,9 +783,9 @@ function applyUserLogin(user, showWelcome = true) {
 
   if (showWelcome) {
     if (CurrentUser.isReadOnly) {
-      showToast(`👁️ ভিউ-অনলি মোড: সমস্ত রিপোর্ট ও ড্যাশবোর্ড দেখা যাবে (এডিট বন্ধ)।`, 'info');
+    showToast('Information updated.', 'info');
     } else {
-      showToast(`🎉 স্বাগতম ${CurrentUser.name}! এক্সেস আনলক হয়েছে।`, 'success');
+    showToast('Operation completed successfully.', 'success');
     }
   }
 }
@@ -739,7 +796,7 @@ function logoutUser() {
   document.documentElement.classList.remove('user-authenticated');
   document.documentElement.classList.add('user-unauthenticated');
   showLoginPortal();
-  showToast('🔒 সফলভাবে লগআউট হয়েছে।', 'info');
+    showToast('Information updated.', 'info');
 }
 
 function isTabAllowedForUser(tabId) {
@@ -840,7 +897,7 @@ function initSheetTabButtons() {
 
 function switchSheetTab(tabId) {
   if (!isTabAllowedForUser(tabId)) {
-    showToast('⚠️ এই ট্যাবে আপনার এক্সেস নেই!', 'warning');
+    showToast('Permission Denied: This operation is restricted.', 'warning');
     return;
   }
   if (ACTIVE_TAB === tabId) return;
@@ -889,7 +946,7 @@ function selectInitialCell() {
   selectCell('E', targetRow);
 }
 
-// ─── DATA GENERATION & PERSISTENCE ────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function generateBlankMonthRows(tabId, year, monthIndex) {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const yr2Digit = String(year).slice(-2);
@@ -988,7 +1045,7 @@ function pushHistoryState() {
 
 function undoAction() {
   if (SheetState.undoStack.length === 0) {
-    showToast('Nothing to undo', 'info');
+    showToast('Information updated.', 'info');
     return;
   }
   SheetState.redoStack.push(JSON.stringify(SheetState.rows));
@@ -996,12 +1053,12 @@ function undoAction() {
   recalculateAllFormulas();
   renderExcelTable();
   saveSheetData(false);
-  showToast('↩️ Undone', 'info');
+    showToast('Information updated.', 'info');
 }
 
 function redoAction() {
   if (SheetState.redoStack.length === 0) {
-    showToast('Nothing to redo', 'info');
+    showToast('Information updated.', 'info');
     return;
   }
   SheetState.undoStack.push(JSON.stringify(SheetState.rows));
@@ -1009,10 +1066,10 @@ function redoAction() {
   recalculateAllFormulas();
   renderExcelTable();
   saveSheetData(false);
-  showToast('↪️ Redone', 'info');
+    showToast('Information updated.', 'info');
 }
 
-// ─── FIREBASE REALTIME DATABASE CONFIGURATION (GOOGLE SHEETS MODEL) ───────────
+// ──────────────────────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDummyKeyForRestApiCompatibility",
   authDomain: "whatsapp-c10ef.firebaseapp.com",
@@ -1034,9 +1091,9 @@ function cleanDataForFirebase(data) {
   }));
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────────────────
 // MODULE 1: LOCAL STORAGE CACHE (0ms Instant Display & Offline Fallback)
-// ══════════════════════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────────────────
 const LocalStorageEngine = {
   getKey(tabId, year, monthIndex) {
     return getStorageKey(tabId, year, monthIndex);
@@ -1091,9 +1148,9 @@ function getStoredLocalData(tabId, year, monthIndex) {
   return LocalStorageEngine.load(tabId, year, monthIndex);
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────────────────
 // MODULE 2: PURE GOOGLE SHEETS REAL-TIME ENGINE (Cell/Row Granular Cloud Sync)
-// ══════════════════════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────────────────
 let activeSheetRef = null;
 let activeSheetListenerTab = null;
 
@@ -1249,9 +1306,9 @@ const GoogleSheetsRealtimeEngine = {
   }
 };
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────────────────
 // MODULE 3: INITIALIZATION & USER ACTIONS (Google Sheets Model)
-// ══════════════════════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────────────────
 
 function initFirebase() {
   try {
@@ -1261,7 +1318,7 @@ function initFirebase() {
       }
       firebaseDb = firebase.database();
       isFirebaseInitialized = true;
-      console.log('✅ Google Sheets Realtime Engine Connected: whatsapp-c10ef');
+      console.log(' Google Sheets Realtime Engine Connected: whatsapp-c10ef');
       updateCloudStatusUI('online', 'All changes saved to cloud');
 
       if (firebase.auth) {
@@ -1301,12 +1358,12 @@ function updateCloudStatusUI(status, text) {
       dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
       if (txt) txt.textContent = 'LIVE';
       if (subTxt) subTxt.textContent = text || 'All changes saved to cloud';
-      if (autoSave) autoSave.textContent = '🟢 ' + (text || 'All changes saved to cloud');
+      if (autoSave) autoSave.textContent = '● ' + (text || 'All changes saved to cloud');
     } else if (status === 'syncing') {
       dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0';
       if (txt) txt.textContent = 'SAVING';
       if (subTxt) subTxt.textContent = text || 'Saving to cloud...';
-      if (autoSave) autoSave.textContent = '⏳ Saving...';
+      if (autoSave) autoSave.textContent = ' Saving...';
     } else {
       dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0';
       if (txt) txt.textContent = 'OFFLINE';
@@ -1331,7 +1388,7 @@ async function syncAllCloudData(showFeedback = false) {
       renderExcelTable();
       updateTotalRowDisplay();
       updateCloudStatusUI('synced', 'All changes saved to cloud');
-      if (showFeedback) showToast('🟢 ক্লাউড থেকে ডাটা সিঙ্ক হয়েছে!', 'success');
+    showToast('Operation completed successfully.', 'success');
     } else {
       updateCloudStatusUI('synced', 'All changes saved to cloud');
     }
@@ -1343,7 +1400,7 @@ async function syncAllCloudData(showFeedback = false) {
 function handleInchargeSave() {
   // Optional manual save trigger -> pushes full active sheet to cloud
   GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
-  showToast('✅ ক্লাউডে সফলভাবে সেভ হয়েছে!', 'success');
+    showToast('Operation completed successfully.', 'success');
 }
 
 function adminBroadcastLiveData() {
@@ -1362,7 +1419,7 @@ function saveSheetData(pushHistory = true) {
 function triggerSaveIndicator() {
   const el = document.getElementById('autoSaveIndicator');
   if (el) {
-    el.textContent = '🟢 Saved to cloud';
+    el.textContent = '● Saved to cloud';
     el.style.opacity = '1';
   }
 }
@@ -1376,11 +1433,11 @@ function resetToOriginalData() {
     recalculateAllFormulas();
     renderExcelTable();
     GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
-    showToast(`🔄 Reset [${tabName}] for ${monthName} ${MonthYearState.year}`, 'info');
+    showToast('Information updated.', 'info');
   }
 }
 
-// ─── AUTO-CALCULATION ENGINE ──────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function recalculateRow(rowObj) {
   const r = rowObj.row;
   const rowsPerDay = getRowsPerDay();
@@ -1450,7 +1507,7 @@ function recalculateRow(rowObj) {
   rowObj.AG_LOSS.val = hasValidLossData ? lossDt : '-';
   rowObj.AG_LOSS.formula = `=IF(AND(E${r}>0,H${r}>0),ROUND(MAX(0,H${r}*(1-F${r}/E${r})),0),0)`;
 
-  // AH: Total Down Time = SUM(K:AG)
+  // AH: Total Down Time = SUM of all dtCols
   let sumDt = 0;
   let hasAnyDt = false;
   EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => {
@@ -1461,13 +1518,13 @@ function recalculateRow(rowObj) {
     sumDt += val;
   });
   if (!rowObj.AH) rowObj.AH = {};
-  rowObj.AH.val = sumDt;
+  rowObj.AH.val = Math.round(sumDt);
   rowObj.AH.formula = `=SUM(K${r}:AG${r})`;
 
   // J: Total Prd. Run Time = H - AH
   if (!rowObj.J) rowObj.J = {};
   if (plan > 0 || hasAnyDt) {
-    rowObj.J.val = Math.max(0, plan - sumDt);
+    rowObj.J.val = Math.max(0, Math.round(plan - sumDt));
   } else {
     rowObj.J.val = '-';
   }
@@ -1535,16 +1592,15 @@ function recalculateTotalRow() {
   const rowsPerDay = getRowsPerDay();
 
   SheetState.rows.forEach(r => {
-    // Piece-count columns are summed across all rows
     totals.E += Number(r.E?.val) || 0;
     totals.F += Number(r.F?.val) || 0;
     totals.G += Number(r.G?.val) || 0;
 
-    const mIdx = (r.row - 6) % rowsPerDay;
+    const rowIdx = r.row - 6;
+    const mIdx = rowIdx % rowsPerDay;
     const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
 
-    // Time & Downtime-related columns are summed ONLY from master rows (no duplication across multi-product machines!)
-    if (groupInfo.isMaster) {
+    if (groupInfo.isMaster || groupInfo.count === 1) {
       totals.H += Number(r.H?.val) || 0;
       totals.I += Number(r.I?.val) || 0;
       totals.J += (typeof r.J?.val === 'number' ? r.J.val : 0);
@@ -1557,6 +1613,8 @@ function recalculateTotalRow() {
     }
   });
 
+  totals.J = Math.round(totals.J);
+  totals.AH = Math.round(totals.AH);
   totals.AI = totals.H > 0 ? (totals.J / totals.H) : 0;
   totals.AJ = totals.E > 0 ? (totals.F / totals.E) : 0;
   totals.AK = (totals.F + totals.G) > 0 ? (totals.F / (totals.F + totals.G)) : 0;
@@ -1565,7 +1623,7 @@ function recalculateTotalRow() {
   SheetState.totals = totals;
 }
 
-// ─── TAB MONTHLY SUMMARY CALCULATOR (FOR EXECUTIVE DOWNTIME REPORT) ───────────
+// ──────────────────────────────────────────────────────────────────────────
 function getTabMonthlySummary(tabId, year, monthIndex) {
   let rowsData = [];
   if (tabId === ACTIVE_TAB && monthIndex === MonthYearState.monthIndex && year === MonthYearState.year) {
@@ -1621,7 +1679,7 @@ function getTabMonthlySummary(tabId, year, monthIndex) {
   };
 }
 
-// ─── EXECUTIVE TOTAL DOWNTIME SUMMARY TABLE RENDERER ──────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function renderSummaryDowntimeReport(table) {
   const dtCols = EXCEL_COLUMNS.filter(c => c.isDt);
   const totalColsCount = 1 + dtCols.length + 4; // Machine No + 23 DT cols + 4 summary cols
@@ -1677,7 +1735,7 @@ function renderSummaryDowntimeReport(table) {
   const trHeaders = document.createElement('tr');
 
   const thMachineNo = document.createElement('th');
-  thMachineNo.className = 'text-center align-middle font-bold text-xs border border-slate-600 bg-[#7EC8E3] text-black px-2';
+  thMachineNo.className = 'text-center align-middle font-bold text-xs border border-slate-300 bg-slate-100 text-slate-900 px-2';
   thMachineNo.textContent = 'Machine No.';
   thMachineNo.style.verticalAlign = 'middle';
   trHeaders.appendChild(thMachineNo);
@@ -1809,7 +1867,7 @@ function renderSummaryDowntimeReport(table) {
   table.appendChild(tbody);
 }
 
-// ─── TAB PRODUCTION OUTPUT SUMMARY CALCULATOR ─────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function getTabProductionOutputSummary(tabId, year, monthIndex) {
   let rowsData = [];
   if (tabId === ACTIVE_TAB && monthIndex === MonthYearState.monthIndex && year === MonthYearState.year) {
@@ -1856,12 +1914,12 @@ function getTabProductionOutputSummary(tabId, year, monthIndex) {
   };
 }
 
-// ─── EXECUTIVE PRODUCTION OUTPUT REPORT TABLE RENDERER ────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function renderProductionOutputReport(table) {
   const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
   const year = MonthYearState.year;
 
-  // Column Widths
+  // Column Widths (% based)
   const colgroup = document.createElement('colgroup');
   const widths = ['22%', '13%', '13%', '13%', '13%', '13%', '13%'];
   widths.forEach(w => {
@@ -1897,44 +1955,38 @@ function renderProductionOutputReport(table) {
 
   const thSec = document.createElement('th');
   thSec.rowSpan = 2;
-  thSec.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thSec.className = 'sum-header-section';
   thSec.textContent = 'Section Name';
-  thSec.style.verticalAlign = 'middle';
   tr3.appendChild(thSec);
 
   const thRun = document.createElement('th');
   thRun.rowSpan = 2;
-  thRun.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thRun.className = 'sum-header-avail';
   thRun.innerHTML = 'Production<br>Running (hr)';
-  thRun.style.verticalAlign = 'middle';
   tr3.appendChild(thRun);
 
   const thCap = document.createElement('th');
   thCap.rowSpan = 2;
-  thCap.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thCap.className = 'sum-header-cap';
   thCap.innerHTML = 'Machine<br>Capacity (Pcs)';
-  thCap.style.verticalAlign = 'middle';
   tr3.appendChild(thCap);
 
   const thQty = document.createElement('th');
   thQty.colSpan = 2;
-  thQty.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-1';
-  thQty.textContent = 'Prodcution Qty.';
-  thQty.style.verticalAlign = 'middle';
+  thQty.className = 'sum-header-prod';
+  thQty.textContent = 'Production Qty.';
   tr3.appendChild(thQty);
 
   const thOut = document.createElement('th');
   thOut.rowSpan = 2;
-  thOut.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
-  thOut.innerHTML = 'Standrad Wise<br>Production Output<br>(%)';
-  thOut.style.verticalAlign = 'middle';
+  thOut.className = 'sum-header-perf';
+  thOut.innerHTML = 'Standard Wise<br>Production Output<br>(%)';
   tr3.appendChild(thOut);
 
   const thRem = document.createElement('th');
   thRem.rowSpan = 2;
-  thRem.className = 'prod-output-remarks-header border border-red-800';
+  thRem.className = 'sum-header-rem';
   thRem.textContent = 'Remarks';
-  thRem.style.verticalAlign = 'middle';
   tr3.appendChild(thRem);
 
   thead.appendChild(tr3);
@@ -1943,15 +1995,13 @@ function renderProductionOutputReport(table) {
   const tr4 = document.createElement('tr');
 
   const thProdPcs = document.createElement('th');
-  thProdPcs.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-1.5';
+  thProdPcs.className = 'sum-header-prod';
   thProdPcs.textContent = 'Production (pcs)';
-  thProdPcs.style.verticalAlign = 'middle';
   tr4.appendChild(thProdPcs);
 
   const thRejPcs = document.createElement('th');
-  thRejPcs.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-1.5';
+  thRejPcs.className = 'sum-header-rej';
   thRejPcs.textContent = 'Rejection (Pcs)';
-  thRejPcs.style.verticalAlign = 'middle';
   tr4.appendChild(thRejPcs);
 
   thead.appendChild(tr4);
@@ -1977,85 +2027,86 @@ function renderProductionOutputReport(table) {
 
     // Col 1: Section Name
     const tdSec = document.createElement('td');
-    tdSec.className = 'prod-output-section-cell';
+    tdSec.className = 'sum-cell-sec';
     tdSec.textContent = dept.name;
     tr.appendChild(tdSec);
 
     // Col 2: Production Running (hr)
     const tdRun = document.createElement('td');
-    tdRun.className = 'summary-data-cell';
-    tdRun.textContent = tabSummary.runningMins > 0 ? tabSummary.runningMins.toLocaleString() : '-';
+    tdRun.className = 'sum-cell-avail font-mono';
+    tdRun.textContent = tabSummary.runningMins > 0 ? (tabSummary.runningMins / 60).toFixed(1) : '-';
     tr.appendChild(tdRun);
 
     // Col 3: Machine Capacity (Pcs)
     const tdCap = document.createElement('td');
-    tdCap.className = 'summary-data-cell';
+    tdCap.className = 'sum-cell-cap font-mono';
     tdCap.textContent = tabSummary.capacityPcs > 0 ? tabSummary.capacityPcs.toLocaleString() : '-';
     tr.appendChild(tdCap);
 
     // Col 4: Production (pcs)
     const tdProd = document.createElement('td');
-    tdProd.className = 'summary-data-cell';
+    tdProd.className = 'sum-cell-prod font-mono';
     tdProd.textContent = tabSummary.actualPrdPcs > 0 ? tabSummary.actualPrdPcs.toLocaleString() : '-';
     tr.appendChild(tdProd);
 
     // Col 5: Rejection (Pcs)
     const tdRej = document.createElement('td');
-    tdRej.className = 'summary-data-cell';
-    tdRej.textContent = tabSummary.rejectionPcs > 0 ? tabSummary.rejectionPcs.toLocaleString() : '0';
+    tdRej.className = 'sum-cell-rej font-mono';
+    tdRej.textContent = tabSummary.rejectionPcs > 0 ? (tabSummary.rejectionPcs % 1 !== 0 ? tabSummary.rejectionPcs.toFixed(1) : tabSummary.rejectionPcs.toLocaleString()) : '0';
     tr.appendChild(tdRej);
 
-    // Col 6: Standrad Wise Production Output (%)
-    const tdPct = document.createElement('td');
-    tdPct.className = 'prod-output-kpi-cell';
-    tdPct.textContent = `${(tabSummary.outputPct * 100).toFixed(2)}%`;
-    tr.appendChild(tdPct);
+    // Col 6: Standard Wise Production Output (%)
+    const tdOut = document.createElement('td');
+    tdOut.className = 'sum-cell-perf font-mono';
+    tdOut.textContent = `${(tabSummary.outputPct * 100).toFixed(1)}%`;
+    tr.appendChild(tdOut);
 
     // Col 7: Remarks
     const tdRem = document.createElement('td');
-    tdRem.className = 'summary-data-cell';
-    tdRem.textContent = '';
+    tdRem.className = 'sum-cell-rem';
+    tdRem.textContent = tabSummary.remarks || '';
     tr.appendChild(tdRem);
 
     tbody.appendChild(tr);
   });
 
-  // Total Row (Yellow/Gold)
+  // Total Row
   const trTotal = document.createElement('tr');
+  trTotal.className = 'sum-total-row';
 
   const tdTotTitle = document.createElement('td');
-  tdTotTitle.className = 'prod-output-total-title';
+  tdTotTitle.className = 'sum-total-title font-mono';
   tdTotTitle.textContent = 'Total';
   trTotal.appendChild(tdTotTitle);
 
   const tdTotRun = document.createElement('td');
-  tdTotRun.className = 'prod-output-total-cell';
-  tdTotRun.textContent = grandRunning.toLocaleString();
+  tdTotRun.className = 'sum-total-run font-mono';
+  tdTotRun.textContent = grandRunning > 0 ? (grandRunning / 60).toFixed(1) : '0';
   trTotal.appendChild(tdTotRun);
 
   const tdTotCap = document.createElement('td');
-  tdTotCap.className = 'prod-output-total-cell';
+  tdTotCap.className = 'sum-total-cap font-mono';
   tdTotCap.textContent = grandCapacity.toLocaleString();
   trTotal.appendChild(tdTotCap);
 
   const tdTotProd = document.createElement('td');
-  tdTotProd.className = 'prod-output-total-cell';
+  tdTotProd.className = 'sum-total-prod font-mono';
   tdTotProd.textContent = grandProduction.toLocaleString();
   trTotal.appendChild(tdTotProd);
 
   const tdTotRej = document.createElement('td');
-  tdTotRej.className = 'prod-output-total-cell';
-  tdTotRej.textContent = grandRejection.toLocaleString();
+  tdTotRej.className = 'sum-total-rej font-mono';
+  tdTotRej.textContent = grandRejection > 0 ? (grandRejection % 1 !== 0 ? grandRejection.toFixed(1) : grandRejection.toLocaleString()) : '0';
   trTotal.appendChild(tdTotRej);
 
-  const tdTotPct = document.createElement('td');
-  tdTotPct.className = 'prod-output-total-cell';
-  const grandOutputPct = grandCapacity > 0 ? (grandProduction / grandCapacity) * 100 : 0;
-  tdTotPct.textContent = `${grandOutputPct.toFixed(2)}%`;
-  trTotal.appendChild(tdTotPct);
+  const overallOutputPct = grandCapacity > 0 ? (grandProduction / grandCapacity) : 0;
+  const tdTotOut = document.createElement('td');
+  tdTotOut.className = 'sum-total-perf font-mono';
+  tdTotOut.textContent = `${(overallOutputPct * 100).toFixed(1)}%`;
+  trTotal.appendChild(tdTotOut);
 
   const tdTotRem = document.createElement('td');
-  tdTotRem.className = 'prod-output-total-cell';
+  tdTotRem.className = 'sum-cell-rem';
   tdTotRem.textContent = '';
   trTotal.appendChild(tdTotRem);
 
@@ -2063,7 +2114,6 @@ function renderProductionOutputReport(table) {
   table.appendChild(tbody);
 }
 
-// ─── EXECUTIVE PRODUCTION OUTPUT SUMMARY TABLE RENDERER ───────────────────────
 function renderSummaryProductionReport(table) {
   const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
   const year = MonthYearState.year;
@@ -2114,9 +2164,9 @@ function renderSummaryProductionReport(table) {
     th.style.fontWeight = 'bold';
     th.style.padding = '8px 6px';
     th.style.textAlign = idx === 0 ? 'left' : (idx === 6 ? 'center' : 'right');
-    th.style.border = '1px solid #000000';
-    th.style.backgroundColor = (idx === 0) ? '#7EC8E3' : ((idx === 6) ? '#38B6FF' : '#56C5D0');
-    th.style.color = '#000000';
+    th.style.border = '1px solid #CBD5E1';
+    th.style.backgroundColor = '#F1F5F9';
+    th.style.color = '#0F172A';
     trH.appendChild(th);
   });
   thead.appendChild(trH);
@@ -2139,31 +2189,29 @@ function renderSummaryProductionReport(table) {
     tr.title = `Click to view ${s.name}`;
     tr.addEventListener('click', () => switchTab(tabId));
 
-    const isHighAch = s.achievement >= 0.95;
-
     tr.innerHTML = `
-      <td style="font-weight:bold; color:#1E40AF; text-align:left; border:1px solid #CBD5E1; padding:6px 8px; background:#F8FAFC;">
+      <td style="font-weight:700; color:#0F172A; text-align:left; border:1px solid #E2E8F0; padding:6px 8px; background:#F8FAFC;">
         ${s.name}
       </td>
-      <td style="text-align:right; font-weight:bold; border:1px solid #CBD5E1; padding:6px 8px;">
+      <td style="text-align:right; font-weight:600; border:1px solid #E2E8F0; padding:6px 8px;">
         ${s.runHours > 0 ? s.runHours.toFixed(1) : '-'}
       </td>
-      <td style="text-align:right; font-weight:bold; border:1px solid #CBD5E1; padding:6px 8px;">
+      <td style="text-align:right; font-weight:600; border:1px solid #E2E8F0; padding:6px 8px;">
         ${s.capacityPcs > 0 ? s.capacityPcs.toLocaleString() : '-'}
       </td>
-      <td style="text-align:right; border:1px solid #CBD5E1; padding:6px 8px;">
+      <td style="text-align:right; border:1px solid #E2E8F0; padding:6px 8px;">
         ${s.targetPerHr > 0 ? s.targetPerHr.toLocaleString() : '-'}
       </td>
-      <td style="text-align:right; font-weight:bold; color:#0F766E; border:1px solid #CBD5E1; padding:6px 8px; background:#F0FDFA;">
+      <td style="text-align:right; font-weight:bold; color:#0F172A; border:1px solid #CBD5E1; padding:6px 8px; background:#FFFFFF;">
         ${s.actualPrdPcs > 0 ? s.actualPrdPcs.toLocaleString() : '-'}
       </td>
       <td style="text-align:right; border:1px solid #CBD5E1; padding:6px 8px;">
         ${s.actualPerHr > 0 ? s.actualPerHr.toLocaleString() : '-'}
       </td>
-      <td style="text-align:center; font-weight:bold; border:1px solid #CBD5E1; padding:6px 8px; ${isHighAch ? 'background:#E0F2FE; color:#0369A1;' : ''}">
+      <td style="text-align:center; font-weight:bold; border:1px solid #CBD5E1; padding:6px 8px; ${isHighAch ? 'background:#FFFFFF; color:#0F172A;' : ''}">
         ${s.capacityPcs > 0 ? (s.achievement * 100).toFixed(1) + '%' : '-'}
       </td>
-      <td style="text-align:right; font-weight:bold; color:#B91C1C; border:1px solid #CBD5E1; padding:6px 8px; background:#FEF2F2;">
+      <td style="text-align:right; font-weight:bold; color:#0F172A; border:1px solid #CBD5E1; padding:6px 8px; background:#FFFFFF;">
         ${s.rejectionPcs > 0 ? s.rejectionPcs.toLocaleString() : '0'}
       </td>
     `;
@@ -2177,26 +2225,26 @@ function renderSummaryProductionReport(table) {
   const totalAch = grandTotals.cap > 0 ? (grandTotals.act / grandTotals.cap) : 0;
 
   const trTotal = document.createElement('tr');
-  trTotal.style.backgroundColor = '#EBF4FF';
+  trTotal.style.backgroundColor = '#F1F5F9';
   trTotal.style.fontWeight = 'bold';
-  trTotal.style.borderTop = '2px solid #1E40AF';
-  trTotal.style.borderBottom = '2px solid #1E40AF';
+  trTotal.style.borderTop = '1.5px solid #64748B';
+  trTotal.style.borderBottom = '3px double #0F172A';
 
   trTotal.innerHTML = `
-    <td style="text-align:left; border:1px solid #CBD5E1; padding:8px 8px; color:#1E3A8A;">Total:</td>
+    <td style="text-align:left; border:1px solid #CBD5E1; padding:8px 8px; color:#0F172A;">Total:</td>
     <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px;">${totalRunHrs > 0 ? totalRunHrs.toFixed(1) : '-'}</td>
     <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px;">${grandTotals.cap > 0 ? grandTotals.cap.toLocaleString() : '-'}</td>
     <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px;">${totalTargetPerHr > 0 ? totalTargetPerHr.toLocaleString() : '-'}</td>
-    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px; color:#0F766E;">${grandTotals.act > 0 ? grandTotals.act.toLocaleString() : '-'}</td>
+    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px; color:#0F172A;">${grandTotals.act > 0 ? grandTotals.act.toLocaleString() : '-'}</td>
     <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px;">${totalActualPerHr > 0 ? totalActualPerHr.toLocaleString() : '-'}</td>
-    <td style="text-align:center; border:1px solid #CBD5E1; padding:8px 8px; color:#0369A1;">${grandTotals.cap > 0 ? (totalAch * 100).toFixed(1) + '%' : '-'}</td>
-    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px; color:#B91C1C;">${grandTotals.rej.toLocaleString()}</td>
+    <td style="text-align:center; border:1px solid #CBD5E1; padding:8px 8px; color:#0F172A;">${grandTotals.cap > 0 ? (totalAch * 100).toFixed(1) + '%' : '-'}</td>
+    <td style="text-align:right; border:1px solid #CBD5E1; padding:8px 8px; color:#0F172A;">${grandTotals.rej.toLocaleString()}</td>
   `;
   tbody.appendChild(trTotal);
   table.appendChild(tbody);
 }
 
-// ─── TAB DOWNTIME & RUNNING TIME STATUS CALCULATOR ────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function getTabDowntimeRunningStatus(tabId, year, monthIndex) {
   let rowsData = [];
   if (tabId === ACTIVE_TAB && monthIndex === MonthYearState.monthIndex && year === MonthYearState.year) {
@@ -2248,7 +2296,7 @@ function getTabDowntimeRunningStatus(tabId, year, monthIndex) {
   };
 }
 
-// ─── EXECUTIVE DOWNTIME & RUNNING STATUS REPORT TABLE RENDERER ────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function renderDowntimeRunningStatusReport(table) {
   const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
   const year = MonthYearState.year;
@@ -2275,7 +2323,7 @@ function renderDowntimeRunningStatusReport(table) {
   tr1.appendChild(th1);
   thead.appendChild(tr1);
 
-  // Row 2: MEP Fan Limited- Down Time & Running Time Status (Month Year)
+  // Row 2: Header Title
   const tr2 = document.createElement('tr');
   tr2.className = 'mep-banner-row2';
   const th2 = document.createElement('th');
@@ -2284,22 +2332,22 @@ function renderDowntimeRunningStatusReport(table) {
   tr2.appendChild(th2);
   thead.appendChild(tr2);
 
-  // Row 3: Header Row (Sage Green Background + Red Remark's)
+  // Row 3: Header Row
   const tr3 = document.createElement('tr');
 
   const headers = [
-    { label: 'Machine No.', isRed: false },
-    { label: 'Planned\nProduction Time\n(mins)', isRed: false },
-    { label: 'Production Run\nTime (Mins)', isRed: false },
-    { label: 'Machine Down\nTime (Mins)', isRed: false },
-    { label: 'Production\nRunning Time (%)', isRed: false },
-    { label: 'Production Down\nTime (%)', isRed: false },
-    { label: "Remark's", isRed: true }
+    { label: 'Machine No.', cls: 'sum-header-section' },
+    { label: 'Planned\nProduction Time\n(mins)', cls: 'sum-header-cap' },
+    { label: 'Production Run\nTime (Mins)', cls: 'sum-header-avail' },
+    { label: 'Machine Down\nTime (Mins)', cls: 'sum-header-down' },
+    { label: 'Production\nRunning Time (%)', cls: 'sum-header-perf' },
+    { label: 'Production Down\nTime (%)', cls: 'sum-header-rej' },
+    { label: "Remark's", cls: 'sum-header-rem' }
   ];
 
   headers.forEach(h => {
     const th = document.createElement('th');
-    th.className = h.isRed ? 'status-remarks-header' : 'status-header-cell';
+    th.className = h.cls;
     th.innerHTML = h.label.replace(/\n/g, '<br>');
     tr3.appendChild(th);
   });
@@ -2325,86 +2373,88 @@ function renderDowntimeRunningStatusReport(table) {
 
     // Col 1: Machine No.
     const tdName = document.createElement('td');
-    tdName.className = 'status-name-cell';
+    tdName.className = 'sum-cell-sec';
     tdName.textContent = dept.name;
     tr.appendChild(tdName);
 
     // Col 2: Planned Production Time (mins)
     const tdPlanned = document.createElement('td');
-    tdPlanned.className = 'summary-data-cell';
+    tdPlanned.className = 'sum-cell-cap font-mono';
     tdPlanned.textContent = status.plannedTimeMins > 0 ? status.plannedTimeMins.toLocaleString() : '-';
     tr.appendChild(tdPlanned);
 
     // Col 3: Production Run Time (Mins)
     const tdRun = document.createElement('td');
-    tdRun.className = 'summary-data-cell font-bold';
+    tdRun.className = 'sum-cell-avail font-mono';
     tdRun.textContent = status.runTimeMins !== 0 ? status.runTimeMins.toLocaleString() : '0';
     tr.appendChild(tdRun);
 
     // Col 4: Machine Down Time (Mins)
     const tdDown = document.createElement('td');
-    tdDown.className = 'summary-data-cell font-bold';
+    tdDown.className = 'sum-cell-down font-mono';
     tdDown.textContent = status.downTimeMins > 0 ? status.downTimeMins.toLocaleString() : '-';
     tr.appendChild(tdDown);
 
     // Col 5: Production Running Time (%)
     const tdRunPct = document.createElement('td');
-    tdRunPct.className = 'summary-data-cell font-bold';
+    tdRunPct.className = 'sum-cell-perf font-mono';
     tdRunPct.textContent = `${(status.runTimePct * 100).toFixed(1)}%`;
     tr.appendChild(tdRunPct);
 
     // Col 6: Production Down Time (%)
     const tdDownPct = document.createElement('td');
-    tdDownPct.className = 'summary-data-cell font-bold';
+    tdDownPct.className = 'sum-cell-rej font-mono';
     tdDownPct.textContent = `${(status.downTimePct * 100).toFixed(1)}%`;
     tr.appendChild(tdDownPct);
 
     // Col 7: Remark's
     const tdRem = document.createElement('td');
-    tdRem.className = 'summary-data-cell';
+    tdRem.className = 'sum-cell-rem';
     tdRem.textContent = '';
     tr.appendChild(tdRem);
 
     tbody.appendChild(tr);
   });
 
-  // Total Row (SubTotal)
+  // Total Row
   const trTotal = document.createElement('tr');
+  trTotal.className = 'sum-total-row';
 
   const tdTotTitle = document.createElement('td');
-  tdTotTitle.className = 'status-subtotal-title font-bold';
+  tdTotTitle.className = 'sum-total-title font-mono';
   tdTotTitle.textContent = 'SubTotal';
   trTotal.appendChild(tdTotTitle);
 
   const tdTotPlanned = document.createElement('td');
-  tdTotPlanned.className = 'status-subtotal-cell';
+  tdTotPlanned.className = 'sum-total-planned font-mono';
   tdTotPlanned.textContent = grandPlanned.toLocaleString();
   trTotal.appendChild(tdTotPlanned);
 
   const tdTotRun = document.createElement('td');
-  tdTotRun.className = 'status-subtotal-cell';
+  tdTotRun.className = 'sum-total-run font-mono';
   tdTotRun.textContent = grandRun.toLocaleString();
   trTotal.appendChild(tdTotRun);
 
   const tdTotDown = document.createElement('td');
-  tdTotDown.className = 'status-subtotal-cell';
+  tdTotDown.className = 'sum-total-down font-mono';
   tdTotDown.textContent = grandDown.toLocaleString();
   trTotal.appendChild(tdTotDown);
 
+  const overallRunPct = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
+  const overallDownPct = grandPlanned > 0 ? (grandDown / grandPlanned) : 0;
+
   const tdTotRunPct = document.createElement('td');
-  tdTotRunPct.className = 'status-subtotal-cell';
-  const grandRunPct = grandPlanned > 0 ? (grandRun / grandPlanned) * 100 : 0;
-  tdTotRunPct.textContent = `${grandRunPct.toFixed(1)}%`;
+  tdTotRunPct.className = 'sum-total-perf font-mono';
+  tdTotRunPct.textContent = `${(overallRunPct * 100).toFixed(1)}%`;
   trTotal.appendChild(tdTotRunPct);
 
   const tdTotDownPct = document.createElement('td');
-  tdTotDownPct.className = 'status-subtotal-cell';
-  const grandDownPct = grandPlanned > 0 ? (grandDown / grandPlanned) * 100 : 0;
-  tdTotDownPct.textContent = `${grandDownPct.toFixed(1)}%`;
+  tdTotDownPct.className = 'sum-total-rej font-mono';
+  tdTotDownPct.textContent = `${(overallDownPct * 100).toFixed(1)}%`;
   trTotal.appendChild(tdTotDownPct);
 
   const tdTotRem = document.createElement('td');
-  tdTotRem.className = 'status-subtotal-cell';
+  tdTotRem.className = 'sum-cell-rem';
   tdTotRem.textContent = '';
   trTotal.appendChild(tdTotRem);
 
@@ -2412,7 +2462,6 @@ function renderDowntimeRunningStatusReport(table) {
   table.appendChild(tbody);
 }
 
-// ─── TAB OEE SUMMARY CALCULATOR ───────────────────────────────────────────────
 function getTabOEESummary(tabId, year, monthIndex) {
   let rowsData = [];
   if (tabId === ACTIVE_TAB && monthIndex === MonthYearState.monthIndex && year === MonthYearState.year) {
@@ -2478,7 +2527,7 @@ function getTabOEESummary(tabId, year, monthIndex) {
   };
 }
 
-// ─── EXECUTIVE OEE REPORT TABLE RENDERER ───────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function renderOEEReport(table) {
   const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
   const year = MonthYearState.year;
@@ -2519,58 +2568,50 @@ function renderOEEReport(table) {
 
   const thSec = document.createElement('th');
   thSec.rowSpan = 2;
-  thSec.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thSec.className = 'sum-header-section';
   thSec.textContent = 'Section';
-  thSec.style.verticalAlign = 'middle';
   tr3.appendChild(thSec);
 
   const thCap = document.createElement('th');
   thCap.rowSpan = 2;
-  thCap.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thCap.className = 'sum-header-cap';
   thCap.innerHTML = 'Machine<br>Capacity (Pcs)';
-  thCap.style.verticalAlign = 'middle';
   tr3.appendChild(thCap);
 
   const thQty = document.createElement('th');
   thQty.colSpan = 2;
-  thQty.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-1';
+  thQty.className = 'sum-header-prod';
   thQty.textContent = 'Production Qty.';
-  thQty.style.verticalAlign = 'middle';
   tr3.appendChild(thQty);
 
   const thAvail = document.createElement('th');
   thAvail.rowSpan = 2;
-  thAvail.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thAvail.className = 'sum-header-avail';
   thAvail.innerHTML = 'Availability<br>(%)';
-  thAvail.style.verticalAlign = 'middle';
   tr3.appendChild(thAvail);
 
   const thPerf = document.createElement('th');
   thPerf.rowSpan = 2;
-  thPerf.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thPerf.className = 'sum-header-perf';
   thPerf.innerHTML = 'Performance<br>(%)';
-  thPerf.style.verticalAlign = 'middle';
   tr3.appendChild(thPerf);
 
   const thQual = document.createElement('th');
   thQual.rowSpan = 2;
-  thQual.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thQual.className = 'sum-header-qual';
   thQual.innerHTML = 'Quality<br>(%)';
-  thQual.style.verticalAlign = 'middle';
   tr3.appendChild(thQual);
 
   const thOEE = document.createElement('th');
   thOEE.rowSpan = 2;
-  thOEE.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-2';
+  thOEE.className = 'sum-header-oee';
   thOEE.innerHTML = 'OEE (%)';
-  thOEE.style.verticalAlign = 'middle';
   tr3.appendChild(thOEE);
 
   const thRem = document.createElement('th');
   thRem.rowSpan = 2;
-  thRem.className = 'status-remarks-header border border-red-800';
+  thRem.className = 'sum-header-rem';
   thRem.textContent = "Remark's";
-  thRem.style.verticalAlign = 'middle';
   tr3.appendChild(thRem);
 
   thead.appendChild(tr3);
@@ -2579,15 +2620,13 @@ function renderOEEReport(table) {
   const tr4 = document.createElement('tr');
 
   const thTotProd = document.createElement('th');
-  thTotProd.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-1.5';
+  thTotProd.className = 'sum-header-prod';
   thTotProd.innerHTML = 'Total Production<br>(pcs)';
-  thTotProd.style.verticalAlign = 'middle';
   tr4.appendChild(thTotProd);
 
   const thRej = document.createElement('th');
-  thRej.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-2 py-1.5';
+  thRej.className = 'sum-header-rej';
   thRej.innerHTML = 'Rejection<br>(Pcs)';
-  thRej.style.verticalAlign = 'middle';
   tr4.appendChild(thRej);
 
   thead.appendChild(tr4);
@@ -2615,56 +2654,56 @@ function renderOEEReport(table) {
 
     // Col 1: Section
     const tdSec = document.createElement('td');
-    tdSec.className = 'oee-section-cell';
+    tdSec.className = 'sum-cell-sec';
     tdSec.textContent = dept.name;
     tr.appendChild(tdSec);
 
     // Col 2: Machine Capacity (Pcs)
     const tdCap = document.createElement('td');
-    tdCap.className = 'summary-data-cell';
+    tdCap.className = 'sum-cell-cap font-mono';
     tdCap.textContent = oeeData.capacityPcs > 0 ? oeeData.capacityPcs.toLocaleString() : '-';
     tr.appendChild(tdCap);
 
     // Col 3: Total Production (pcs)
     const tdProd = document.createElement('td');
-    tdProd.className = 'summary-data-cell';
+    tdProd.className = 'sum-cell-prod font-mono';
     tdProd.textContent = oeeData.totalProduction > 0 ? oeeData.totalProduction.toLocaleString() : '-';
     tr.appendChild(tdProd);
 
     // Col 4: Rejection (Pcs)
     const tdRej = document.createElement('td');
-    tdRej.className = 'summary-data-cell';
+    tdRej.className = 'sum-cell-rej font-mono';
     tdRej.textContent = oeeData.rejectionPcs > 0 ? (oeeData.rejectionPcs % 1 !== 0 ? oeeData.rejectionPcs.toFixed(1) : oeeData.rejectionPcs.toLocaleString()) : '0';
     tr.appendChild(tdRej);
 
     // Col 5: Availability (%)
     const tdAvail = document.createElement('td');
-    tdAvail.className = 'summary-data-cell font-bold';
+    tdAvail.className = 'sum-cell-avail font-mono';
     tdAvail.textContent = `${(oeeData.availability * 100).toFixed(0)}%`;
     tr.appendChild(tdAvail);
 
     // Col 6: Performance (%)
     const tdPerf = document.createElement('td');
-    tdPerf.className = 'summary-data-cell font-bold';
+    tdPerf.className = 'sum-cell-perf font-mono';
     tdPerf.textContent = `${(oeeData.performance * 100).toFixed(0)}%`;
     tr.appendChild(tdPerf);
 
     // Col 7: Quality (%)
     const tdQual = document.createElement('td');
-    tdQual.className = 'summary-data-cell font-bold';
+    tdQual.className = 'sum-cell-qual font-mono';
     tdQual.textContent = `${(oeeData.quality * 100).toFixed(1)}%`;
     tr.appendChild(tdQual);
 
     // Col 8: OEE (%)
     const tdOEE = document.createElement('td');
-    tdOEE.className = 'summary-data-cell font-bold';
+    tdOEE.className = 'sum-cell-oee font-mono';
     tdOEE.textContent = `${(oeeData.oee * 100).toFixed(1)}%`;
     tr.appendChild(tdOEE);
 
     // Col 9: Remark's
     const tdRem = document.createElement('td');
-    tdRem.className = 'summary-data-cell';
-    tdRem.textContent = '';
+    tdRem.className = 'sum-cell-rem';
+    tdRem.textContent = oeeData.remarks || '';
     tr.appendChild(tdRem);
 
     tbody.appendChild(tr);
@@ -2672,54 +2711,56 @@ function renderOEEReport(table) {
 
   // Total Row
   const trTotal = document.createElement('tr');
+  trTotal.className = 'sum-total-row';
 
   const tdTotTitle = document.createElement('td');
-  tdTotTitle.className = 'oee-total-title font-bold';
+  tdTotTitle.className = 'sum-total-title font-mono';
   tdTotTitle.textContent = 'Total';
   trTotal.appendChild(tdTotTitle);
 
   const tdTotCap = document.createElement('td');
-  tdTotCap.className = 'oee-total-cell font-bold';
+  tdTotCap.className = 'sum-total-cap font-mono';
   tdTotCap.textContent = grandCap.toLocaleString();
   trTotal.appendChild(tdTotCap);
 
   const tdTotProd = document.createElement('td');
-  tdTotProd.className = 'oee-total-cell font-bold';
+  tdTotProd.className = 'sum-total-prod font-mono';
   tdTotProd.textContent = grandProd.toLocaleString();
   trTotal.appendChild(tdTotProd);
 
   const tdTotRej = document.createElement('td');
-  tdTotRej.className = 'oee-total-cell font-bold';
+  tdTotRej.className = 'sum-total-rej font-mono';
   tdTotRej.textContent = grandRej > 0 ? (grandRej % 1 !== 0 ? grandRej.toFixed(1) : grandRej.toLocaleString()) : '0';
   trTotal.appendChild(tdTotRej);
 
-  const grandAvail = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
-  const grandPerf = grandCap > 0 ? (grandProd / grandCap) : 0;
-  const grandQual = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 0;
-  const grandOEE = grandAvail * grandPerf * grandQual;
+  // Overall KPIs
+  const overallAvail = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
+  const overallPerf = grandCap > 0 ? (grandProd / grandCap) : 0;
+  const overallQual = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 1.0;
+  const overallOEE = overallAvail * overallPerf * overallQual;
 
   const tdTotAvail = document.createElement('td');
-  tdTotAvail.className = 'oee-total-cell font-bold';
-  tdTotAvail.textContent = `${(grandAvail * 100).toFixed(0)}%`;
+  tdTotAvail.className = 'sum-total-avail font-mono';
+  tdTotAvail.textContent = `${(overallAvail * 100).toFixed(0)}%`;
   trTotal.appendChild(tdTotAvail);
 
   const tdTotPerf = document.createElement('td');
-  tdTotPerf.className = 'oee-total-cell font-bold';
-  tdTotPerf.textContent = `${(grandPerf * 100).toFixed(0)}%`;
+  tdTotPerf.className = 'sum-total-perf font-mono';
+  tdTotPerf.textContent = `${(overallPerf * 100).toFixed(0)}%`;
   trTotal.appendChild(tdTotPerf);
 
   const tdTotQual = document.createElement('td');
-  tdTotQual.className = 'oee-total-cell font-bold';
-  tdTotQual.textContent = `${(grandQual * 100).toFixed(0)}%`;
+  tdTotQual.className = 'sum-total-qual font-mono';
+  tdTotQual.textContent = `${(overallQual * 100).toFixed(0)}%`;
   trTotal.appendChild(tdTotQual);
 
   const tdTotOEE = document.createElement('td');
-  tdTotOEE.className = 'oee-total-cell font-bold';
-  tdTotOEE.textContent = `${(grandOEE * 100).toFixed(1)}%`;
+  tdTotOEE.className = 'sum-total-oee font-mono';
+  tdTotOEE.textContent = `${(overallOEE * 100).toFixed(1)}%`;
   trTotal.appendChild(tdTotOEE);
 
   const tdTotRem = document.createElement('td');
-  tdTotRem.className = 'oee-total-cell';
+  tdTotRem.className = 'sum-cell-rem';
   tdTotRem.textContent = '';
   trTotal.appendChild(tdTotRem);
 
@@ -2727,162 +2768,90 @@ function renderOEEReport(table) {
   table.appendChild(tbody);
 }
 
-// ─── YEARLY OEE SUMMARY CALCULATOR (ALL 12 MONTHS) ───────────────────────────
-// ─── FIXED PERMANENT HISTORICAL 2026 OEE SUMMARY DATA (JANUARY TO JULY 2026) ─
-const FIXED_YEARLY_OEE_2026 = {
-  0: { // January
-    monthName: 'January',
-    capacityPcs: 1124393,
-    totalProduction: 611910,
-    rejectionPcs: 2815.9,
-    achievement: 0.544,
-    availability: 0.74,
-    performance: 0.75,
-    quality: 0.99,
-    oee: 0.60
-  },
-  1: { // February
-    monthName: 'February',
-    capacityPcs: 618970,
-    totalProduction: 370274,
-    rejectionPcs: 1779,
-    achievement: 0.598,
-    availability: 0.73,
-    performance: 0.79,
-    quality: 0.99,
-    oee: 0.61
-  },
-  2: { // March
-    monthName: 'March',
-    capacityPcs: 609528,
-    totalProduction: 281886,
-    rejectionPcs: 1055,
-    achievement: 0.462,
-    availability: 0.57,
-    performance: 0.66,
-    quality: 1.00,
-    oee: 0.42
-  },
-  3: { // April
-    monthName: 'April',
-    capacityPcs: 1111210,
-    totalProduction: 677516,
-    rejectionPcs: 2648,
-    achievement: 0.610,
-    availability: 0.76,
-    performance: 0.73,
-    quality: 1.00,
-    oee: 0.58
-  },
-  4: { // May
-    monthName: 'May',
-    capacityPcs: 30000,
-    totalProduction: 30088,
-    rejectionPcs: 579,
-    achievement: 1.003,
-    availability: 0.89,
-    performance: 0.99,
-    quality: 0.987,
-    oee: 0.87
-  },
-  5: { // Jun
-    monthName: 'Jun',
-    capacityPcs: 211140,
-    totalProduction: 207640,
-    rejectionPcs: 802,
-    achievement: 0.983,
-    availability: 0.94,
-    performance: 0.98,
-    quality: 0.995,
-    oee: 0.92
-  },
-  6: { // July
-    monthName: 'July',
-    capacityPcs: 146537,
-    totalProduction: 144720,
-    rejectionPcs: 476,
-    achievement: 0.988,
-    availability: 0.93,
-    performance: 0.97,
-    quality: 0.990,
-    oee: 0.90
-  }
+// ──────────────────────────────────────────────────────────────────────────
+const YEARLY_OEE_PRESET_2026 = {
+  0: { name: 'January', capacityPcs: 1124393, totalProduction: 611910, rejectionPcs: 2815.9, achievement: 0.544, availability: 0.74, performance: 0.75, quality: 0.99, oee: 0.60, isFixed: true },
+  1: { name: 'February', capacityPcs: 618970, totalProduction: 370274, rejectionPcs: 1779, achievement: 0.598, availability: 0.73, performance: 0.79, quality: 0.99, oee: 0.61, isFixed: true },
+  2: { name: 'March', capacityPcs: 609528, totalProduction: 281886, rejectionPcs: 1055, achievement: 0.462, availability: 0.57, performance: 0.66, quality: 1.00, oee: 0.42, isFixed: true },
+  3: { name: 'April', capacityPcs: 1111210, totalProduction: 677516, rejectionPcs: 2648, achievement: 0.610, availability: 0.76, performance: 0.73, quality: 1.00, oee: 0.58, isFixed: true },
+  4: { name: 'May', capacityPcs: 30000, totalProduction: 30088, rejectionPcs: 579, achievement: 1.003, availability: 0.89, performance: 0.99, quality: 0.987, oee: 0.87, isFixed: true },
+  5: { name: 'Jun', capacityPcs: 211140, totalProduction: 207640, rejectionPcs: 802, achievement: 0.983, availability: 0.94, performance: 0.98, quality: 0.995, oee: 0.92, isFixed: true },
+  6: { name: 'July', capacityPcs: 146537, totalProduction: 144720, rejectionPcs: 476, achievement: 0.988, availability: 0.93, performance: 0.97, quality: 0.99, oee: 0.90, isFixed: true }
 };
 
-// ─── YEARLY OEE SUMMARY CALCULATOR (ALL 12 MONTHS) ───────────────────────────
 function getYearlyOEESummary(year) {
-  const monthNames = MonthYearState.monthNames;
-  const yearlyData = [];
-
-  for (let m = 0; m < 12; m++) {
-    // If year 2026 and month is Jan-Jul (m <= 6), use the fixed permanent historical company data!
-    if (year === 2026 && FIXED_YEARLY_OEE_2026[m]) {
-      const fixed = FIXED_YEARLY_OEE_2026[m];
-      yearlyData.push({
-        monthIndex: m,
-        monthName: fixed.monthName || monthNames[m],
-        capacityPcs: fixed.capacityPcs,
-        totalProduction: fixed.totalProduction,
-        rejectionPcs: fixed.rejectionPcs,
+  return MonthYearState.monthNames.map((name, mIdx) => {
+    // If year 2026 and we have historical preset for past months (0 to 6 = Jan to Jul)
+    if (year === 2026 && YEARLY_OEE_PRESET_2026[mIdx] && mIdx < MonthYearState.monthIndex) {
+      const p = YEARLY_OEE_PRESET_2026[mIdx];
+      return {
+        monthName: p.name || name,
+        monthIndex: mIdx,
+        capacityPcs: p.capacityPcs,
+        totalProduction: p.totalProduction,
+        rejectionPcs: p.rejectionPcs,
         plannedTimeMins: 0,
         runTimeMins: 0,
-        availability: fixed.availability,
-        performance: fixed.performance,
-        quality: fixed.quality,
-        oee: fixed.oee,
-        achievement: fixed.achievement,
-        isFixed: true
-      });
-      continue;
+        availability: p.availability,
+        performance: p.performance,
+        quality: p.quality,
+        oee: p.oee,
+        achievement: p.achievement,
+        isFixed: true,
+        remarks: ''
+      };
     }
 
-    let grandCap = 0;
-    let grandProd = 0;
-    let grandRej = 0;
-    let grandPlanned = 0;
-    let grandRun = 0;
+    // Live calculation from department sheets
+    let capacityPcs = 0;
+    let totalProduction = 0;
+    let rejectionPcs = 0;
+    let plannedTimeMins = 0;
+    let runTimeMins = 0;
+    let hasData = false;
 
     getActiveSummaryDepts().forEach(dept => {
-      const oeeData = getTabOEESummary(dept.id, year, m);
-      grandCap += oeeData.capacityPcs;
-      grandProd += oeeData.totalProduction;
-      grandRej += oeeData.rejectionPcs;
-      grandPlanned += oeeData.plannedTimeMins;
-      grandRun += oeeData.runTimeMins;
+      const summary = getTabOEESummary(dept.id, year, mIdx);
+      if (summary.capacityPcs > 0 || summary.totalProduction > 0 || summary.plannedTimeMins > 0) {
+        hasData = true;
+      }
+      capacityPcs += summary.capacityPcs;
+      totalProduction += summary.totalProduction;
+      rejectionPcs += summary.rejectionPcs;
+      plannedTimeMins += summary.plannedTimeMins;
+      runTimeMins += summary.runTimeMins;
     });
 
-    const availability = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
-    const performance = grandCap > 0 ? (grandProd / grandCap) : 0;
-    const quality = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 0;
+    const availability = plannedTimeMins > 0 ? (runTimeMins / plannedTimeMins) : 0;
+    const performance = capacityPcs > 0 ? (totalProduction / capacityPcs) : 0;
+    const quality = (totalProduction + rejectionPcs) > 0 ? (totalProduction / (totalProduction + rejectionPcs)) : (totalProduction > 0 ? 1.0 : 0);
     const oee = availability * performance * quality;
-    const achievement = grandCap > 0 ? (grandProd / grandCap) : 0;
+    const achievement = capacityPcs > 0 ? (totalProduction / capacityPcs) : 0;
 
-    yearlyData.push({
-      monthIndex: m,
-      monthName: monthNames[m],
-      capacityPcs: grandCap,
-      totalProduction: grandProd,
-      rejectionPcs: grandRej,
-      plannedTimeMins: grandPlanned,
-      runTimeMins: grandRun,
+    return {
+      monthName: (mIdx === 5 ? 'Jun' : name),
+      monthIndex: mIdx,
+      capacityPcs,
+      totalProduction,
+      rejectionPcs,
+      plannedTimeMins,
+      runTimeMins,
       availability,
       performance,
       quality,
       oee,
       achievement,
-      isFixed: false
-    });
-  }
-
-  return yearlyData;
+      isFixed: hasData,
+      remarks: ''
+    };
+  });
 }
 
-// ─── EXECUTIVE SUMMARY OF OEE (12 MONTH ANNUAL REPORT) TABLE RENDERER ─────────
 function renderYearlyOEESummaryReport(table) {
   const year = MonthYearState.year;
   const yearlyData = getYearlyOEESummary(year);
 
-  // Column Widths (% based)
+  // Column Widths (% based to fit 100% full screen)
   const colgroup = document.createElement('colgroup');
   const widths = ['10%', '13%', '11%', '11%', '9%', '9%', '9%', '9%', '9%', '10%'];
   widths.forEach(w => {
@@ -2895,7 +2864,7 @@ function renderYearlyOEESummaryReport(table) {
   // Thead
   const thead = document.createElement('thead');
 
-  // Row 1: MEP FAN LTD.
+  // Row 1: MEP FAN LTD. (Royal Deep Navy)
   const tr1 = document.createElement('tr');
   tr1.className = 'mep-banner-row1';
   const th1 = document.createElement('th');
@@ -2913,7 +2882,7 @@ function renderYearlyOEESummaryReport(table) {
   tr2.appendChild(th2);
   thead.appendChild(tr2);
 
-  // Row 3: Header Top Row
+  // Row 3: Header Top Row (Cyan/Sky Blue matching template)
   const tr3 = document.createElement('tr');
 
   const headers = [
@@ -2932,9 +2901,8 @@ function renderYearlyOEESummaryReport(table) {
     const th = document.createElement('th');
     if (h.rowSpan) th.rowSpan = h.rowSpan;
     if (h.colSpan) th.colSpan = h.colSpan;
-    th.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-1 py-2';
+    th.className = 'yearly-template-header';
     th.innerHTML = h.label.replace(/\n/g, '<br>');
-    th.style.verticalAlign = 'middle';
     tr3.appendChild(th);
   });
 
@@ -2944,15 +2912,13 @@ function renderYearlyOEESummaryReport(table) {
   const tr4 = document.createElement('tr');
 
   const thTotProd = document.createElement('th');
-  thTotProd.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-1 py-1.5';
+  thTotProd.className = 'yearly-template-header';
   thTotProd.innerHTML = 'Total<br>Production<br>(pcs)';
-  thTotProd.style.verticalAlign = 'middle';
   tr4.appendChild(thTotProd);
 
   const thRej = document.createElement('th');
-  thRej.className = 'border border-slate-600 bg-[#7EC8E3] text-black font-bold text-xs text-center align-middle px-1 py-1.5';
+  thRej.className = 'yearly-template-header';
   thRej.innerHTML = 'Rejection<br>(Pcs)';
-  thRej.style.verticalAlign = 'middle';
   tr4.appendChild(thRej);
 
   thead.appendChild(tr4);
@@ -2966,9 +2932,7 @@ function renderYearlyOEESummaryReport(table) {
 
     // Row 1: Total
     const trA = document.createElement('tr');
-    if (isRunningMonth) {
-      trA.className = 'yearly-running-month-row';
-    }
+    trA.className = isRunningMonth ? 'yearly-row-active-a' : 'yearly-row-normal-a';
 
     // Col 1: Month (rowSpan 2)
     const tdMonth = document.createElement('td');
@@ -2979,108 +2943,107 @@ function renderYearlyOEESummaryReport(table) {
 
     // Col 2: Detail
     const tdDetailA = document.createElement('td');
-    tdDetailA.className = isRunningMonth ? 'yearly-detail-cell running-month-detail' : 'yearly-detail-cell';
+    tdDetailA.className = isRunningMonth ? 'yearly-detail-cell running-detail-active' : 'yearly-detail-cell';
     tdDetailA.textContent = 'Total';
     trA.appendChild(tdDetailA);
 
     // Col 3: Machine Capacity
     const tdCap = document.createElement('td');
-    tdCap.className = isRunningMonth ? 'summary-data-cell running-month-data font-mono font-bold' : 'summary-data-cell font-mono';
+    tdCap.className = isRunningMonth ? 'yearly-data-cell running-data-active font-mono' : 'yearly-data-cell font-mono';
     tdCap.textContent = m.capacityPcs > 0 ? m.capacityPcs.toLocaleString() : '-';
     trA.appendChild(tdCap);
 
     // Col 4: Total Production
     const tdProd = document.createElement('td');
-    tdProd.className = isRunningMonth ? 'summary-data-cell running-month-data font-mono font-bold' : 'summary-data-cell font-mono';
+    tdProd.className = isRunningMonth ? 'yearly-data-cell running-data-active font-mono' : 'yearly-data-cell font-mono';
     tdProd.textContent = m.totalProduction > 0 ? m.totalProduction.toLocaleString() : '-';
     trA.appendChild(tdProd);
 
     // Col 5: Rejection
     const tdRej = document.createElement('td');
-    tdRej.className = isRunningMonth ? 'summary-data-cell running-month-data font-mono font-bold' : 'summary-data-cell font-mono';
+    tdRej.className = isRunningMonth ? 'yearly-data-cell running-data-active font-mono' : 'yearly-data-cell font-mono';
     tdRej.textContent = m.rejectionPcs > 0 ? (m.rejectionPcs % 1 !== 0 ? m.rejectionPcs.toFixed(1) : m.rejectionPcs.toLocaleString()) : '0';
     trA.appendChild(tdRej);
 
     // Col 6: Availability (rowSpan 2)
     const tdAvail = document.createElement('td');
     tdAvail.rowSpan = 2;
-    tdAvail.className = isRunningMonth ? 'yearly-kpi-cell running-month-kpi font-bold font-mono' : 'yearly-kpi-cell font-bold font-mono';
-    tdAvail.textContent = m.capacityPcs > 0 || m.plannedTimeMins > 0 || m.isFixed ? `${(m.availability * 100).toFixed(0)}%` : '-';
+    tdAvail.className = isRunningMonth ? 'yearly-kpi-cell running-kpi-active font-mono' : 'yearly-kpi-cell font-mono';
+    tdAvail.textContent = (m.capacityPcs > 0 || m.isFixed) ? `${Math.round(m.availability * 100)}%` : '-';
     trA.appendChild(tdAvail);
 
     // Col 7: Performance (rowSpan 2)
     const tdPerf = document.createElement('td');
     tdPerf.rowSpan = 2;
-    tdPerf.className = isRunningMonth ? 'yearly-kpi-cell running-month-kpi font-bold font-mono' : 'yearly-kpi-cell font-bold font-mono';
-    tdPerf.textContent = m.capacityPcs > 0 || m.isFixed ? `${(m.performance * 100).toFixed(0)}%` : '-';
+    tdPerf.className = isRunningMonth ? 'yearly-kpi-cell running-kpi-active font-mono' : 'yearly-kpi-cell font-mono';
+    tdPerf.textContent = (m.capacityPcs > 0 || m.isFixed) ? `${Math.round(m.performance * 100)}%` : '-';
     trA.appendChild(tdPerf);
 
     // Col 8: Quality (rowSpan 2)
     const tdQual = document.createElement('td');
     tdQual.rowSpan = 2;
-    tdQual.className = isRunningMonth ? 'yearly-kpi-cell running-month-kpi font-bold font-mono' : 'yearly-kpi-cell font-bold font-mono';
-    if (m.isFixed && m.quality !== undefined) {
+    tdQual.className = isRunningMonth ? 'yearly-kpi-cell running-kpi-active font-mono' : 'yearly-kpi-cell font-mono';
+    if (m.capacityPcs > 0 || m.isFixed) {
       const qVal = m.quality * 100;
-      tdQual.textContent = `${qVal.toFixed(qVal % 1 !== 0 ? 1 : 0)}%`;
+      tdQual.textContent = (qVal % 1 !== 0) ? `${qVal.toFixed(1)}%` : `${Math.round(qVal)}%`;
     } else {
-      tdQual.textContent = m.totalProduction > 0 ? `${(m.quality * 100).toFixed(m.quality >= 0.999 ? 0 : 1)}%` : '-';
+      tdQual.textContent = '-';
     }
     trA.appendChild(tdQual);
 
     // Col 9: OEE (rowSpan 2)
     const tdOEE = document.createElement('td');
     tdOEE.rowSpan = 2;
-    tdOEE.className = isRunningMonth ? 'yearly-kpi-cell running-month-kpi font-bold font-mono' : 'yearly-kpi-cell font-bold font-mono';
-    tdOEE.textContent = m.capacityPcs > 0 || m.isFixed ? `${(m.oee * 100).toFixed(0)}%` : '-';
+    tdOEE.className = isRunningMonth ? 'yearly-kpi-cell running-kpi-active font-mono' : 'yearly-kpi-cell font-mono';
+    tdOEE.textContent = (m.capacityPcs > 0 || m.isFixed) ? `${Math.round(m.oee * 100)}%` : '-';
     trA.appendChild(tdOEE);
 
-    // Col 10: Remark's (rowSpan 2)
+    // Col 10: Remarks (rowSpan 2)
     const tdRem = document.createElement('td');
     tdRem.rowSpan = 2;
-    tdRem.className = isRunningMonth ? 'yearly-remarks-cell running-month-data' : 'yearly-remarks-cell';
-    tdRem.textContent = '';
+    tdRem.className = isRunningMonth ? 'yearly-remarks-cell running-data-active' : 'yearly-remarks-cell';
+    tdRem.textContent = m.remarks || '';
     trA.appendChild(tdRem);
 
     tbody.appendChild(trA);
 
     // Row 2: Total Acheivement (%)
     const trB = document.createElement('tr');
-    trB.className = isRunningMonth ? 'yearly-month-divider yearly-running-month-row-b' : 'yearly-month-divider';
+    trB.className = isRunningMonth ? 'yearly-row-active-b' : 'yearly-row-normal-b';
 
     // Col 2: Detail
     const tdDetailB = document.createElement('td');
-    tdDetailB.className = isRunningMonth ? 'yearly-detail-cell running-month-detail font-bold' : 'yearly-detail-cell';
+    tdDetailB.className = isRunningMonth ? 'yearly-detail-cell running-detail-active' : 'yearly-detail-cell';
     tdDetailB.textContent = 'Total Acheivement (%)';
     trB.appendChild(tdDetailB);
 
     // Col 3, 4, 5: Merged Total Acheivement Value (colSpan 3)
     const tdAch = document.createElement('td');
     tdAch.colSpan = 3;
-    const isHighlight = m.achievement >= 0.95 && m.capacityPcs > 0;
+    const achVal = m.achievement;
+    const isOver95 = (achVal >= 0.95 && m.capacityPcs > 0);
+
     if (isRunningMonth) {
-      tdAch.className = 'yearly-ach-cell running-month-ach';
+      tdAch.className = 'yearly-ach-running font-mono';
+      tdAch.textContent = `${(achVal * 100).toFixed(1)}%`;
+    } else if (isOver95) {
+      tdAch.className = 'yearly-ach-highlight font-mono';
+      tdAch.textContent = `${(achVal * 100).toFixed(1)}%`;
+    } else if (m.capacityPcs > 0 || m.isFixed) {
+      tdAch.className = 'yearly-ach-cell font-mono';
+      tdAch.textContent = `${(achVal * 100).toFixed(1)}%`;
     } else {
-      tdAch.className = isHighlight ? 'yearly-ach-highlight font-mono' : 'yearly-ach-cell font-mono';
+      tdAch.className = 'yearly-ach-cell font-mono';
+      tdAch.textContent = '-';
     }
-    tdAch.textContent = m.capacityPcs > 0 || m.isFixed ? `${(m.achievement * 100).toFixed(1)}%` : '-';
     trB.appendChild(tdAch);
 
     tbody.appendChild(trB);
-
-    // Gap / Separator row after each month (matching screenshot gap)
-    const trGap = document.createElement('tr');
-    trGap.className = 'yearly-gap-row';
-    const tdGap = document.createElement('td');
-    tdGap.colSpan = 10;
-    tdGap.className = 'yearly-gap-cell';
-    trGap.appendChild(tdGap);
-    tbody.appendChild(trGap);
   });
 
   table.appendChild(tbody);
 }
 
-// ─── RENDERING THE SPREADSHEET ────────────────────────────────────────────────
 function renderExcelTable() {
   const table = document.getElementById('excelMainTable');
   if (!table) return;
@@ -3089,41 +3052,39 @@ function renderExcelTable() {
 
   // If viewing Executive Summary Reports
   if (ACTIVE_TAB === 'summary_downtime') {
+    table.className = 'mep-excel-table mep-summary-table mep-dt-summary-table';
     renderSummaryDowntimeReport(table);
     return;
   }
   if (ACTIVE_TAB === 'summary_production') {
+    table.className = 'mep-excel-table mep-summary-table';
     renderProductionOutputReport(table);
     return;
   }
   if (ACTIVE_TAB === 'summary_status') {
+    table.className = 'mep-excel-table mep-summary-table';
     renderDowntimeRunningStatusReport(table);
     return;
   }
   if (ACTIVE_TAB === 'summary_oee') {
+    table.className = 'mep-excel-table mep-summary-table';
     renderOEEReport(table);
     return;
   }
   if (ACTIVE_TAB === 'summary_oee_yearly') {
+    table.className = 'mep-excel-table mep-summary-table';
     renderYearlyOEESummaryReport(table);
     return;
   }
 
-  // Column Widths (% based to span 100% full screen width)
-  // Perfectly balanced so even the longest names like "Auto Die Casting (Cover)" NEVER get clipped in any tab!
+  table.className = 'mep-excel-table mep-entry-table';
+
+  // Column Widths from EXCEL_COLUMNS definition
   const colgroup = document.createElement('colgroup');
   EXCEL_COLUMNS.forEach(c => {
     const col = document.createElement('col');
-    if (c.col === 'A') col.style.width = '4.5%'; // Fits '1-Aug-26' cleanly
-    else if (c.col === 'B') col.style.width = '2.0%'; // Fits 'Sat', 'Sun' cleanly
-    else if (c.col === 'C') col.style.width = '3.0%'; // Fits 'Morning', 'Night' completely
-    else if (c.col === 'D') col.style.width = '10.5%'; // Fits 'Auto Die Casting (Cover)' completely with margins
-    else if (['E', 'F', 'H', 'J', 'AH'].includes(c.col)) col.style.width = '3.6%'; // Fits 5-digit numbers (11111)
-    else if (c.col === 'G') col.style.width = '2.5%'; // Fits rejection numbers
-    else if (c.col === 'I') col.style.width = '2.2%'; // Fits Expected DT (30/0)
-    else if (['AI', 'AJ', 'AK', 'AL'].includes(c.col)) col.style.width = '2.1%'; // Fits 100% KPI
-    else if (c.col === 'AM') col.style.width = '4.5%'; // Remarks
-    else col.style.width = '2.0%'; // 23 Downtime columns (Fits 3 digits comfortably like 120, 250, 480)
+    col.style.width = `${c.width}px`;
+    col.style.minWidth = `${c.width}px`;
     colgroup.appendChild(col);
   });
   table.appendChild(colgroup);
@@ -3216,7 +3177,7 @@ function renderExcelTable() {
 
     if (colDef.isPercent) {
       if (colLetter === 'AI') td.dataset.formula = '=IFERROR(J5/H5,0)';
-      if (colLetter === 'AJ') td.dataset.formula = '=IFERROR(F5/E5,0)';
+      if (colLetter === 'AM') td.dataset.formula = '=IFERROR(F5/E5,0)';
       if (colLetter === 'AK') td.dataset.formula = '=IFERROR(F5/(F5+G5),0)';
       if (colLetter === 'AL') td.dataset.formula = '=IFERROR(AK5*AJ5*AI5,0)';
     } else if (colDef.isNumeric || colDef.isDt || colDef.isFormula) {
@@ -3246,7 +3207,6 @@ function renderExcelTable() {
     const isFriday = (dayName === 'Fri');
     const isDayEnd = ((r - 6) % rowsPerDay === (rowsPerDay - 1)); // Last machine of each day
     const mIdx = (r - 6) % rowsPerDay;
-    const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
 
     const tr = document.createElement('tr');
     tr.dataset.row = r;
@@ -3259,36 +3219,18 @@ function renderExcelTable() {
 
     EXCEL_COLUMNS.forEach((colDef, cIdx) => {
       const colLetter = colDef.col;
-      const isTimeCol = TIME_COLUMNS.includes(colLetter);
       const isDateDayShiftCol = ['A', 'B', 'C'].includes(colLetter);
-
-      // If slave row in a merged time group, skip rendering the time columns!
-      if (isTimeCol && groupInfo.isSlave) {
-        return;
-      }
-
-      // Merge Date (A), Day (B), Shift (C) for all machines on the same day
-      if (isDateDayShiftCol && mIdx > 0) {
-        return; // Skip rendering in secondary machine rows of the same day
-      }
 
       const td = document.createElement('td');
       td.dataset.row = r;
       td.dataset.col = colLetter;
       td.dataset.cidx = cIdx;
 
-      if (isDateDayShiftCol && mIdx === 0 && rowsPerDay > 1) {
-        td.rowSpan = rowsPerDay;
-        td.style.verticalAlign = 'middle';
-      }
-
-      if (isTimeCol && groupInfo.isMaster && groupInfo.count > 1) {
-        td.rowSpan = groupInfo.count;
-        td.style.verticalAlign = 'middle';
-      }
-
       if (colDef.isReadOnly) {
         td.className = 'cell-readonly-fixed';
+        if (isDateDayShiftCol && mIdx > 0) {
+          td.classList.add('cell-date-secondary');
+        }
       } else if (colLetter === 'J') {
         td.className = 'cell-formula-runtime';
       } else if (colDef.isLossDt) {
@@ -3303,7 +3245,7 @@ function renderExcelTable() {
         td.className = 'cell-white';
       }
 
-      if (isDateDayShiftCol || isDayEnd || (isTimeCol && groupInfo.isMaster && (mIdx + groupInfo.count >= rowsPerDay))) {
+      if (isDayEnd) {
         td.classList.add('cell-day-end-border');
       }
 
@@ -3371,23 +3313,21 @@ function formatCellValue(val, colDef, isTotalRow = false) {
 
   if (colDef.isPercent) {
     const num = Number(val) || 0;
-    return `${(num * 100).toFixed(0)}%`;
+    return `${Math.round(num * 100)}%`;
   }
 
   if (colDef.isNumeric || colDef.isDt || colDef.isFormula) {
-    if (typeof val === 'number') {
-      return val !== 0 ? String(val) : '0';
-    }
     const n = Number(val);
     if (!isNaN(n)) {
-      return n !== 0 ? String(n) : '0';
+      const rounded = Math.round(n);
+      return rounded !== 0 ? String(rounded) : '0';
     }
   }
 
   return String(val);
 }
 
-// ─── CELL SELECTION, RANGE SELECTION & STATS ──────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function selectCell(colLetter, rowNum, resetRange = true) {
   if (ACTIVE_TAB === 'summary_downtime' || ACTIVE_TAB === 'summary_production') return;
   if (isRowLocked(rowNum)) return;
@@ -3595,7 +3535,7 @@ function updateRangeStats(minR, maxR, minC, maxC) {
   setText('statAverage', `AVERAGE: ${avg}`);
 }
 
-// ─── EXCEL FILL HANDLE & AUTOFILL ENGINE ──────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function computeAutoFillVal(targetR, targetCIdx, srcMinR, srcMaxR, srcMinC, srcMaxC, fillDir, isCtrl) {
   if (fillDir === 'down' || fillDir === 'up') {
     const colLetter = EXCEL_COLUMNS[targetCIdx].col;
@@ -3715,7 +3655,7 @@ function onFillHandleMouseDown(e) {
   e.preventDefault();
 
   if (CurrentUser && CurrentUser.isReadOnly) {
-    showToast('🔒 ভিউ মোড: ডাটা পরিবর্তন করা সম্ভব নয়।', 'warning');
+    showToast('Permission Denied: This operation is restricted.', 'warning');
     return;
   }
 
@@ -3927,7 +3867,7 @@ function onFillHandleMouseDown(e) {
     highlightSelectedRange();
 
     const isSeries = isCtrl || (srcMaxR - srcMinR >= 1) || (srcMaxC - srcMinC >= 1);
-    showToast(`✨ AutoFill: ${updatedCount} cells ${isSeries ? 'series completed' : 'copied'} successfully`, 'success');
+    showToast('Operation completed successfully.', 'success');
   };
 
   document.addEventListener('mousemove', onMouseMove);
@@ -3936,7 +3876,7 @@ function onFillHandleMouseDown(e) {
   document.addEventListener('keyup', onKeyUp);
 }
 
-// ─── STRICT NUMERIC SANITIZER ────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function sanitizeNumericValue(val) {
   if (typeof val !== 'string') return val;
   const trimmed = val.trim();
@@ -3955,10 +3895,10 @@ function sanitizeNumericValue(val) {
   return cleaned === '' ? null : (Number(cleaned) || 0);
 }
 
-// ─── IN-PLACE CELL EDITING ────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
   if (CurrentUser && CurrentUser.isReadOnly) {
-    showToast('🔒 ভিউ মোড: কোনো ডাটা পরিবর্তন বা এডিট করা যাবে না।', 'warning');
+    showToast('Permission Denied: This operation is restricted.', 'warning');
     return;
   }
 
@@ -3998,6 +3938,8 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
     input.className = 'cell-edit-input';
 
     input.addEventListener('keydown', (e) => {
+      // Prevent bubbling so window shortcuts don't intercept editing
+      e.stopPropagation();
       if (['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
         return;
       }
@@ -4018,7 +3960,11 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
   SheetState.activeInput = input;
 
   input.focus();
-  if (initialChar === null && input.select) input.select();
+  if (initialChar !== null) {
+    input.setSelectionRange(input.value.length, input.value.length);
+  } else if (input.select) {
+    input.select();
+  }
 
   const commit = () => {
     if (!SheetState.isEditing) return;
@@ -4160,7 +4106,7 @@ function updateTotalRowDisplay() {
   });
 }
 
-// ─── KEYBOARD NAVIGATION ENGINE (WITH EXCEL-GRADE MERGED CELL AWARENESS) ──────
+// ──────────────────────────────────────────────────────────────────────────
 function getCellSpanInfo(colLetter, rowNum) {
   const rowsPerDay = getRowsPerDay();
   const mIdx = (rowNum - 6) % rowsPerDay;
@@ -4183,136 +4129,96 @@ function getCellSpanInfo(colLetter, rowNum) {
   return { masterRow: rowNum, span: 1, isMerged: false };
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// NAVIGATION & QUICK ENTRY
+// ──────────────────────────────────────────────────────────────────────────
 function navigateSelection(dCol, dRow) {
   if (SHEET_TABS[ACTIVE_TAB]?.isSummary) return;
 
   let cur = SheetState.selected;
-  const maxActive = getMaxActiveRow();
-
-  if (!cur || !cur.colLetter || !cur.row) {
+  if (!cur) {
     selectCell('E', 6);
     return;
   }
 
-  const colIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
-  let newColIdx = (colIdx >= 0) ? colIdx : 4;
-  let newRowNum = cur.row;
+  const curCIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
+  let nextCIdx = curCIdx + dCol;
+  let nextRow = cur.row + dRow;
 
-  // Horizontal Navigation (Left / Right)
-  if (dCol !== 0) {
-    if (Math.abs(dCol) >= 50) {
-      newColIdx = dCol > 0 ? (EXCEL_COLUMNS.length - 1) : 0;
-    } else {
-      newColIdx = Math.max(0, Math.min(EXCEL_COLUMNS.length - 1, newColIdx + dCol));
-    }
-  }
+  const maxR = getMaxActiveRow();
+  nextCIdx = Math.max(0, Math.min(EXCEL_COLUMNS.length - 1, nextCIdx));
+  nextRow = Math.max(6, Math.min(maxR, nextRow));
 
-  // Vertical Navigation (Up / Down) with Merged Cell awareness
-  if (dRow !== 0) {
-    const spanInfo = getCellSpanInfo(cur.colLetter, cur.row);
-    
-    if (Math.abs(dRow) >= 50) {
-      newRowNum = dRow > 0 ? maxActive : 6;
-    } else if (dRow > 0) {
-      // Moving Down: jump past the merged cell's entire span in 1 single step!
-      newRowNum = spanInfo.masterRow + spanInfo.span;
-      if (newRowNum > maxActive) newRowNum = maxActive;
-    } else if (dRow < 0) {
-      // Moving Up: jump to the top master cell above the merged block in 1 single step!
-      const targetAbove = spanInfo.masterRow - 1;
-      if (targetAbove >= 6) {
-        const aboveInfo = getCellSpanInfo(cur.colLetter, targetAbove);
-        newRowNum = aboveInfo.masterRow;
-      } else {
-        newRowNum = 6;
-      }
-    }
-  }
-
-  const newColLetter = EXCEL_COLUMNS[newColIdx].col;
-  selectCell(newColLetter, newRowNum);
-
-  // Smooth auto-scroll into view
-  const target = document.querySelector(`.mep-excel-table [data-col="${newColLetter}"][data-row="${newRowNum}"]`);
-  if (target) {
-    target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }
+  const nextCol = EXCEL_COLUMNS[nextCIdx].col;
+  selectCell(nextCol, nextRow);
 }
 
-// ─── ADVANCED QUICK ROW ENTRY MODAL ───────────────────────────────────────────
 let modalActiveRow = 6;
-
-function initModalDtInputs() {
-  const container = document.getElementById('modalDtContainer');
-  if (!container) return;
-
-  container.replaceChildren();
-
-  EXCEL_COLUMNS.filter(c => c.isDt).forEach(c => {
-    const card = document.createElement('div');
-    card.className = 'entry-dt-card';
-    
-    const label = document.createElement('label');
-    label.className = 'text-[11.5px] text-slate-700 truncate pr-1 font-bold';
-    label.textContent = `${c.code}. ${c.label}`;
-    label.title = c.label;
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.inputMode = 'numeric';
-    input.placeholder = '0';
-    input.dataset.dtCol = c.col;
-    input.className = 'w-14 text-right border border-slate-300 rounded px-1 py-0.5 text-xs font-bold text-purple-900 outline-none focus:border-purple-600';
-    
-    input.addEventListener('input', (e) => {
-      e.target.value = e.target.value.replace(/[^0-9.]/g, '');
-      updateModalLiveKpi();
-    });
-
-    card.appendChild(label);
-    card.appendChild(input);
-    container.appendChild(card);
-  });
-}
 
 function openQuickEntryModal(rowNum) {
   if (CurrentUser && CurrentUser.isReadOnly) {
-    showToast('🔒 ভিউ মোড: ডাটা এন্ট্রি বন্ধ রয়েছে। শুধুমাত্র দেখতে পারবেন।', 'warning');
+    showToast('Permission Denied: Read-only access.', 'warning');
     return;
   }
-
-  if (rowNum === 5) rowNum = 6;
-  if (isRowLocked(rowNum)) {
-    return;
-  }
+  const modal = document.getElementById('quickEntryModal');
+  if (!modal) return;
 
   modalActiveRow = rowNum;
   const rowObj = SheetState.rows.find(r => r.row === rowNum);
   if (!rowObj) return;
 
-  const modal = document.getElementById('quickEntryModal');
-  if (!modal) return;
+  const day = getDayFromRow(rowNum);
+  const machineName = rowObj.D?.val || 'Machine';
+  const titleEl = document.getElementById('modalMachineTitle');
+  if (titleEl) {
+    titleEl.textContent = `${machineName} — ${day}-${MonthYearState.monthIndex + 1}-${MonthYearState.year}`;
+  }
 
-  setText('modalMachineTitle', `${rowObj.D?.val || 'Machine'} — ${rowObj.A?.val || ''} (${rowObj.B?.val || ''})`);
-
+  // Populate Inputs
   const mCap = document.getElementById('mCap');
   const mAct = document.getElementById('mAct');
   const mRej = document.getElementById('mRej');
   const mPlan = document.getElementById('mPlan');
   const mRemarks = document.getElementById('mRemarks');
 
-  if (mCap) mCap.value = rowObj.E?.val ?? '';
-  if (mAct) mAct.value = rowObj.F?.val ?? '';
-  if (mRej) mRej.value = rowObj.G?.val ?? '';
-  if (mPlan) mPlan.value = rowObj.H?.val ?? '';
-  if (mRemarks) mRemarks.value = rowObj.AM?.val ?? '';
+  if (mCap) mCap.value = rowObj.E?.val || '';
+  if (mAct) mAct.value = rowObj.F?.val || '';
+  if (mRej) mRej.value = rowObj.G?.val || '';
+  if (mPlan) mPlan.value = rowObj.H?.val || '';
+  if (mRemarks) mRemarks.value = rowObj.AM?.val || '';
 
-  document.querySelectorAll('#modalDtContainer input').forEach(input => {
-    const col = input.dataset.dtCol;
-    input.value = rowObj[col]?.val ?? '';
+  // Generate 23 Downtime Inputs
+  const dtContainer = document.getElementById('modalDtContainer');
+  if (dtContainer) {
+    dtContainer.innerHTML = '';
+    EXCEL_COLUMNS.filter(c => c.isDt).forEach(colDef => {
+      const div = document.createElement('div');
+      div.className = 'flex flex-col';
+      const label = document.createElement('label');
+      label.className = 'text-[10px] font-bold text-slate-600 truncate mb-0.5';
+      label.title = colDef.label;
+      label.textContent = colDef.label;
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.dataset.col = colDef.col;
+      inp.className = 'entry-input-field text-xs text-center font-mono py-1';
+      inp.value = rowObj[colDef.col]?.val || '';
+      inp.placeholder = '0';
+      inp.addEventListener('input', updateModalLiveKPI);
+      div.appendChild(label);
+      div.appendChild(inp);
+      dtContainer.appendChild(div);
+    });
+  }
+
+  [mCap, mAct, mRej, mPlan].forEach(inp => {
+    if (inp) {
+      inp.removeEventListener('input', updateModalLiveKPI);
+      inp.addEventListener('input', updateModalLiveKPI);
+    }
   });
 
-  updateModalLiveKpi();
+  updateModalLiveKPI();
   modal.classList.remove('hidden');
   mAct?.focus();
 }
@@ -4322,2330 +4228,351 @@ function closeQuickEntryModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-function updateModalLiveKpi() {
-  const cap = Number(document.getElementById('mCap')?.value) || 0;
-  const act = Number(document.getElementById('mAct')?.value) || 0;
-  const rej = Number(document.getElementById('mRej')?.value) || 0;
-  const plan = Number(document.getElementById('mPlan')?.value) || 0;
+function updateModalLiveKPI() {
+  const mCap = parseFloat(document.getElementById('mCap')?.value) || 0;
+  const mAct = parseFloat(document.getElementById('mAct')?.value) || 0;
+  const mRej = parseFloat(document.getElementById('mRej')?.value) || 0;
+  const mPlan = parseFloat(document.getElementById('mPlan')?.value) || 0;
 
   let totalDt = 0;
-  document.querySelectorAll('#modalDtContainer input').forEach(i => {
-    totalDt += Number(i.value) || 0;
+  document.querySelectorAll('#modalDtContainer input').forEach(inp => {
+    totalDt += parseFloat(inp.value) || 0;
   });
 
-  setText('mTotalDtBadge', `Total DT: ${totalDt} min`);
+  const mTotalDtBadge = document.getElementById('mTotalDtBadge');
+  if (mTotalDtBadge) mTotalDtBadge.textContent = `Total DT: ${totalDt} min`;
 
-  const runTime = plan > 0 ? Math.max(0, plan - totalDt) : 0;
-  const avail = plan > 0 ? (runTime / plan) : 0;
-  const perf = cap > 0 ? (act / cap) : 0;
-  const qual = (act + rej) > 0 ? (act / (act + rej)) : 0;
-  const oee = avail * perf * qual;
+  const runTime = Math.max(0, mPlan - totalDt);
+  const avail = mPlan > 0 ? (runTime / mPlan) * 100 : 0;
+  const perf = mCap > 0 ? (mAct / mCap) * 100 : 0;
+  const qual = (mAct + mRej) > 0 ? (mAct / (mAct + mRej)) * 100 : (mAct > 0 ? 100 : 0);
+  const oee = (avail / 100) * (perf / 100) * (qual / 100) * 100;
 
   setText('mRunTime', `${runTime} min`);
-  setText('mAvail', `${(avail * 100).toFixed(0)}%`);
-  setText('mPerf', `${(perf * 100).toFixed(0)}%`);
-  setText('mQual', `${(qual * 100).toFixed(0)}%`);
-  setText('mOEE', `${(oee * 100).toFixed(0)}%`);
+  setText('mAvail', `${avail.toFixed(0)}%`);
+  setText('mPerf', `${perf.toFixed(0)}%`);
+  setText('mQual', `${qual.toFixed(0)}%`);
+  setText('mOEE', `${oee.toFixed(0)}%`);
 }
 
-function saveModalEntry(andNext = false) {
-  if (isRowLocked(modalActiveRow) || modalActiveRow === 5) return;
-
+function saveQuickEntryModal() {
+  if (CurrentUser && CurrentUser.isReadOnly) {
+    showToast('Permission Denied: Read-only access.', 'warning');
+    return;
+  }
   const rowObj = SheetState.rows.find(r => r.row === modalActiveRow);
   if (!rowObj) return;
 
-  pushHistoryState();
+  const mCap = parseFloat(document.getElementById('mCap')?.value);
+  const mAct = parseFloat(document.getElementById('mAct')?.value);
+  const mRej = parseFloat(document.getElementById('mRej')?.value);
+  const mPlan = parseFloat(document.getElementById('mPlan')?.value);
+  const mRemarks = document.getElementById('mRemarks')?.value || '';
 
-  const cap = document.getElementById('mCap')?.value.trim();
-  const act = document.getElementById('mAct')?.value.trim();
-  const rej = document.getElementById('mRej')?.value.trim();
-  const plan = document.getElementById('mPlan')?.value.trim();
-  const rem = document.getElementById('mRemarks')?.value.trim();
+  if (!isNaN(mCap)) rowObj.E = { val: mCap };
+  if (!isNaN(mAct)) rowObj.F = { val: mAct };
+  if (!isNaN(mRej)) rowObj.G = { val: mRej };
+  if (!isNaN(mPlan)) rowObj.H = { val: mPlan };
+  rowObj.AM = { val: mRemarks };
 
-  rowObj.E.val = sanitizeNumericValue(cap);
-  rowObj.F.val = sanitizeNumericValue(act);
-  rowObj.G.val = sanitizeNumericValue(rej);
-  rowObj.H.val = sanitizeNumericValue(plan);
-  rowObj.AM.val = rem || '';
-
-  document.querySelectorAll('#modalDtContainer input').forEach(input => {
-    const col = input.dataset.dtCol;
-    const v = input.value.trim();
-    if (!rowObj[col]) rowObj[col] = {};
-    rowObj[col].val = sanitizeNumericValue(v);
+  document.querySelectorAll('#modalDtContainer input').forEach(inp => {
+    const col = inp.dataset.col;
+    const v = parseFloat(inp.value);
+    rowObj[col] = { val: isNaN(v) ? 0 : v };
   });
 
-  const affectedRows = [];
-  const tabInfo = SHEET_TABS[ACTIVE_TAB];
-  if (tabInfo && tabInfo.timeGroups) {
-    const rowsPerDay = getRowsPerDay();
-    const mIdx = (modalActiveRow - 6) % rowsPerDay;
-    const dayStart = modalActiveRow - mIdx;
-    for (let i = 0; i < rowsPerDay; i++) {
-      const targetRowObj = SheetState.rows.find(r => r.row === (dayStart + i));
-      if (targetRowObj) {
-        recalculateRow(targetRowObj);
-        affectedRows.push(targetRowObj);
-      }
-    }
-  } else {
-    recalculateRow(rowObj);
-    affectedRows.push(rowObj);
-  }
-
-  recalculateTotalRow();
-  saveSheetData(false);
-  GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, affectedRows);
+  recalculateRow(rowObj);
   updateSingleRowDisplay(modalActiveRow);
+  recalculateTotalRow();
   updateTotalRowDisplay();
-
-  showToast(`✅ Saved ${rowObj.D?.val}`, 'success');
-
-  const nextRow = modalActiveRow + 1;
-  const maxActive = getMaxActiveRow();
-  if (andNext && nextRow <= maxActive && !isRowLocked(nextRow)) {
-    openQuickEntryModal(nextRow);
-    selectCell('E', nextRow);
-  } else {
-    closeQuickEntryModal();
-    selectCell('E', modalActiveRow);
-  }
+  closeQuickEntryModal();
+  saveSheetData(true);
+  showToast('Row updated and saved successfully.', 'success');
 }
 
-// ─── SEARCH IN SHEET (Ctrl+F) ─────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
+// SEARCH BAR
+// ──────────────────────────────────────────────────────────────────────────
 function openSearchBar() {
-  const bar = document.getElementById('floatingSearchBar');
-  const input = document.getElementById('searchInput');
-  if (!bar || !input) return;
-
-  bar.classList.remove('hidden');
-  input.focus();
-  input.select();
-  performSearch();
+  const bar = document.getElementById('searchBarContainer');
+  if (bar) {
+    bar.classList.remove('hidden');
+    const inp = document.getElementById('searchInput');
+    if (inp) {
+      inp.focus();
+      inp.select();
+    }
+  }
 }
 
 function closeSearchBar() {
-  const bar = document.getElementById('floatingSearchBar');
+  const bar = document.getElementById('searchBarContainer');
   if (bar) bar.classList.add('hidden');
 }
 
-function performSearch() {
-  const q = document.getElementById('searchInput')?.value.trim().toLowerCase();
-  SheetState.searchResults = [];
-  SheetState.searchIndex = 0;
-
-  if (!q) {
-    setText('searchResultCount', '0 of 0');
+// ──────────────────────────────────────────────────────────────────────────
+// CLIPBOARD & RANGE OPERATIONS
+// ──────────────────────────────────────────────────────────────────────────
+function handleClipboardCopy() {
+  if (!SheetState.rangeSelection.start || !SheetState.rangeSelection.end) {
+    const cur = SheetState.selected;
+    if (cur) {
+      const rowObj = SheetState.rows.find(r => r.row === cur.row);
+      const val = rowObj ? (rowObj[cur.colLetter]?.val ?? '') : '';
+      navigator.clipboard.writeText(String(val)).then(() => {
+        showToast('Copied cell to clipboard.', 'info');
+      }).catch(() => {});
+    }
     return;
   }
 
-  SheetState.rows.forEach(r => {
-    if (isRowLocked(r.row)) return;
-    EXCEL_COLUMNS.forEach(c => {
-      const v = String(r[c.col]?.val ?? '').toLowerCase();
-      if (v.includes(q)) {
-        SheetState.searchResults.push({ row: r.row, col: c.col });
-      }
-    });
-  });
+  const startC = EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.start.col);
+  const endC = EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.end.col);
+  const minC = Math.min(startC, endC);
+  const maxC = Math.max(startC, endC);
 
-  const count = SheetState.searchResults.length;
-  if (count > 0) {
-    setText('searchResultCount', `1 of ${count}`);
-    const match = SheetState.searchResults[0];
-    selectCell(match.col, match.row);
-  } else {
-    setText('searchResultCount', '0 of 0');
-  }
-}
-
-function cycleSearch(next = true) {
-  const total = SheetState.searchResults.length;
-  if (total === 0) return;
-
-  if (next) {
-    SheetState.searchIndex = (SheetState.searchIndex + 1) % total;
-  } else {
-    SheetState.searchIndex = (SheetState.searchIndex - 1 + total) % total;
-  }
-
-  setText('searchResultCount', `${SheetState.searchIndex + 1} of ${total}`);
-  const match = SheetState.searchResults[SheetState.searchIndex];
-  selectCell(match.col, match.row);
-}
-
-// ─── CLIPBOARD COPY & PASTE (EXACT EXCEL BEHAVIOR) ───────────────────────────
-function handleClipboardCopy() {
-  const start = SheetState.rangeSelection.start || SheetState.selected;
-  const end = SheetState.rangeSelection.end || SheetState.selected;
-  if (!start || !end) return;
-
-  const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
-  const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
-  const minC = Math.min(startCIdx, endCIdx);
-  const maxC = Math.max(startCIdx, endCIdx);
-  const minR = Math.min(start.row, end.row);
-  const maxR = Math.max(start.row, end.row);
+  const minR = Math.min(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row);
+  const maxR = Math.max(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row);
 
   const lines = [];
-  document.querySelectorAll('.mep-excel-table td.excel-copied-cell').forEach(td => td.classList.remove('excel-copied-cell'));
-
   for (let r = minR; r <= maxR; r++) {
-    const rowObj = SheetState.rows.find(row => row.row === r);
-    const lineVals = [];
+    const rowObj = SheetState.rows.find(ro => ro.row === r);
+    const rowVals = [];
     for (let c = minC; c <= maxC; c++) {
       const colLetter = EXCEL_COLUMNS[c].col;
-      const v = rowObj ? (rowObj[colLetter]?.val ?? '') : (r === 5 ? SheetState.totals[colLetter] : '');
-      lineVals.push(v !== null && v !== undefined ? v : '');
-
-      const td = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${r}"]`);
-      if (td) td.classList.add('excel-copied-cell');
+      rowVals.push(rowObj ? (rowObj[colLetter]?.val ?? '') : '');
     }
-    lines.push(lineVals.join('\t'));
+    lines.push(rowVals.join('\t'));
   }
 
   const tsv = lines.join('\n');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(tsv).then(() => {
-      showToast(`📋 Copied ${maxR - minR + 1} × ${maxC - minC + 1} cells`, 'info');
-    }).catch(() => {
-      fallbackCopyText(tsv);
-    });
-  } else {
-    fallbackCopyText(tsv);
-  }
-}
-
-function fallbackCopyText(text) {
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-    document.execCommand('copy');
-    showToast('📋 Copied cells to clipboard', 'info');
-  } catch (err) {}
-  document.body.removeChild(textarea);
+  navigator.clipboard.writeText(tsv).then(() => {
+    showToast(`Copied ${maxR - minR + 1} x ${maxC - minC + 1} cells.`, 'info');
+  }).catch(() => {});
 }
 
 function handleClipboardPaste(text) {
+  if (CurrentUser && CurrentUser.isReadOnly) {
+    showToast('Permission Denied: Read-only access.', 'warning');
+    return;
+  }
   if (!text) return;
+
   const cur = SheetState.selected;
-  if (!cur || cur.row === 5 || isRowLocked(cur.row)) return;
+  if (!cur) return;
+
+  const startC = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
+  if (startC === -1) return;
+
+  const rows = text.split(/\r?\n/).filter(r => r.length > 0);
+  let modifiedCount = 0;
 
   pushHistoryState();
 
-  const lines = text.split(/\r\n|\n|\r/).filter(l => l.length > 0);
-  if (lines.length === 0) return;
+  rows.forEach((rowStr, rOffset) => {
+    const targetRow = cur.row + rOffset;
+    if (isRowLocked(targetRow)) return;
 
-  const start = SheetState.rangeSelection.start || cur;
-  const end = SheetState.rangeSelection.end || cur;
-  const minR = Math.min(start.row, end.row);
-  const maxR = Math.min(Math.max(start.row, end.row), getMaxActiveRow());
-  const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === (start.col || cur.colLetter));
-  const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === (end.col || cur.colLetter));
-  const minC = Math.min(startCIdx, endCIdx);
-  const maxC = Math.max(startCIdx, endCIdx);
-
-  const isSingleCellCopied = (lines.length === 1 && !lines[0].includes('\t'));
-  const isMultiCellRangeSelected = (minR !== maxR || minC !== maxC);
-
-  // If copying 1 single value and multi-cells are selected -> Fill the entire range
-  if (isSingleCellCopied && isMultiCellRangeSelected) {
-    const singleVal = lines[0].trim();
-    let modifiedCount = 0;
-    const affectedRows = new Set();
-
-    for (let r = minR; r <= maxR; r++) {
-      if (r === 5 || isRowLocked(r)) continue;
-      const rowObj = SheetState.rows.find(row => row.row === r);
-      if (!rowObj) continue;
-
-      let rowModified = false;
-      for (let c = minC; c <= maxC; c++) {
-        const colDef = EXCEL_COLUMNS[c];
-        if (colDef.isReadOnly || colDef.isFormula) continue;
-        if (!rowObj[colDef.col]) rowObj[colDef.col] = {};
-
-        if (colDef.col === 'AM') {
-          rowObj[colDef.col].val = singleVal;
-        } else {
-          rowObj[colDef.col].val = sanitizeNumericValue(singleVal);
-        }
-        rowModified = true;
-        modifiedCount++;
-      }
-      if (rowModified) {
-        recalculateRow(rowObj);
-        affectedRows.add(r);
-      }
-    }
-
-    if (modifiedCount > 0) {
-      recalculateTotalRow();
-    saveSheetData(false);
-    const rowsToPush = [];
-    affectedRows.forEach(r => {
-      const rowObj = SheetState.rows.find(row => row.row === r);
-      if (rowObj) rowsToPush.push(rowObj);
-      updateSingleRowDisplay(r);
-    });
-    if (rowsToPush.length > 0) {
-      GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, rowsToPush);
-    }
-      updateTotalRowDisplay();
-      highlightSelectedRange();
-      showToast(`📄 Pasted into ${modifiedCount} cells`, 'success');
-    }
-    return;
-  }
-
-  // Multi-cell grid paste
-  const maxActive = getMaxActiveRow();
-  const affectedRows = new Set();
-  let modifiedCount = 0;
-
-  lines.forEach((line, rOffset) => {
-    const targetRow = (isMultiCellRangeSelected ? minR : cur.row) + rOffset;
-    if (targetRow > maxActive || isRowLocked(targetRow) || targetRow === 5) return;
     const rowObj = SheetState.rows.find(r => r.row === targetRow);
     if (!rowObj) return;
 
-    const values = line.split('\t');
-    let rowModified = false;
-    values.forEach((val, cOffset) => {
-      const targetCIdx = (isMultiCellRangeSelected ? minC : startCIdx) + cOffset;
+    const cells = rowStr.split('\t');
+    cells.forEach((valStr, cOffset) => {
+      const targetCIdx = startC + cOffset;
       if (targetCIdx >= EXCEL_COLUMNS.length) return;
+
       const colDef = EXCEL_COLUMNS[targetCIdx];
-      if (colDef.isFormula || colDef.isReadOnly) return;
+      if (colDef.isReadOnly || colDef.isFormula) return;
 
-      const trimmed = val.trim();
-      if (!rowObj[colDef.col]) rowObj[colDef.col] = {};
-
-      if (colDef.col === 'AM') {
-        rowObj[colDef.col].val = trimmed;
-      } else {
-        rowObj[colDef.col].val = sanitizeNumericValue(trimmed);
+      let val = valStr.trim();
+      if (colDef.col !== 'AM' && val !== '') {
+        const num = parseFloat(val);
+        if (!isNaN(num)) val = num;
       }
-      rowModified = true;
+
+      rowObj[colDef.col] = { val };
       modifiedCount++;
     });
 
-    if (rowModified) {
-      recalculateRow(rowObj);
-      affectedRows.add(targetRow);
-    }
+    recalculateRow(rowObj);
+    updateSingleRowDisplay(targetRow);
   });
 
-  if (modifiedCount > 0) {
-    const tabInfo = SHEET_TABS[ACTIVE_TAB];
-    if (tabInfo && tabInfo.timeGroups) {
-      const rowsPerDay = getRowsPerDay();
-      const daysDone = new Set();
-      affectedRows.forEach(r => {
-        const mIdx = (r - 6) % rowsPerDay;
-        const dayStart = r - mIdx;
-        if (!daysDone.has(dayStart)) {
-          daysDone.add(dayStart);
-          for (let i = 0; i < rowsPerDay; i++) {
-            const targetRowObj = SheetState.rows.find(row => row.row === (dayStart + i));
-            if (targetRowObj) recalculateRow(targetRowObj);
-          }
-        }
-      });
-    }
-
-    recalculateTotalRow();
-    saveSheetData(false);
-    const rowsToPush = [];
-    affectedRows.forEach(r => {
-      const rowObj = SheetState.rows.find(row => row.row === r);
-      if (rowObj) rowsToPush.push(rowObj);
-      updateSingleRowDisplay(r);
-    });
-    if (rowsToPush.length > 0) {
-      GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, rowsToPush);
-    }
-    updateTotalRowDisplay();
-    highlightSelectedRange();
-    showToast(`📄 Pasted ${modifiedCount} cells`, 'success');
-  }
+  recalculateTotalRow();
+  updateTotalRowDisplay();
+  saveSheetData(false);
+  showToast(`Pasted into ${modifiedCount} cells successfully.`, 'success');
 }
 
-// ─── MULTI-CELL RANGE DELETE / CLEAR (EXCEL-LIKE BULK DELETE) ──────────────────
-function deleteSelectedRange(setZero = false) {
+function deleteSelectedRange(isCut = false) {
   if (CurrentUser && CurrentUser.isReadOnly) {
-    showToast('🔒 ভিউ মোড: কোনো ডাটা ডিলিট বা পরিবর্তন করা যাবে না।', 'warning');
+    showToast('Permission Denied: Read-only access.', 'warning');
     return;
   }
-
-  if (ACTIVE_TAB.startsWith('summary_')) {
-    return;
-  }
-
-  const start = SheetState.rangeSelection.start || SheetState.selected;
-  const end = SheetState.rangeSelection.end || SheetState.selected;
-  if (!start || !end) return;
-
-  const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
-  const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
-  const minC = Math.min(startCIdx, endCIdx);
-  const maxC = Math.max(startCIdx, endCIdx);
-  const minR = Math.min(start.row, end.row);
-  const maxR = Math.min(Math.max(start.row, end.row), getMaxActiveRow());
 
   pushHistoryState();
 
-  let modifiedCount = 0;
-  const affectedRows = new Set();
-
-  for (let r = minR; r <= maxR; r++) {
-    if (r === 5 || isRowLocked(r)) continue;
-    const rowObj = SheetState.rows.find(row => row.row === r);
-    if (!rowObj) continue;
-
-    let rowModified = false;
-    for (let c = minC; c <= maxC; c++) {
-      const colDef = EXCEL_COLUMNS[c];
-      if (colDef.isReadOnly || colDef.isFormula) continue;
-
-      const colLetter = colDef.col;
-      if (!rowObj[colLetter]) rowObj[colLetter] = {};
-
-      const newVal = setZero ? 0 : null;
-      if (rowObj[colLetter].val !== newVal) {
-        rowObj[colLetter].val = newVal;
-        rowModified = true;
-        modifiedCount++;
+  if (!SheetState.rangeSelection.start || !SheetState.rangeSelection.end) {
+    const cur = SheetState.selected;
+    if (cur && !isRowLocked(cur.row)) {
+      const colDef = EXCEL_COLUMNS.find(c => c.col === cur.colLetter);
+      if (colDef && !colDef.isReadOnly && !colDef.isFormula) {
+        const rowObj = SheetState.rows.find(r => r.row === cur.row);
+        if (rowObj) {
+          rowObj[cur.colLetter] = { val: null };
+          recalculateRow(rowObj);
+          updateSingleRowDisplay(cur.row);
+          recalculateTotalRow();
+          updateTotalRowDisplay();
+          saveSheetData(false);
+        }
       }
     }
-
-    if (rowModified) {
-      recalculateRow(rowObj);
-      affectedRows.add(r);
-    }
-  }
-
-  if (modifiedCount > 0) {
-    const tabInfo = SHEET_TABS[ACTIVE_TAB];
-    if (tabInfo && tabInfo.timeGroups) {
-      const rowsPerDay = getRowsPerDay();
-      const daysDone = new Set();
-      affectedRows.forEach(r => {
-        const mIdx = (r - 6) % rowsPerDay;
-        const dayStart = r - mIdx;
-        if (!daysDone.has(dayStart)) {
-          daysDone.add(dayStart);
-          for (let i = 0; i < rowsPerDay; i++) {
-            const targetRowObj = SheetState.rows.find(row => row.row === (dayStart + i));
-            if (targetRowObj) recalculateRow(targetRowObj);
-          }
-        }
-      });
-    }
-
-    recalculateTotalRow();
-    saveSheetData(false);
-    const rowsToPush = [];
-    affectedRows.forEach(r => {
-      const rowObj = SheetState.rows.find(row => row.row === r);
-      if (rowObj) rowsToPush.push(rowObj);
-      updateSingleRowDisplay(r);
-    });
-    if (rowsToPush.length > 0) {
-      GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, rowsToPush);
-    }
-    updateTotalRowDisplay();
-
-    // Re-highlight the range selection
-    highlightSelectedRange();
-
-    const actionText = setZero ? '0 সেট' : 'মুছে ফেলা';
-    showToast(`🧹 ${modifiedCount}টি সেলের ডাটা সফলভাবে ${actionText} হয়েছে!`, 'info');
-  }
-}
-
-// ─── EXPORT TO EXCEL (PREMIUM STYLED WORKBOOK WITH TIMES NEW ROMAN) ────────────
-async function exportExcelFile() {
-  if (CurrentUser && CurrentUser.isReadOnly) {
-    showToast('🔒 ভিউ মোড: এক্সেল ফাইল ডাউনলোড করার অনুমতি নেই।', 'warning');
     return;
   }
 
+  const startC = EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.start.col);
+  const endC = EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.end.col);
+  const minC = Math.min(startC, endC);
+  const maxC = Math.max(startC, endC);
+
+  const minR = Math.min(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row);
+  const maxR = Math.max(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row);
+
+  let count = 0;
+  for (let r = minR; r <= maxR; r++) {
+    if (isRowLocked(r)) continue;
+    const rowObj = SheetState.rows.find(ro => ro.row === r);
+    if (!rowObj) continue;
+
+    for (let c = minC; c <= maxC; c++) {
+      const colDef = EXCEL_COLUMNS[c];
+      if (colDef.isReadOnly || colDef.isFormula) continue;
+      rowObj[colDef.col] = { val: null };
+      count++;
+    }
+    recalculateRow(rowObj);
+    updateSingleRowDisplay(r);
+  }
+
+  recalculateTotalRow();
+  updateTotalRowDisplay();
+  saveSheetData(false);
+  showToast(`Cleared ${count} cells.`, 'info');
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// UNDO & REDO
+// ──────────────────────────────────────────────────────────────────────────
+function undoAction() {
+  if (SheetState.undoStack.length === 0) {
+    showToast('Nothing to undo.', 'info');
+    return;
+  }
+  const snap = SheetState.undoStack.pop();
+  SheetState.redoStack.push(JSON.stringify(SheetState.rows));
+  SheetState.rows = JSON.parse(snap);
+  renderExcelTable();
+  recalculateTotalRow();
+  updateTotalRowDisplay();
+  saveSheetData(false);
+  showToast('Action undone.', 'info');
+}
+
+function redoAction() {
+  if (SheetState.redoStack.length === 0) {
+    showToast('Nothing to redo.', 'info');
+    return;
+  }
+  const snap = SheetState.redoStack.pop();
+  SheetState.undoStack.push(JSON.stringify(SheetState.rows));
+  SheetState.rows = JSON.parse(snap);
+  renderExcelTable();
+  recalculateTotalRow();
+  updateTotalRowDisplay();
+  saveSheetData(false);
+  showToast('Action redone.', 'info');
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// EXPORT TO EXCEL (EXCELJS WORKBOOK)
+// ──────────────────────────────────────────────────────────────────────────
+async function exportExcelFile() {
   try {
-    saveSheetData(false);
-    const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
-    const year = MonthYearState.year;
+    showToast('Generating Excel workbook...', 'info');
 
-    // 1. High-End Styled Export via ExcelJS
-    if (typeof ExcelJS !== 'undefined') {
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'MEP FAN LTD.';
-      workbook.created = new Date();
-
-      // All users get the 5 Executive Summary Sheets + their assigned Production Entry Sheet(s)
-      const summaryTabKeys = ['summary_oee_yearly', 'summary_downtime', 'summary_production', 'summary_status', 'summary_oee'];
-      let userProductionTabs = [];
-
-      if (!CurrentUser || CurrentUser.id === 'admin' || CurrentUser.id === 'viewer') {
-        userProductionTabs = Object.keys(SHEET_TABS).filter(tabId => !SHEET_TABS[tabId].isSummary);
-      } else {
-        const allowed = CurrentUser.allowedDepts || [];
-        userProductionTabs = allowed.filter(tabId => SHEET_TABS[tabId] && !SHEET_TABS[tabId].isSummary);
-      }
-
-      const tabsToExport = [...summaryTabKeys, ...userProductionTabs];
-
-      for (const tabId of tabsToExport) {
-        const tabInfo = SHEET_TABS[tabId];
-        if (!tabInfo) continue;
-
-        // ─── IF SUMMARY DOWNTIME REPORT WORKSHEET ───
-        if (tabId === 'summary_downtime') {
-          const dtCols = EXCEL_COLUMNS.filter(c => c.isDt);
-          const totalColsCount = 1 + dtCols.length + 4;
-
-          const wsSummary = workbook.addWorksheet(tabInfo.name, {
-            views: [{ showGridLines: true, state: 'frozen', ySplit: 4, xSplit: 1 }],
-            properties: { tabColor: { argb: tabInfo.colorArgb } }
-          });
-
-          // Set column widths
-          wsSummary.getColumn(1).width = 25; // Machine No
-          for (let c = 2; c <= 1 + dtCols.length; c++) {
-            wsSummary.getColumn(c).width = 6.5;
-          }
-          for (let c = 2 + dtCols.length; c <= totalColsCount; c++) {
-            wsSummary.getColumn(c).width = (c === totalColsCount ? 10 : 13);
-          }
-
-          // Row 1: MEP FAN LTD. (Banner)
-          wsSummary.mergeCells(1, 1, 1, totalColsCount);
-          const r1 = wsSummary.getCell('A1');
-          r1.value = 'MEP FAN LTD.';
-          r1.font = { name: 'Times New Roman', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-          r1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0054A6' } };
-          r1.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsSummary.getRow(1).height = 32;
-
-          // Row 2: Total Downtime Report (Month Year)
-          wsSummary.mergeCells(2, 1, 2, totalColsCount);
-          const r2 = wsSummary.getCell('A2');
-          r2.value = `Total Downtime Report (${monthName} ${year})`;
-          r2.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-          r2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
-          r2.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsSummary.getRow(2).height = 20;
-
-          // Row 3: Vertical headers (Clean layout without number row)
-          wsSummary.getRow(3).height = 110;
-          const r3Machine = wsSummary.getCell('A3');
-          r3Machine.value = 'Machine No.';
-          r3Machine.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          r3Machine.alignment = { horizontal: 'center', vertical: 'middle' };
-          r3Machine.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7EC8E3' } };
-          r3Machine.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-
-          dtCols.forEach((c, idx) => {
-            const cell = wsSummary.getRow(3).getCell(idx + 2);
-            cell.value = c.label;
-            cell.font = { name: 'Times New Roman', size: 9, bold: true, color: { argb: 'FF000000' } };
-            cell.alignment = { textRotation: 90, vertical: 'bottom', horizontal: 'center', wrapText: true };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9F72DE' } };
-            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-          });
-
-          const summaryHeaders = [
-            'Total Down Time (Mins)',
-            'Production Running Time (Mins)',
-            'Total Run Time (Mins)',
-            'Total Down Time (%)'
-          ];
-          summaryHeaders.forEach((lbl, idx) => {
-            const cell = wsSummary.getRow(3).getCell(2 + dtCols.length + idx);
-            cell.value = lbl;
-            cell.font = { name: 'Times New Roman', size: 9, bold: true, color: { argb: 'FF000000' } };
-            cell.alignment = { textRotation: 90, vertical: 'bottom', horizontal: 'center', wrapText: true };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF56C5D0' } };
-            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-          });
-
-          // Department Rows (Row 4 onwards)
-          let currentExcelRow = 4;
-          const grandDtSums = {};
-          dtCols.forEach(c => grandDtSums[c.col] = 0);
-          let grandTotalDown = 0;
-          let grandPlanned = 0;
-          let grandRunTime = 0;
-
-          getActiveSummaryDepts().forEach(dept => {
-            const tabSummary = getTabMonthlySummary(dept.id, year, MonthYearState.monthIndex);
-            dtCols.forEach(c => grandDtSums[c.col] += tabSummary.dtSums[c.col]);
-            grandTotalDown += tabSummary.totalDownMins;
-            grandPlanned += tabSummary.totalPlannedMins;
-            grandRunTime += tabSummary.totalRunMins;
-
-            const row = wsSummary.getRow(currentExcelRow);
-            row.height = 20;
-
-            const cDept = row.getCell(1);
-            cDept.value = dept.name;
-            cDept.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cDept.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00AEEF' } };
-            cDept.alignment = { horizontal: 'left', vertical: 'middle' };
-            cDept.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-
-            dtCols.forEach((c, idx) => {
-              const cell = row.getCell(idx + 2);
-              const val = tabSummary.dtSums[c.col];
-              if (val > 0) {
-                cell.value = val;
-                cell.numFmt = '#,##0';
-              } else {
-                cell.value = '-';
-              }
-              cell.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-              cell.alignment = { horizontal: 'right', vertical: 'middle' };
-              cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-            });
-
-            // Summary columns
-            const cDown = row.getCell(2 + dtCols.length);
-            cDown.value = tabSummary.totalDownMins;
-            cDown.numFmt = '#,##0';
-            cDown.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cDown.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDE8D0' } };
-            cDown.alignment = { horizontal: 'right', vertical: 'middle' };
-            cDown.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-
-            const cPlanned = row.getCell(3 + dtCols.length);
-            cPlanned.value = tabSummary.totalPlannedMins;
-            cPlanned.numFmt = '#,##0';
-            cPlanned.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cPlanned.alignment = { horizontal: 'right', vertical: 'middle' };
-            cPlanned.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-
-            const cRun = row.getCell(4 + dtCols.length);
-            cRun.value = tabSummary.totalRunMins;
-            cRun.numFmt = '#,##0';
-            cRun.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cRun.alignment = { horizontal: 'right', vertical: 'middle' };
-            cRun.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-
-            const cPct = row.getCell(5 + dtCols.length);
-            cPct.value = tabSummary.dtPercent;
-            cPct.numFmt = '0.00%';
-            cPct.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF065F46' } };
-            cPct.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
-            cPct.alignment = { horizontal: 'right', vertical: 'middle' };
-            cPct.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-
-            currentExcelRow++;
-          });
-
-          // Total (Mins) Row
-          const rTotal = wsSummary.getRow(currentExcelRow);
-          rTotal.height = 22;
-
-          const cTotTitle = rTotal.getCell(1);
-          cTotTitle.value = 'Total (Mins)';
-          cTotTitle.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-          cTotTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5128' } };
-          cTotTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-          cTotTitle.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
-
-          dtCols.forEach((c, idx) => {
-            const cell = rTotal.getCell(idx + 2);
-            cell.value = grandDtSums[c.col];
-            cell.numFmt = '#,##0';
-            cell.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5128' } };
-            cell.alignment = { horizontal: 'right', vertical: 'middle' };
-            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
-          });
-
-          const cTotDown = rTotal.getCell(2 + dtCols.length);
-          cTotDown.value = grandTotalDown;
-          cTotDown.numFmt = '#,##0';
-          cTotDown.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-          cTotDown.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5128' } };
-          cTotDown.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotDown.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
-
-          const cTotPlanned = rTotal.getCell(3 + dtCols.length);
-          cTotPlanned.value = grandPlanned;
-          cTotPlanned.numFmt = '#,##0';
-          cTotPlanned.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-          cTotPlanned.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5128' } };
-          cTotPlanned.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotPlanned.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
-
-          const cTotRun = rTotal.getCell(4 + dtCols.length);
-          cTotRun.value = grandRunTime;
-          cTotRun.numFmt = '#,##0';
-          cTotRun.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-          cTotRun.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5128' } };
-          cTotRun.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotRun.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
-
-          const cTotPct = rTotal.getCell(5 + dtCols.length);
-          cTotPct.value = grandPlanned > 0 ? (grandTotalDown / grandPlanned) : 0;
-          cTotPct.numFmt = '0.00%';
-          cTotPct.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-          cTotPct.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E5128' } };
-          cTotPct.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotPct.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
-
-          continue; // done with summary_downtime tab!
-        }
-
-        // ─── IF PRODUCTION OUTPUT SUMMARY REPORT WORKSHEET ───
-        if (tabId === 'summary_production') {
-          const wsProd = workbook.addWorksheet(tabInfo.name, {
-            views: [{ showGridLines: true, state: 'frozen', ySplit: 4, xSplit: 1 }],
-            properties: { tabColor: { argb: tabInfo.colorArgb } }
-          });
-
-          // Set column widths
-          wsProd.getColumn(1).width = 28; // Section Name
-          wsProd.getColumn(2).width = 16; // Production Running (hr)
-          wsProd.getColumn(3).width = 16; // Machine Capacity (Pcs)
-          wsProd.getColumn(4).width = 16; // Production (pcs)
-          wsProd.getColumn(5).width = 16; // Rejection (Pcs)
-          wsProd.getColumn(6).width = 20; // Standrad Wise Production Output (%)
-          wsProd.getColumn(7).width = 16; // Remarks
-
-          // Row 1: MEP FAN LTD. (Banner)
-          wsProd.mergeCells('A1:G1');
-          const r1 = wsProd.getCell('A1');
-          r1.value = 'MEP FAN LTD.';
-          r1.font = { name: 'Times New Roman', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-          r1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0054A6' } };
-          r1.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsProd.getRow(1).height = 32;
-
-          // Row 2: Production Output (Month Year)
-          wsProd.mergeCells('A2:G2');
-          const r2 = wsProd.getCell('A2');
-          r2.value = `Production Output (${monthName} ${year})`;
-          r2.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-          r2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
-          r2.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsProd.getRow(2).height = 20;
-
-          // Header Borders & Fill Styles
-          const skyHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7EC8E3' } };
-          const borderThin = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'thin', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-
-          // Row 3 & 4: Merged Header Layout
-          wsProd.getRow(3).height = 24;
-          wsProd.getRow(4).height = 24;
-
-          wsProd.mergeCells('A3:A4');
-          const hSec = wsProd.getCell('A3');
-          hSec.value = 'Section Name';
-          hSec.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          hSec.fill = skyHeaderFill;
-          hSec.alignment = { horizontal: 'center', vertical: 'middle' };
-          hSec.border = borderThin;
-
-          wsProd.mergeCells('B3:B4');
-          const hRun = wsProd.getCell('B3');
-          hRun.value = 'Production Running (hr)';
-          hRun.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hRun.fill = skyHeaderFill;
-          hRun.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hRun.border = borderThin;
-
-          wsProd.mergeCells('C3:C4');
-          const hCap = wsProd.getCell('C3');
-          hCap.value = 'Machine Capacity (Pcs)';
-          hCap.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hCap.fill = skyHeaderFill;
-          hCap.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hCap.border = borderThin;
-
-          wsProd.mergeCells('D3:E3');
-          const hQty = wsProd.getCell('D3');
-          hQty.value = 'Prodcution Qty.';
-          hQty.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          hQty.fill = skyHeaderFill;
-          hQty.alignment = { horizontal: 'center', vertical: 'middle' };
-          hQty.border = borderThin;
-
-          wsProd.mergeCells('F3:F4');
-          const hOut = wsProd.getCell('F3');
-          hOut.value = 'Standrad Wise Production Output (%)';
-          hOut.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hOut.fill = skyHeaderFill;
-          hOut.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hOut.border = borderThin;
-
-          wsProd.mergeCells('G3:G4');
-          const hRem = wsProd.getCell('G3');
-          hRem.value = 'Remarks';
-          hRem.font = { name: 'Times New Roman', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
-          hRem.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
-          hRem.alignment = { horizontal: 'center', vertical: 'middle' };
-          hRem.border = borderThin;
-
-          // Row 4 Sub-headers
-          const hProdPcs = wsProd.getCell('D4');
-          hProdPcs.value = 'Production (pcs)';
-          hProdPcs.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hProdPcs.fill = skyHeaderFill;
-          hProdPcs.alignment = { horizontal: 'center', vertical: 'middle' };
-          hProdPcs.border = borderThin;
-
-          const hRejPcs = wsProd.getCell('E4');
-          hRejPcs.value = 'Rejection (Pcs)';
-          hRejPcs.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hRejPcs.fill = skyHeaderFill;
-          hRejPcs.alignment = { horizontal: 'center', vertical: 'middle' };
-          hRejPcs.border = borderThin;
-
-          // Apply border styling to merged companions
-          ['A4', 'B4', 'C4', 'E3', 'F4', 'G4'].forEach(addr => {
-            wsProd.getCell(addr).border = borderThin;
-          });
-
-          // Department Rows (Row 5 onwards)
-          let currentExcelRow = 5;
-          let grandRunning = 0;
-          let grandCapacity = 0;
-          let grandProduction = 0;
-          let grandRejection = 0;
-
-          getActiveSummaryDepts().forEach(dept => {
-            const tabSummary = getTabProductionOutputSummary(dept.id, year, MonthYearState.monthIndex);
-            grandRunning += tabSummary.runningMins;
-            grandCapacity += tabSummary.capacityPcs;
-            grandProduction += tabSummary.actualPrdPcs;
-            grandRejection += tabSummary.rejectionPcs;
-
-            const row = wsProd.getRow(currentExcelRow);
-            row.height = 20;
-
-            const cSec = row.getCell(1);
-            cSec.value = dept.name;
-            cSec.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cSec.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8DDFE' } };
-            cSec.alignment = { horizontal: 'left', vertical: 'middle' };
-            cSec.border = borderThin;
-
-            const cRun = row.getCell(2);
-            cRun.value = tabSummary.runningMins;
-            cRun.numFmt = '#,##0';
-            cRun.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cRun.alignment = { horizontal: 'right', vertical: 'middle' };
-            cRun.border = borderThin;
-
-            const cCap = row.getCell(3);
-            cCap.value = tabSummary.capacityPcs;
-            cCap.numFmt = '#,##0';
-            cCap.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cCap.alignment = { horizontal: 'right', vertical: 'middle' };
-            cCap.border = borderThin;
-
-            const cProd = row.getCell(4);
-            cProd.value = tabSummary.actualPrdPcs;
-            cProd.numFmt = '#,##0';
-            cProd.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cProd.alignment = { horizontal: 'right', vertical: 'middle' };
-            cProd.border = borderThin;
-
-            const cRej = row.getCell(5);
-            cRej.value = tabSummary.rejectionPcs;
-            cRej.numFmt = '#,##0';
-            cRej.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cRej.alignment = { horizontal: 'right', vertical: 'middle' };
-            cRej.border = borderThin;
-
-            const cPct = row.getCell(6);
-            cPct.value = tabSummary.outputPct;
-            cPct.numFmt = '0.00%';
-            cPct.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cPct.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9F72DE' } };
-            cPct.alignment = { horizontal: 'right', vertical: 'middle' };
-            cPct.border = borderThin;
-
-            const cRem = row.getCell(7);
-            cRem.value = '';
-            cRem.border = borderThin;
-
-            currentExcelRow++;
-          });
-
-          // Total Row (Yellow/Gold)
-          const rTotal = wsProd.getRow(currentExcelRow);
-          rTotal.height = 22;
-          const yellowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE699' } };
-          const borderThickBottom = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'medium', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-
-          const cTotTitle = rTotal.getCell(1);
-          cTotTitle.value = 'Total';
-          cTotTitle.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotTitle.fill = yellowFill;
-          cTotTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-          cTotTitle.border = borderThickBottom;
-
-          const cTotRun = rTotal.getCell(2);
-          cTotRun.value = grandRunning;
-          cTotRun.numFmt = '#,##0';
-          cTotRun.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotRun.fill = yellowFill;
-          cTotRun.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotRun.border = borderThickBottom;
-
-          const cTotCap = rTotal.getCell(3);
-          cTotCap.value = grandCapacity;
-          cTotCap.numFmt = '#,##0';
-          cTotCap.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotCap.fill = yellowFill;
-          cTotCap.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotCap.border = borderThickBottom;
-
-          const cTotProd = rTotal.getCell(4);
-          cTotProd.value = grandProduction;
-          cTotProd.numFmt = '#,##0';
-          cTotProd.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotProd.fill = yellowFill;
-          cTotProd.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotProd.border = borderThickBottom;
-
-          const cTotRej = rTotal.getCell(5);
-          cTotRej.value = grandRejection;
-          cTotRej.numFmt = '#,##0';
-          cTotRej.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotRej.fill = yellowFill;
-          cTotRej.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotRej.border = borderThickBottom;
-
-          const cTotPct = rTotal.getCell(6);
-          cTotPct.value = grandCapacity > 0 ? (grandProduction / grandCapacity) : 0;
-          cTotPct.numFmt = '0.00%';
-          cTotPct.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotPct.fill = yellowFill;
-          cTotPct.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotPct.border = borderThickBottom;
-
-          const cTotRem = rTotal.getCell(7);
-          cTotRem.value = '';
-          cTotRem.fill = yellowFill;
-          cTotRem.border = borderThickBottom;
-
-          continue; // done with summary_production tab!
-        }
-
-        // ─── IF DOWNTIME & RUNNING STATUS REPORT WORKSHEET ───
-        if (tabId === 'summary_status') {
-          const wsStatus = workbook.addWorksheet(tabInfo.name, {
-            views: [{ showGridLines: true, state: 'frozen', ySplit: 3, xSplit: 1 }],
-            properties: { tabColor: { argb: tabInfo.colorArgb } }
-          });
-
-          // Set column widths
-          wsStatus.getColumn(1).width = 28; // Machine No.
-          wsStatus.getColumn(2).width = 18; // Planned Production Time (mins)
-          wsStatus.getColumn(3).width = 18; // Production Run Time (Mins)
-          wsStatus.getColumn(4).width = 18; // Machine Down Time (Mins)
-          wsStatus.getColumn(5).width = 18; // Production Running Time (%)
-          wsStatus.getColumn(6).width = 18; // Production Down Time (%)
-          wsStatus.getColumn(7).width = 16; // Remark's
-
-          // Row 1: MEP FAN LTD. (Banner)
-          wsStatus.mergeCells('A1:G1');
-          const r1 = wsStatus.getCell('A1');
-          r1.value = 'MEP FAN LTD.';
-          r1.font = { name: 'Times New Roman', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-          r1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0054A6' } };
-          r1.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsStatus.getRow(1).height = 32;
-
-          // Row 2: Sub-banner
-          wsStatus.mergeCells('A2:G2');
-          const r2 = wsStatus.getCell('A2');
-          r2.value = `MEP Fan Limited- Down Time & Running Time Status (${monthName} ${year})`;
-          r2.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-          r2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
-          r2.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsStatus.getRow(2).height = 20;
-
-          // Header Styles (Sage Green)
-          const sageHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD5E8D4' } };
-          const borderThin = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'thin', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-
-          // Row 3: Headers
-          wsStatus.getRow(3).height = 35;
-          const statusHeadersDef = [
-            { col: 1, label: 'Machine No.', isRed: false },
-            { col: 2, label: 'Planned Production Time (mins)', isRed: false },
-            { col: 3, label: 'Production Run Time (Mins)', isRed: false },
-            { col: 4, label: 'Machine Down Time (Mins)', isRed: false },
-            { col: 5, label: 'Production Running Time (%)', isRed: false },
-            { col: 6, label: 'Production Down Time (%)', isRed: false },
-            { col: 7, label: "Remark's", isRed: true }
-          ];
-
-          statusHeadersDef.forEach(h => {
-            const cell = wsStatus.getRow(3).getCell(h.col);
-            cell.value = h.label;
-            cell.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: h.isRed ? 'FFFFFFFF' : 'FF000000' } };
-            cell.fill = h.isRed ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } } : sageHeaderFill;
-            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-            cell.border = borderThin;
-          });
-
-          // Department Rows (Row 4 onwards)
-          let currentExcelRow = 4;
-          let grandPlanned = 0;
-          let grandRun = 0;
-          let grandDown = 0;
-
-          getActiveSummaryDepts().forEach(dept => {
-            const status = getTabDowntimeRunningStatus(dept.id, year, MonthYearState.monthIndex);
-            grandPlanned += status.plannedTimeMins;
-            grandRun += status.runTimeMins;
-            grandDown += status.downTimeMins;
-
-            const row = wsStatus.getRow(currentExcelRow);
-            row.height = 20;
-
-            const cName = row.getCell(1);
-            cName.value = dept.name;
-            cName.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cName.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-            cName.alignment = { horizontal: 'left', vertical: 'middle' };
-            cName.border = borderThin;
-
-            const cPlanned = row.getCell(2);
-            cPlanned.value = status.plannedTimeMins;
-            cPlanned.numFmt = '#,##0';
-            cPlanned.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cPlanned.alignment = { horizontal: 'right', vertical: 'middle' };
-            cPlanned.border = borderThin;
-
-            const cRun = row.getCell(3);
-            cRun.value = status.runTimeMins;
-            cRun.numFmt = '#,##0';
-            cRun.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cRun.alignment = { horizontal: 'right', vertical: 'middle' };
-            cRun.border = borderThin;
-
-            const cDown = row.getCell(4);
-            cDown.value = status.downTimeMins;
-            cDown.numFmt = '#,##0';
-            cDown.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cDown.alignment = { horizontal: 'right', vertical: 'middle' };
-            cDown.border = borderThin;
-
-            const cRunPct = row.getCell(5);
-            cRunPct.value = status.runTimePct;
-            cRunPct.numFmt = '0.0%';
-            cRunPct.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cRunPct.alignment = { horizontal: 'right', vertical: 'middle' };
-            cRunPct.border = borderThin;
-
-            const cDownPct = row.getCell(6);
-            cDownPct.value = status.downTimePct;
-            cDownPct.numFmt = '0.0%';
-            cDownPct.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cDownPct.alignment = { horizontal: 'right', vertical: 'middle' };
-            cDownPct.border = borderThin;
-
-            const cRem = row.getCell(7);
-            cRem.value = '';
-            cRem.border = borderThin;
-
-            currentExcelRow++;
-          });
-
-          // SubTotal Row
-          const rTotal = wsStatus.getRow(currentExcelRow);
-          rTotal.height = 22;
-          const subtotalFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
-          const borderThickBottom = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'medium', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-
-          const cTotTitle = rTotal.getCell(1);
-          cTotTitle.value = 'SubTotal';
-          cTotTitle.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotTitle.fill = subtotalFill;
-          cTotTitle.alignment = { horizontal: 'left', vertical: 'middle' };
-          cTotTitle.border = borderThickBottom;
-
-          const cTotPlanned = rTotal.getCell(2);
-          cTotPlanned.value = grandPlanned;
-          cTotPlanned.numFmt = '#,##0';
-          cTotPlanned.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotPlanned.fill = subtotalFill;
-          cTotPlanned.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotPlanned.border = borderThickBottom;
-
-          const cTotRun = rTotal.getCell(3);
-          cTotRun.value = grandRun;
-          cTotRun.numFmt = '#,##0';
-          cTotRun.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotRun.fill = subtotalFill;
-          cTotRun.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotRun.border = borderThickBottom;
-
-          const cTotDown = rTotal.getCell(4);
-          cTotDown.value = grandDown;
-          cTotDown.numFmt = '#,##0';
-          cTotDown.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotDown.fill = subtotalFill;
-          cTotDown.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotDown.border = borderThickBottom;
-
-          const cTotRunPct = rTotal.getCell(5);
-          cTotRunPct.value = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
-          cTotRunPct.numFmt = '0.0%';
-          cTotRunPct.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotRunPct.fill = subtotalFill;
-          cTotRunPct.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotRunPct.border = borderThickBottom;
-
-          const cTotDownPct = rTotal.getCell(6);
-          cTotDownPct.value = grandPlanned > 0 ? (grandDown / grandPlanned) : 0;
-          cTotDownPct.numFmt = '0.0%';
-          cTotDownPct.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotDownPct.fill = subtotalFill;
-          cTotDownPct.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotDownPct.border = borderThickBottom;
-
-          const cTotRem = rTotal.getCell(7);
-          cTotRem.value = '';
-          cTotRem.fill = subtotalFill;
-          cTotRem.border = borderThickBottom;
-
-          continue; // done with summary_status tab!
-        }
-
-        // ─── IF OEE SUMMARY REPORT WORKSHEET ───
-        if (tabId === 'summary_oee') {
-          const wsOEE = workbook.addWorksheet(tabInfo.name, {
-            views: [{ showGridLines: true, state: 'frozen', ySplit: 4, xSplit: 1 }],
-            properties: { tabColor: { argb: tabInfo.colorArgb } }
-          });
-
-          // Set column widths
-          wsOEE.getColumn(1).width = 28; // Section
-          wsOEE.getColumn(2).width = 18; // Machine Capacity (Pcs)
-          wsOEE.getColumn(3).width = 18; // Total Production (pcs)
-          wsOEE.getColumn(4).width = 16; // Rejection (Pcs)
-          wsOEE.getColumn(5).width = 16; // Availability (%)
-          wsOEE.getColumn(6).width = 16; // Performance (%)
-          wsOEE.getColumn(7).width = 16; // Quality (%)
-          wsOEE.getColumn(8).width = 16; // OEE (%)
-          wsOEE.getColumn(9).width = 16; // Remark's
-
-          // Row 1: MEP FAN LTD. (Banner)
-          wsOEE.mergeCells('A1:I1');
-          const r1 = wsOEE.getCell('A1');
-          r1.value = 'MEP FAN LTD.';
-          r1.font = { name: 'Times New Roman', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-          r1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0054A6' } };
-          r1.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsOEE.getRow(1).height = 32;
-
-          // Row 2: Sub-banner
-          wsOEE.mergeCells('A2:I2');
-          const r2 = wsOEE.getCell('A2');
-          r2.value = `OEE Report (${monthName} ${year})`;
-          r2.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-          r2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
-          r2.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsOEE.getRow(2).height = 20;
-
-          // Header Styles
-          const skyHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7EC8E3' } };
-          const borderThin = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'thin', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-
-          // Row 3 & 4: Merged Header Layout
-          wsOEE.getRow(3).height = 24;
-          wsOEE.getRow(4).height = 24;
-
-          wsOEE.mergeCells('A3:A4');
-          const hSec = wsOEE.getCell('A3');
-          hSec.value = 'Section';
-          hSec.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          hSec.fill = skyHeaderFill;
-          hSec.alignment = { horizontal: 'center', vertical: 'middle' };
-          hSec.border = borderThin;
-
-          wsOEE.mergeCells('B3:B4');
-          const hCap = wsOEE.getCell('B3');
-          hCap.value = 'Machine Capacity (Pcs)';
-          hCap.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hCap.fill = skyHeaderFill;
-          hCap.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hCap.border = borderThin;
-
-          wsOEE.mergeCells('C3:D3');
-          const hQty = wsOEE.getCell('C3');
-          hQty.value = 'Production Qty.';
-          hQty.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          hQty.fill = skyHeaderFill;
-          hQty.alignment = { horizontal: 'center', vertical: 'middle' };
-          hQty.border = borderThin;
-
-          wsOEE.mergeCells('E3:E4');
-          const hAvail = wsOEE.getCell('E3');
-          hAvail.value = 'Availability (%)';
-          hAvail.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hAvail.fill = skyHeaderFill;
-          hAvail.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hAvail.border = borderThin;
-
-          wsOEE.mergeCells('F3:F4');
-          const hPerf = wsOEE.getCell('F3');
-          hPerf.value = 'Performance (%)';
-          hPerf.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hPerf.fill = skyHeaderFill;
-          hPerf.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hPerf.border = borderThin;
-
-          wsOEE.mergeCells('G3:G4');
-          const hQual = wsOEE.getCell('G3');
-          hQual.value = 'Quality (%)';
-          hQual.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hQual.fill = skyHeaderFill;
-          hQual.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hQual.border = borderThin;
-
-          wsOEE.mergeCells('H3:H4');
-          const hOEE = wsOEE.getCell('H3');
-          hOEE.value = 'OEE (%)';
-          hOEE.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hOEE.fill = skyHeaderFill;
-          hOEE.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hOEE.border = borderThin;
-
-          wsOEE.mergeCells('I3:I4');
-          const hRem = wsOEE.getCell('I3');
-          hRem.value = "Remark's";
-          hRem.font = { name: 'Times New Roman', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
-          hRem.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
-          hRem.alignment = { horizontal: 'center', vertical: 'middle' };
-          hRem.border = borderThin;
-
-          // Row 4 Sub-headers
-          const hTotProd = wsOEE.getCell('C4');
-          hTotProd.value = 'Total Production (pcs)';
-          hTotProd.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hTotProd.fill = skyHeaderFill;
-          hTotProd.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hTotProd.border = borderThin;
-
-          const hRej = wsOEE.getCell('D4');
-          hRej.value = 'Rejection (Pcs)';
-          hRej.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hRej.fill = skyHeaderFill;
-          hRej.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hRej.border = borderThin;
-
-          ['A4', 'B4', 'D3', 'E4', 'F4', 'G4', 'H4', 'I4'].forEach(addr => {
-            wsOEE.getCell(addr).border = borderThin;
-          });
-
-          // Department Rows (Row 5 onwards)
-          let currentExcelRow = 5;
-          let grandCap = 0;
-          let grandProd = 0;
-          let grandRej = 0;
-          let grandPlanned = 0;
-          let grandRun = 0;
-
-          getActiveSummaryDepts().forEach(dept => {
-            const oeeData = getTabOEESummary(dept.id, year, MonthYearState.monthIndex);
-            grandCap += oeeData.capacityPcs;
-            grandProd += oeeData.totalProduction;
-            grandRej += oeeData.rejectionPcs;
-            grandPlanned += oeeData.plannedTimeMins;
-            grandRun += oeeData.runTimeMins;
-
-            const row = wsOEE.getRow(currentExcelRow);
-            row.height = 20;
-
-            const cSec = row.getCell(1);
-            cSec.value = dept.name;
-            cSec.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cSec.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB8A9EE' } };
-            cSec.alignment = { horizontal: 'left', vertical: 'middle' };
-            cSec.border = borderThin;
-
-            const cCap = row.getCell(2);
-            cCap.value = oeeData.capacityPcs;
-            cCap.numFmt = '#,##0';
-            cCap.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cCap.alignment = { horizontal: 'right', vertical: 'middle' };
-            cCap.border = borderThin;
-
-            const cProd = row.getCell(3);
-            cProd.value = oeeData.totalProduction;
-            cProd.numFmt = '#,##0';
-            cProd.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cProd.alignment = { horizontal: 'right', vertical: 'middle' };
-            cProd.border = borderThin;
-
-            const cRej = row.getCell(4);
-            cRej.value = oeeData.rejectionPcs;
-            cRej.numFmt = '#,##0';
-            cRej.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cRej.alignment = { horizontal: 'right', vertical: 'middle' };
-            cRej.border = borderThin;
-
-            const cAvail = row.getCell(5);
-            cAvail.value = oeeData.availability;
-            cAvail.numFmt = '0%';
-            cAvail.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cAvail.alignment = { horizontal: 'right', vertical: 'middle' };
-            cAvail.border = borderThin;
-
-            const cPerf = row.getCell(6);
-            cPerf.value = oeeData.performance;
-            cPerf.numFmt = '0%';
-            cPerf.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cPerf.alignment = { horizontal: 'right', vertical: 'middle' };
-            cPerf.border = borderThin;
-
-            const cQual = row.getCell(7);
-            cQual.value = oeeData.quality;
-            cQual.numFmt = '0.0%';
-            cQual.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cQual.alignment = { horizontal: 'right', vertical: 'middle' };
-            cQual.border = borderThin;
-
-            const cOEE = row.getCell(8);
-            cOEE.value = oeeData.oee;
-            cOEE.numFmt = '0.0%';
-            cOEE.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cOEE.alignment = { horizontal: 'right', vertical: 'middle' };
-            cOEE.border = borderThin;
-
-            const cRem = row.getCell(9);
-            cRem.value = '';
-            cRem.border = borderThin;
-
-            currentExcelRow++;
-          });
-
-          // Total Row (Peach / Soft Gold)
-          const rTotal = wsOEE.getRow(currentExcelRow);
-          rTotal.height = 22;
-          const peachFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8CBAD' } };
-          const borderThickBottom = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'medium', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-
-          const cTotTitle = rTotal.getCell(1);
-          cTotTitle.value = 'Total';
-          cTotTitle.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotTitle.fill = peachFill;
-          cTotTitle.alignment = { horizontal: 'left', vertical: 'middle' };
-          cTotTitle.border = borderThickBottom;
-
-          const cTotCap = rTotal.getCell(2);
-          cTotCap.value = grandCap;
-          cTotCap.numFmt = '#,##0';
-          cTotCap.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotCap.fill = peachFill;
-          cTotCap.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotCap.border = borderThickBottom;
-
-          const cTotProd = rTotal.getCell(3);
-          cTotProd.value = grandProd;
-          cTotProd.numFmt = '#,##0';
-          cTotProd.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotProd.fill = peachFill;
-          cTotProd.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotProd.border = borderThickBottom;
-
-          const cTotRej = rTotal.getCell(4);
-          cTotRej.value = grandRej;
-          cTotRej.numFmt = '#,##0';
-          cTotRej.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotRej.fill = peachFill;
-          cTotRej.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotRej.border = borderThickBottom;
-
-          const grandAvail = grandPlanned > 0 ? (grandRun / grandPlanned) : 0;
-          const grandPerf = grandCap > 0 ? (grandProd / grandCap) : 0;
-          const grandQual = (grandProd + grandRej) > 0 ? (grandProd / (grandProd + grandRej)) : 0;
-          const grandOEE = grandAvail * grandPerf * grandQual;
-
-          const cTotAvail = rTotal.getCell(5);
-          cTotAvail.value = grandAvail;
-          cTotAvail.numFmt = '0%';
-          cTotAvail.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotAvail.fill = peachFill;
-          cTotAvail.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotAvail.border = borderThickBottom;
-
-          const cTotPerf = rTotal.getCell(6);
-          cTotPerf.value = grandPerf;
-          cTotPerf.numFmt = '0%';
-          cTotPerf.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotPerf.fill = peachFill;
-          cTotPerf.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotPerf.border = borderThickBottom;
-
-          const cTotQual = rTotal.getCell(7);
-          cTotQual.value = grandQual;
-          cTotQual.numFmt = '0.0%';
-          cTotQual.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotQual.fill = peachFill;
-          cTotQual.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotQual.border = borderThickBottom;
-
-          const cTotOEE = rTotal.getCell(8);
-          cTotOEE.value = grandOEE;
-          cTotOEE.numFmt = '0.0%';
-          cTotOEE.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          cTotOEE.fill = peachFill;
-          cTotOEE.alignment = { horizontal: 'right', vertical: 'middle' };
-          cTotOEE.border = borderThickBottom;
-
-          const cTotRem = rTotal.getCell(9);
-          cTotRem.value = '';
-          cTotRem.fill = peachFill;
-          cTotRem.border = borderThickBottom;
-
-          continue; // done with summary_oee tab!
-        }
-
-        // ─── IF SUMMARY OF OEE (YEARLY 12-MONTH REPORT) WORKSHEET ───
-        if (tabId === 'summary_oee_yearly') {
-          const wsYearly = workbook.addWorksheet(tabInfo.name, {
-            views: [{ showGridLines: true, state: 'frozen', ySplit: 4, xSplit: 2 }],
-            properties: { tabColor: { argb: tabInfo.colorArgb } }
-          });
-
-          // Set column widths
-          wsYearly.getColumn(1).width = 16; // Month
-          wsYearly.getColumn(2).width = 24; // Detail
-          wsYearly.getColumn(3).width = 18; // Machine Capacity (Pcs)
-          wsYearly.getColumn(4).width = 18; // Total Production (pcs)
-          wsYearly.getColumn(5).width = 15; // Rejection (Pcs)
-          wsYearly.getColumn(6).width = 15; // Availability (%)
-          wsYearly.getColumn(7).width = 15; // Performance (%)
-          wsYearly.getColumn(8).width = 15; // Quality (%)
-          wsYearly.getColumn(9).width = 15; // OEE (%)
-          wsYearly.getColumn(10).width = 16; // Remark's
-
-          // Row 1: MEP FAN LTD. (Banner)
-          wsYearly.mergeCells('A1:J1');
-          const r1 = wsYearly.getCell('A1');
-          r1.value = 'MEP FAN LTD.';
-          r1.font = { name: 'Times New Roman', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-          r1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0054A6' } };
-          r1.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsYearly.getRow(1).height = 32;
-
-          // Row 2: Sub-banner
-          wsYearly.mergeCells('A2:J2');
-          const r2 = wsYearly.getCell('A2');
-          r2.value = `Summary of OEE (${year})`;
-          r2.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-          r2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
-          r2.alignment = { horizontal: 'center', vertical: 'middle' };
-          wsYearly.getRow(2).height = 20;
-
-          // Header Styles
-          const skyHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7EC8E3' } };
-          const borderThin = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'thin', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-
-          // Row 3 & 4: Merged Header Layout
-          wsYearly.getRow(3).height = 24;
-          wsYearly.getRow(4).height = 24;
-
-          wsYearly.mergeCells('A3:A4');
-          const hMonth = wsYearly.getCell('A3');
-          hMonth.value = 'Month';
-          hMonth.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          hMonth.fill = skyHeaderFill;
-          hMonth.alignment = { horizontal: 'center', vertical: 'middle' };
-          hMonth.border = borderThin;
-
-          wsYearly.mergeCells('B3:B4');
-          const hDetail = wsYearly.getCell('B3');
-          hDetail.value = 'Detail';
-          hDetail.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          hDetail.fill = skyHeaderFill;
-          hDetail.alignment = { horizontal: 'center', vertical: 'middle' };
-          hDetail.border = borderThin;
-
-          wsYearly.mergeCells('C3:C4');
-          const hCap = wsYearly.getCell('C3');
-          hCap.value = 'Machine Capacity (Pcs)';
-          hCap.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hCap.fill = skyHeaderFill;
-          hCap.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hCap.border = borderThin;
-
-          wsYearly.mergeCells('D3:E3');
-          const hQty = wsYearly.getCell('D3');
-          hQty.value = 'Production Qty.';
-          hQty.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          hQty.fill = skyHeaderFill;
-          hQty.alignment = { horizontal: 'center', vertical: 'middle' };
-          hQty.border = borderThin;
-
-          wsYearly.mergeCells('F3:F4');
-          const hAvail = wsYearly.getCell('F3');
-          hAvail.value = 'Availability (%)';
-          hAvail.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hAvail.fill = skyHeaderFill;
-          hAvail.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hAvail.border = borderThin;
-
-          wsYearly.mergeCells('G3:G4');
-          const hPerf = wsYearly.getCell('G3');
-          hPerf.value = 'Performance (%)';
-          hPerf.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hPerf.fill = skyHeaderFill;
-          hPerf.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hPerf.border = borderThin;
-
-          wsYearly.mergeCells('H3:H4');
-          const hQual = wsYearly.getCell('H3');
-          hQual.value = 'Quality (%)';
-          hQual.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hQual.fill = skyHeaderFill;
-          hQual.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hQual.border = borderThin;
-
-          wsYearly.mergeCells('I3:I4');
-          const hOEE = wsYearly.getCell('I3');
-          hOEE.value = 'OEE (%)';
-          hOEE.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hOEE.fill = skyHeaderFill;
-          hOEE.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hOEE.border = borderThin;
-
-          wsYearly.mergeCells('J3:J4');
-          const hRem = wsYearly.getCell('J3');
-          hRem.value = "Remark's";
-          hRem.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-          hRem.fill = skyHeaderFill;
-          hRem.alignment = { horizontal: 'center', vertical: 'middle' };
-          hRem.border = borderThin;
-
-          // Row 4 Sub-headers
-          const hTotProd = wsYearly.getCell('D4');
-          hTotProd.value = 'Total Production (pcs)';
-          hTotProd.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hTotProd.fill = skyHeaderFill;
-          hTotProd.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hTotProd.border = borderThin;
-
-          const hRej = wsYearly.getCell('E4');
-          hRej.value = 'Rejection (Pcs)';
-          hRej.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-          hRej.fill = skyHeaderFill;
-          hRej.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          hRej.border = borderThin;
-
-          ['A4', 'B4', 'C4', 'E3', 'F4', 'G4', 'H4', 'I4', 'J4'].forEach(addr => {
-            wsYearly.getCell(addr).border = borderThin;
-          });
-
-          // 12 Months Rows (2 rows per month)
-          const yearlyData = getYearlyOEESummary(year);
-          let currentExcelRow = 5;
-
-          yearlyData.forEach(m => {
-            const row1Num = currentExcelRow;
-            const row2Num = currentExcelRow + 1;
-            const row1 = wsYearly.getRow(row1Num);
-            const row2 = wsYearly.getRow(row2Num);
-            row1.height = 20;
-            row2.height = 20;
-
-            const borderMonthDivider = {
-              top: { style: 'thin', color: { argb: 'FF000000' } },
-              left: { style: 'thin', color: { argb: 'FF000000' } },
-              bottom: { style: 'medium', color: { argb: 'FF000000' } },
-              right: { style: 'thin', color: { argb: 'FF000000' } }
-            };
-
-            // Col 1: Month (merge row1:row2)
-            wsYearly.mergeCells(`A${row1Num}:A${row2Num}`);
-            const cMonth = wsYearly.getCell(`A${row1Num}`);
-            cMonth.value = m.monthName;
-            cMonth.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-            cMonth.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0F2FE' } };
-            cMonth.alignment = { horizontal: 'center', vertical: 'middle' };
-            cMonth.border = borderMonthDivider;
-            wsYearly.getCell(`A${row2Num}`).border = borderMonthDivider;
-
-            const hasData = (m.capacityPcs > 0 || m.totalProduction > 0 || m.isFixed);
-
-            // Row 1: Total
-            const cDet1 = row1.getCell(2);
-            cDet1.value = 'Total';
-            cDet1.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cDet1.alignment = { horizontal: 'center', vertical: 'middle' };
-            cDet1.border = borderThin;
-
-            const cCap = row1.getCell(3);
-            if (hasData && m.capacityPcs > 0) {
-              cCap.value = m.capacityPcs;
-              cCap.numFmt = '#,##0';
-              cCap.alignment = { horizontal: 'right', vertical: 'middle' };
-            } else {
-              cCap.value = '-';
-              cCap.alignment = { horizontal: 'center', vertical: 'middle' };
-            }
-            cCap.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cCap.border = borderThin;
-
-            const cProd = row1.getCell(4);
-            if (hasData && m.totalProduction > 0) {
-              cProd.value = m.totalProduction;
-              cProd.numFmt = '#,##0';
-              cProd.alignment = { horizontal: 'right', vertical: 'middle' };
-            } else {
-              cProd.value = '-';
-              cProd.alignment = { horizontal: 'center', vertical: 'middle' };
-            }
-            cProd.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cProd.border = borderThin;
-
-            const cRej = row1.getCell(5);
-            if (hasData && m.rejectionPcs > 0) {
-              cRej.value = m.rejectionPcs;
-              cRej.numFmt = '#,##0';
-              cRej.alignment = { horizontal: 'right', vertical: 'middle' };
-            } else if (hasData) {
-              cRej.value = 0;
-              cRej.numFmt = '#,##0';
-              cRej.alignment = { horizontal: 'right', vertical: 'middle' };
-            } else {
-              cRej.value = 0;
-              cRej.numFmt = '#,##0';
-              cRej.alignment = { horizontal: 'right', vertical: 'middle' };
-            }
-            cRej.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cRej.border = borderThin;
-
-            // Merged KPI Columns (Cols 6 to 10)
-wsYearly.mergeCells(`F${row1Num}:F${row2Num}`);
-            const cAvail = wsYearly.getCell(`F${row1Num}`);
-            if (hasData || m.plannedTimeMins > 0) {
-              cAvail.value = m.availability;
-              cAvail.numFmt = '0%';
-            } else {
-              cAvail.value = '-';
-            }
-            cAvail.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cAvail.alignment = { horizontal: 'center', vertical: 'middle' };
-            cAvail.border = borderMonthDivider;
-            wsYearly.getCell(`F${row2Num}`).border = borderMonthDivider;
-
-            wsYearly.mergeCells(`G${row1Num}:G${row2Num}`);
-            const cPerf = wsYearly.getCell(`G${row1Num}`);
-            if (hasData) {
-              cPerf.value = m.performance;
-              cPerf.numFmt = '0%';
-            } else {
-              cPerf.value = '-';
-            }
-            cPerf.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cPerf.alignment = { horizontal: 'center', vertical: 'middle' };
-            cPerf.border = borderMonthDivider;
-            wsYearly.getCell(`G${row2Num}`).border = borderMonthDivider;
-
-            wsYearly.mergeCells(`H${row1Num}:H${row2Num}`);
-            const cQual = wsYearly.getCell(`H${row1Num}`);
-            if (hasData) {
-              cQual.value = m.quality;
-              cQual.numFmt = '0.0%';
-            } else {
-              cQual.value = '-';
-            }
-            cQual.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cQual.alignment = { horizontal: 'center', vertical: 'middle' };
-            cQual.border = borderMonthDivider;
-            wsYearly.getCell(`H${row2Num}`).border = borderMonthDivider;
-
-            wsYearly.mergeCells(`I${row1Num}:I${row2Num}`);
-            const cOEE = wsYearly.getCell(`I${row1Num}`);
-            if (hasData) {
-              cOEE.value = m.oee;
-              cOEE.numFmt = '0%';
-            } else {
-              cOEE.value = '-';
-            }
-            cOEE.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cOEE.alignment = { horizontal: 'center', vertical: 'middle' };
-            cOEE.border = borderMonthDivider;
-            wsYearly.getCell(`I${row2Num}`).border = borderMonthDivider;
-
-            wsYearly.mergeCells(`J${row1Num}:J${row2Num}`);
-            const cRem = wsYearly.getCell(`J${row1Num}`);
-            cRem.value = '';
-            cRem.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0F2FE' } };
-            cRem.border = borderMonthDivider;
-            wsYearly.getCell(`J${row2Num}`).border = borderMonthDivider;
-
-            // Row 2: Total Acheivement (%)
-            const cDet2 = row2.getCell(2);
-            cDet2.value = 'Total Acheivement (%)';
-            cDet2.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-            cDet2.alignment = { horizontal: 'center', vertical: 'middle' };
-            cDet2.border = borderMonthDivider;
-
-            wsYearly.mergeCells(`C${row2Num}:E${row2Num}`);
-            const cAch = wsYearly.getCell(`C${row2Num}`);
-            if (hasData && m.capacityPcs > 0) {
-              cAch.value = m.achievement;
-              cAch.numFmt = '0.0%';
-              const isHighlight = m.achievement >= 0.95;
-              if (isHighlight) {
-                cAch.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF38B6FF' } };
-              }
-            } else {
-              cAch.value = '-';
-            }
-            cAch.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FF000000' } };
-            cAch.alignment = { horizontal: 'center', vertical: 'middle' };
-            cAch.border = borderMonthDivider;
-            wsYearly.getCell(`D${row2Num}`).border = borderMonthDivider;
-            currentExcelRow += 2;
-
-            // Gap / Separator row after each month
-            const rGap = wsYearly.getRow(currentExcelRow);
-            rGap.height = 8;
-            wsYearly.mergeCells(`A${currentExcelRow}:J${currentExcelRow}`);
-            const cGap = wsYearly.getCell(`A${currentExcelRow}`);
-            cGap.value = '';
-            cGap.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBFE2F7' } };
-            cGap.border = {
-              top: { style: 'thin', color: { argb: 'FF000000' } },
-              bottom: { style: 'thin', color: { argb: 'FF000000' } }
-            };
-
-            currentExcelRow++;
-          });
-
-          continue; // done with summary_oee_yearly tab!
-        }
-
-        // ─── STANDARD PRODUCTION WORKSHEET ───
-        const ws = workbook.addWorksheet(tabInfo.name, {
-          views: [{ showGridLines: true, state: 'frozen', ySplit: 5, xSplit: 4 }],
-          properties: {
-            tabColor: { argb: tabInfo.colorArgb }
-          }
-        });
-
-        // Use strictly exportable columns (standard 39 columns A to AM, excluding webOnly columns)
-        const exportCols = EXCEL_COLUMNS.filter(c => !c.webOnly);
-
-        // Set column widths
-        ws.columns = exportCols.map(c => ({
-          key: c.col,
-          width: c.col === 'AM' ? 28 : (c.col === 'D' ? 22 : (c.col === 'A' ? 12 : (c.col === 'B' || c.col === 'C' ? 8 : 6.5)))
-        }));
-
-        // Set outlineLevel and hidden on 23 Downtime columns (K to AG - Initial Collapsed View)
-        exportCols.forEach((c, idx) => {
-          if (c.isDt) {
-            const col = ws.getColumn(idx + 1);
-            col.outlineLevel = 1;
-            col.hidden = true;
-          }
-        });
-
-        // Row 1: MEP FAN LTD. (Banner)
-        ws.mergeCells('A1:AM1');
-        const r1 = ws.getCell('A1');
-        r1.value = 'MEP FAN LTD.';
-        r1.font = { name: 'Times New Roman', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-        r1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0054A6' } };
-        r1.alignment = { horizontal: 'center', vertical: 'middle' };
-        ws.getRow(1).height = 32;
-
-        // Row 2: Production Performance Analysis Report
-        ws.mergeCells('A2:AM2');
-        const r2 = ws.getCell('A2');
-        r2.value = 'Production Performance Analysis Report';
-        r2.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-        r2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
-        r2.alignment = { horizontal: 'center', vertical: 'middle' };
-        ws.getRow(2).height = 20;
-
-        // Row 3: Section / Department Name (Fan Lathe / Fan Auto Powder Coating)
-        ws.mergeCells('A3:AM3');
-        const r3 = ws.getCell('A3');
-        r3.value = tabInfo.name;
-        r3.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-        r3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00334E' } };
-        r3.alignment = { horizontal: 'center', vertical: 'middle' };
-        ws.getRow(3).height = 20;
-
-        // Row 4: 39 Column Headers
-        ws.getRow(4).height = 105;
-        const borderThin = {
-          top: { style: 'thin', color: { argb: 'FF000000' } },
-          left: { style: 'thin', color: { argb: 'FF000000' } },
-          bottom: { style: 'thin', color: { argb: 'FF000000' } },
-          right: { style: 'thin', color: { argb: 'FF000000' } }
-        };
-
-        exportCols.forEach((c, idx) => {
-          const cell = ws.getRow(4).getCell(idx + 1);
-          cell.value = c.label;
-          cell.font = { name: 'Times New Roman', size: 9, bold: true, color: { argb: 'FF000000' } };
-          if (idx < 4) {
-            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-          } else {
-            cell.alignment = { textRotation: 90, vertical: 'bottom', horizontal: 'center', wrapText: true };
-          }
-          cell.border = borderThin;
-
-          let bgArgb = 'FF7EC8E3';
-          if (c.zone === 'purple') bgArgb = 'FF9F72DE';
-          if (c.zone === 'cyan') bgArgb = 'FF56C5D0';
-
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
-        });
-
-        // Fetch Tab Data
-        let rowsData = [];
-        if (tabId === ACTIVE_TAB) {
-          rowsData = SheetState.rows;
-        } else {
-          const localData = getStoredLocalData(tabId, year, MonthYearState.monthIndex);
-          if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
-            rowsData = localData.rows;
-          } else if (tabId === 'fan_lathe' && year === 2026 && MonthYearState.monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined') {
-            rowsData = INITIAL_EXCEL_ROWS;
-          } else {
-            rowsData = generateBlankMonthRows(tabId, year, MonthYearState.monthIndex);
-          }
-        }
-
-        // Compute Tab Totals
-        const tabTotals = { E: 0, F: 0, G: 0, H: 0, I: 0, J: 0, AH: 0 };
-        exportCols.filter(c => c.isDt).forEach(c => tabTotals[c.col] = 0);
-        const rowsPerDay = getRowsPerDay(tabId);
-        rowsData.forEach(r => {
-          tabTotals.E += Number(r.E?.val) || 0;
-          tabTotals.F += Number(r.F?.val) || 0;
-          tabTotals.G += Number(r.G?.val) || 0;
-
-          const mIdx = (r.row - 6) % rowsPerDay;
-          const groupInfo = getTimeGroupInfo(tabId, mIdx);
-
-          if (groupInfo.isMaster) {
-            tabTotals.H += Number(r.H?.val) || 0;
-            tabTotals.I += Number(r.I?.val) || 0;
-            tabTotals.J += (typeof r.J?.val === 'number' ? r.J.val : 0);
-            tabTotals.AH += Number(r.AH?.val) || 0;
-            exportCols.filter(c => c.isDt).forEach(c => tabTotals[c.col] += Number(r[c.col]?.val) || 0);
-          }
-        });
-        tabTotals.AI = tabTotals.H > 0 ? (tabTotals.J / tabTotals.H) : 0;
-        tabTotals.AJ = tabTotals.E > 0 ? (tabTotals.F / tabTotals.E) : 0;
-        tabTotals.AK = (tabTotals.F + tabTotals.G) > 0 ? (tabTotals.F / (tabTotals.F + tabTotals.G)) : 0;
-        tabTotals.AL = tabTotals.AI * tabTotals.AJ * tabTotals.AK;
-
-        // Row 5: Total Summary Row
-        ws.mergeCells('A5:D5');
-        const tTitle = ws.getCell('A5');
-        tTitle.value = 'Total:';
-        ws.getRow(5).height = 22;
-
-        for (let colIdx = 1; colIdx <= exportCols.length; colIdx++) {
-          const cell = ws.getRow(5).getCell(colIdx);
-          cell.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC00000' } };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'medium', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-
-          if (colIdx >= 5) {
-            const colDef = exportCols[colIdx - 1];
-            const val = tabTotals[colDef.col];
-            if (colDef.isPercent) {
-              cell.value = val || 0;
-              cell.numFmt = '0%';
-            } else if (colDef.isNumeric || colDef.isDt || colDef.isFormula) {
-              cell.value = val || 0;
-              cell.numFmt = '#,##0';
-            }
-          }
-        }
-
-        // Body Rows (Row 6 onwards)
-        const daysInMonth = getDaysInSelectedMonth();
-        rowsData.forEach((rowObj, rIdx) => {
-          const excelRowIdx = 6 + rIdx;
-          const excelRow = ws.getRow(excelRowIdx);
-          excelRow.height = 20;
-
-          const isFriday = (rowObj.B?.val === 'Fri');
-          const isDayEnd = (rIdx % rowsPerDay === (rowsPerDay - 1));
-          const mIdx = rIdx % rowsPerDay;
-          const groupInfo = getTimeGroupInfo(tabId, mIdx);
-
-          exportCols.forEach((colDef, cIdx) => {
-            const colIdx = cIdx + 1;
-            const colLetter = colDef.col;
-            const isTimeCol = TIME_COLUMNS.includes(colLetter);
-
-            const cell = excelRow.getCell(colIdx);
-            const val = rowObj[colDef.col]?.val;
-
-            if (isTimeCol && groupInfo.isSlave) {
-              // Slave cell in time group will be spanned by merged master cell
-            } else {
-              if (colDef.isPercent) {
-                cell.value = (val !== null && val !== undefined && val !== '') ? Number(val) : 0;
-                cell.numFmt = '0%';
-              } else if (colDef.isNumeric || colDef.isDt || colDef.isFormula) {
-                if (val !== null && val !== undefined && val !== '' && !isNaN(val)) {
-                  cell.value = Number(val);
-                  cell.numFmt = '#,##0';
-                } else {
-                  cell.value = val ?? '';
-                }
-              } else {
-                cell.value = val ?? '';
-              }
-            }
-
-            // Cell Font: Times New Roman Bold
-            cell.font = { name: 'Times New Roman', size: 9.5, bold: true, color: { argb: 'FF000000' } };
-
-            // Alignment
-            cell.alignment = {
-              vertical: 'middle',
-              horizontal: colDef.align || (colDef.isNumeric || colDef.isPercent ? 'right' : 'center')
-            };
-
-            // Background Fill - deeper accent shade when data is entered!
-            const hasEnteredData = (val !== null && val !== undefined && val !== '' && val !== '-' && val != 0);
-
-            let fillArgb = 'FFFFFFFF';
-            if (isFriday) {
-              fillArgb = hasEnteredData ? 'FFBBF7D0' : 'FFE3F8E9'; // Deeper Mint Green when filled on Friday
-            } else if (colDef.isDt) {
-              fillArgb = hasEnteredData ? 'FFDDD6FE' : 'FFF3E8FF'; // Deeper Lilac/Purple when downtime is entered
-            } else if (colDef.col === 'AH') {
-              fillArgb = 'FFD6F1FA'; // Soft Cyan Total DT
-            } else if (colDef.isFormula || colDef.isPercent) {
-              fillArgb = 'FFE2F2FC'; // Soft Ice-Blue KPI
-            } else if (colDef.isReadOnly) {
-              fillArgb = 'FFF1F5F9'; // Fixed Grey
-            } else {
-              // Editable input cells (Capacity E, Actual F, Rejection G, Plan H, Remarks AM)
-              fillArgb = hasEnteredData ? 'FFE0F2FE' : 'FFFFFFFF'; // Deeper Soft Sky Blue when entered!
-            }
-
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillArgb } };
-
-            // Border (Solid Black Thin Grid Lines)
-            cell.border = {
-              top: { style: 'thin', color: { argb: 'FF000000' } },
-              left: { style: 'thin', color: { argb: 'FF000000' } },
-              bottom: isDayEnd ? { style: 'medium', color: { argb: 'FF000000' } } : { style: 'thin', color: { argb: 'FF000000' } },
-              right: { style: 'thin', color: { argb: 'FF000000' } }
-            };
-          });
-        });
-
-        // Merging for each day: Date (A), Day (B), Shift (C) + Time Columns for time groups
-        for (let d = 0; d < daysInMonth; d++) {
-          const dayStart = 6 + (d * rowsPerDay);
-          const dayEnd = dayStart + rowsPerDay - 1;
-
-          if (rowsPerDay > 1) {
-            // Merge Date, Day, Shift across all machines of the day
-            try {
-              ws.mergeCells(dayStart, 1, dayEnd, 1);
-              ws.getCell(dayStart, 1).alignment = { vertical: 'middle', horizontal: 'center' };
-              ws.getCell(dayStart, 1).border = {
-                top: { style: 'thin', color: { argb: 'FF000000' } },
-                left: { style: 'thin', color: { argb: 'FF000000' } },
-                bottom: { style: 'medium', color: { argb: 'FF000000' } },
-                right: { style: 'thin', color: { argb: 'FF000000' } }
-              };
-
-              ws.mergeCells(dayStart, 2, dayEnd, 2);
-              ws.getCell(dayStart, 2).alignment = { vertical: 'middle', horizontal: 'center' };
-              ws.getCell(dayStart, 2).border = {
-                top: { style: 'thin', color: { argb: 'FF000000' } },
-                left: { style: 'thin', color: { argb: 'FF000000' } },
-                bottom: { style: 'medium', color: { argb: 'FF000000' } },
-                right: { style: 'thin', color: { argb: 'FF000000' } }
-              };
-
-              ws.mergeCells(dayStart, 3, dayEnd, 3);
-              ws.getCell(dayStart, 3).alignment = { vertical: 'middle', horizontal: 'center' };
-              ws.getCell(dayStart, 3).border = {
-                top: { style: 'thin', color: { argb: 'FF000000' } },
-                left: { style: 'thin', color: { argb: 'FF000000' } },
-                bottom: { style: 'medium', color: { argb: 'FF000000' } },
-                right: { style: 'thin', color: { argb: 'FF000000' } }
-              };
-            } catch (e) {}
-          }
-
-          // If tab has timeGroups, merge time columns (H to AI) across group rows
-          if (tabInfo.timeGroups) {
-            for (const group of tabInfo.timeGroups) {
-              if (group.count > 1) {
-                const rStart = dayStart + group.startIdx;
-                const rEnd = rStart + group.count - 1;
-                TIME_COLUMNS.forEach(colLetter => {
-                  const cIdx = exportCols.findIndex(c => c.col === colLetter);
-                  if (cIdx === -1) return; // Skip webOnly columns like AG_LOSS!
-                  const colIdx = cIdx + 1;
-                  try {
-                    ws.mergeCells(rStart, colIdx, rEnd, colIdx);
-                    ws.getCell(rStart, colIdx).alignment = { vertical: 'middle', horizontal: 'right' };
-                    if (rEnd === dayEnd) {
-                      ws.getCell(rStart, colIdx).border = {
-                        top: { style: 'thin', color: { argb: 'FF000000' } },
-                        left: { style: 'thin', color: { argb: 'FF000000' } },
-                        bottom: { style: 'medium', color: { argb: 'FF000000' } },
-                        right: { style: 'thin', color: { argb: 'FF000000' } }
-                      };
-                    }
-                  } catch (e) {}
-                });
-              }
-            }
-          }
-        }
-      }
-
-      // Write styled buffer & download
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      if (typeof saveAs !== 'undefined') {
-        saveAs(blob, `MEP_FAN_Report_${monthName}_${year}.xlsx`);
-      } else {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `MEP_FAN_Report_${monthName}_${year}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      }
-
-      showToast(`✨ Premium styled Excel workbook exported (${Object.keys(SHEET_TABS).length} Tabs)`, 'success');
+    if (typeof ExcelJS === 'undefined') {
+      showToast('Excel library loading. Please try again.', 'warning');
       return;
     }
 
-    // 2. SheetJS Fallback
-    if (typeof XLSX !== 'undefined') {
-      const wb = XLSX.utils.book_new();
-      Object.keys(SHEET_TABS).forEach(tabId => {
-        if (!isTabAllowedForUser(tabId)) return;
-        const tabInfo = SHEET_TABS[tabId];
-        if (tabInfo.isSummary) return; // Summary is rendered in ExcelJS
-        let rowsData = (tabId === ACTIVE_TAB) ? SheetState.rows : generateBlankMonthRows(tabId, year, MonthYearState.monthIndex);
-        const dataMatrix = [
-          ['MEP FAN LTD.'],
-          ['Production Performance Analysis Report'],
-          [tabInfo.name, '', '', ''],
-          EXCEL_COLUMNS.map(c => c.label)
-        ];
-        const ws = XLSX.utils.aoa_to_sheet(dataMatrix);
-        XLSX.utils.book_append_sheet(wb, ws, tabInfo.name);
-      });
-      XLSX.writeFile(wb, `MEP_FAN_Report_${monthName}_${year}.xlsx`);
-      showToast('📊 Workbook exported successfully', 'success');
-    }
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'MEP FAN LTD. - OEE SCADA MES';
+    workbook.lastModifiedBy = CurrentUser?.name || 'Admin';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
+    const monthName = MONTH_NAMES[MonthYearState.monthIndex];
+    const year = MonthYearState.year;
+
+    // Export Active Sheet
+    const sheetName = SHEET_TABS[ACTIVE_TAB]?.name || 'OEE Report';
+    const worksheet = workbook.addWorksheet(sheetName.substring(0, 31));
+
+    // Headers
+    worksheet.addRow(['MEP FAN LTD.']);
+    worksheet.addRow(['Production Performance Analysis Report']);
+    worksheet.addRow([sheetName]);
+
+    const colHeaders = EXCEL_COLUMNS.map(c => c.label);
+    worksheet.addRow(colHeaders);
+
+    // Total Row
+    const totalRow = EXCEL_COLUMNS.map(c => {
+      if (['A', 'B', 'C', 'D'].includes(c.col)) return c.col === 'A' ? 'Total:' : '';
+      return formatCellValue(SheetState.totals[c.col], c, true);
+    });
+    worksheet.addRow(totalRow);
+
+    // Data Rows
+    SheetState.rows.forEach(r => {
+      const rowData = EXCEL_COLUMNS.map(c => formatCellValue(r[c.col]?.val, c));
+      worksheet.addRow(rowData);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `MEP_OEE_${sheetName.replace(/\s+/g, '_')}_${monthName}_${year}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Excel workbook exported successfully!', 'success');
   } catch (err) {
     console.error('Export error:', err);
-    showToast('⚠️ Excel export failed', 'error');
+    showToast('Excel export failed.', 'error');
   }
 }
 
-// ─── PDF EXPORT ───────────────────────────────────────────────────────────────
 function exportPDFReport() {
-  try {
-    const { jsPDF } = window.jspdf;
-    if (!jsPDF) {
-      window.print();
+  window.print();
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// KEYBOARD SHORTCUTS & CONTEXT MENU
+// ──────────────────────────────────────────────────────────────────────────
+function initKeyboardShortcuts() {
+  const formulaInput = document.getElementById('formulaInput');
+
+  window.addEventListener('keydown', (e) => {
+    // If currently editing a cell or focused in an input/textarea, let the input handle all keys!
+    if (SheetState.isEditing || SheetState.activeInput || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
       return;
     }
-
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const monthName = MonthYearState.monthNames[MonthYearState.monthIndex];
-    const year = MonthYearState.year;
-    const tabInfo = SHEET_TABS[ACTIVE_TAB] || { name: 'Report' };
-
-    doc.setFillColor(0, 51, 102);
-    doc.rect(0, 0, 297, 18, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13);
-    doc.setFont('times', 'bold');
-    doc.text('MEP FAN LTD.', 14, 8);
-
-    doc.setFontSize(9);
-    doc.setFont('times', 'normal');
-    doc.text(`${tabInfo.name} — (${monthName} ${year})`, 14, 14);
-
-    if (tabInfo.isSummary) {
-      const table = document.getElementById('excelMainTable');
-      if (table) {
-        doc.autoTable({
-          html: table,
-          startY: 22,
-          theme: 'grid',
-          headStyles: { fillColor: [0, 51, 102], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
-          styles: { fontSize: 7, cellPadding: 1.5, font: 'times' },
-          alternateRowStyles: { fillColor: [248, 250, 252] }
-        });
-      }
-    } else {
-      const headers = [['Date', 'Day', 'Shift', 'Machine', 'Cap', 'Actual', 'Rej', 'Plan', 'Run', 'Total DT', 'Avail %', 'Perf %', 'Qual %', 'OEE %', 'Remarks']];
-
-      const t = SheetState.totals;
-      const bodyData = [
-        [
-          'Total:', '', '', '',
-          t.E || 0, t.F || 0, t.G || 0, t.H || 0, t.J || 0, t.AH || 0,
-          `${((t.AI || 0) * 100).toFixed(0)}%`,
-          `${((t.AJ || 0) * 100).toFixed(0)}%`,
-          `${((t.AK || 0) * 100).toFixed(0)}%`,
-          `${((t.AL || 0) * 100).toFixed(0)}%`,
-          ''
-        ]
-      ];
-
-      SheetState.rows.forEach(r => {
-        bodyData.push([
-          r.A?.val || '',
-          r.B?.val || '',
-          r.C?.val || 'Morning',
-          r.D?.val || '',
-          r.E?.val || '',
-          r.F?.val || '',
-          r.G?.val || '',
-          r.H?.val || '',
-          r.J?.val || '-',
-          r.AH?.val || 0,
-          `${((r.AI?.val || 0) * 100).toFixed(0)}%`,
-          `${((r.AJ?.val || 0) * 100).toFixed(0)}%`,
-          `${((r.AK?.val || 0) * 100).toFixed(0)}%`,
-          `${((r.AL?.val || 0) * 100).toFixed(0)}%`,
-          r.AM?.val || ''
-        ]);
-      });
-
-      doc.autoTable({
-        head: headers,
-        body: bodyData,
-        startY: 22,
-        theme: 'grid',
-        headStyles: { fillColor: [0, 51, 102], textColor: 255, fontStyle: 'bold', fontSize: 7 },
-        styles: { fontSize: 6.5, cellPadding: 1.5, font: 'times' },
-        alternateRowStyles: { fillColor: [248, 250, 252] }
-      });
-    }
-
-    doc.save(`MEP_FAN_${ACTIVE_TAB}_${monthName}_${year}_Report.pdf`);
-    showToast('📄 PDF Report downloaded', 'success');
-  } catch (e) {
-    console.error('PDF export failed:', e);
-    window.print();
-  }
-}
-
-// ─── CONTEXT MENU & SHORTCUTS ─────────────────────────────────────────────────
-function initContextMenu() {
-  const menu = document.getElementById('gridContextMenu');
-  const table = document.getElementById('excelMainTable');
-
-  if (!menu || !table) return;
-
-  table.addEventListener('contextmenu', (e) => {
-    const td = e.target.closest('td, th');
-    if (!td || !td.dataset.col) return;
-    const row = Number(td.dataset.row);
-    if (isRowLocked(row)) return;
-
-    e.preventDefault();
-    selectCell(td.dataset.col, row);
-
-    menu.style.left = `${e.clientX}px`;
-    menu.style.top = `${e.clientY}px`;
-    menu.classList.remove('hidden');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!menu.contains(e.target)) {
-      menu.classList.add('hidden');
-    }
-  });
-
-  menu.querySelectorAll('.context-menu-row').forEach(item => {
-    item.addEventListener('click', () => {
-      const action = item.getAttribute('data-action');
-      const cur = SheetState.selected;
-      if (!cur || isRowLocked(cur.row)) return;
-
-      const colDef = EXCEL_COLUMNS.find(c => c.col === cur.colLetter);
-
-      if (CurrentUser && CurrentUser.isReadOnly && ['quick-form', 'paste', 'clear', 'set-zero'].includes(action)) {
-        showToast('🔒 ভিউ মোড: এডিটিং বন্ধ রয়েছে।', 'warning');
-        menu.classList.add('hidden');
-        return;
-      }
-
-      if (action === 'quick-form') {
-        openQuickEntryModal(cur.row);
-      } else if (action === 'copy') {
-        handleClipboardCopy();
-      } else if (action === 'paste') {
-        navigator.clipboard?.readText().then(handleClipboardPaste);
-      } else if (action === 'clear') {
-        deleteSelectedRange(false);
-      } else if (action === 'set-zero') {
-        deleteSelectedRange(true);
-      }
-      menu.classList.add('hidden');
-    });
-  });
-}
-
-function bindExcelEvents() {
-  document.getElementById('btnCloudSync')?.addEventListener('click', () => handleSyncOrPublish());
-  document.getElementById('btnSaveGrid')?.addEventListener('click', () => handleInchargeSave());
-  document.getElementById('btnExportExcel')?.addEventListener('click', exportExcelFile);
-  document.getElementById('btnExportPDF')?.addEventListener('click', exportPDFReport);
-  document.getElementById('btnPrint')?.addEventListener('click', () => window.print());
-  document.getElementById('btnResetOriginal')?.addEventListener('click', resetToOriginalData);
-  document.getElementById('btnUndo')?.addEventListener('click', undoAction);
-  document.getElementById('btnRedo')?.addEventListener('click', redoAction);
-  document.getElementById('btnQuickEntryModal')?.addEventListener('click', () => {
-    const cur = SheetState.selected;
-    openQuickEntryModal(cur ? cur.row : 6);
-  });
-
-  // Modal events
-  document.getElementById('btnModalClose')?.addEventListener('click', closeQuickEntryModal);
-  document.getElementById('btnModalCancel')?.addEventListener('click', closeQuickEntryModal);
-  document.getElementById('btnModalSave')?.addEventListener('click', () => saveModalEntry(false));
-  document.getElementById('btnModalSaveNext')?.addEventListener('click', () => saveModalEntry(true));
-  ['mCap', 'mAct', 'mRej', 'mPlan'].forEach(id => {
-    const el = document.getElementById(id);
-    el?.addEventListener('input', (e) => {
-      e.target.value = e.target.value.replace(/[^0-9.]/g, '');
-      updateModalLiveKpi();
-    });
-  });
-
-  // Search events
-  document.getElementById('searchInput')?.addEventListener('input', performSearch);
-  document.getElementById('btnSearchNext')?.addEventListener('click', () => cycleSearch(true));
-  document.getElementById('btnSearchPrev')?.addEventListener('click', () => cycleSearch(false));
-  document.getElementById('btnSearchClose')?.addEventListener('click', closeSearchBar);
-  document.getElementById('searchInput')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      cycleSearch(!e.shiftKey);
-    } else if (e.key === 'Escape') {
-      closeSearchBar();
-    }
-  });
-
-  // Formula bar input & sanitize
-  const formulaInput = document.getElementById('formulaBarInput');
-  formulaInput?.addEventListener('input', () => {
-    const cur = SheetState.selected;
-    if (cur && cur.colLetter !== 'AM' && !formulaInput.readOnly) {
-      if (!formulaInput.value.trim().startsWith('=')) {
-        formulaInput.value = formulaInput.value.replace(/[^0-9.]/g, '');
-      }
-    }
-  });
-
-  formulaInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const cur = SheetState.selected;
-      if (cur && cur.row !== 5 && !isRowLocked(cur.row)) {
-        const colDef = EXCEL_COLUMNS.find(c => c.col === cur.colLetter);
-        if (colDef && !colDef.isFormula && !colDef.isReadOnly) {
-          saveCellUpdate(cur.colLetter, cur.row, formulaInput.value.trim(), colDef);
-        }
-      }
-      formulaInput.blur();
-    }
-  });
-
-  // Fast and smooth mouse drag range selection across cells
-  const mainTable = document.getElementById('excelMainTable');
-  mainTable?.addEventListener('mouseover', (e) => {
-    if (!SheetState.isSelecting) return;
-    const td = e.target.closest('td');
-    if (!td || !td.dataset.col || !td.dataset.row) return;
-    const r = Number(td.dataset.row);
-    if (r === 5 || isRowLocked(r)) return;
-    SheetState.rangeSelection.end = { col: td.dataset.col, row: r };
-    highlightSelectedRange();
-  });
-
-  // Native Clipboard copy event
-  window.addEventListener('copy', (e) => {
-    if (SheetState.isEditing) return;
-    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-    const cur = SheetState.selected;
-    if (!cur) return;
-
-    e.preventDefault();
-    handleClipboardCopy();
-  });
-
-  // Global Keyboard Navigation
-  window.addEventListener('keydown', (e) => {
-    if (SheetState.isEditing) return;
     if (document.activeElement === formulaInput) return;
     if (document.activeElement === document.getElementById('searchInput')) return;
     if (!document.getElementById('quickEntryModal')?.classList.contains('hidden')) {
@@ -6670,19 +4597,18 @@ function bindExcelEvents() {
       e.preventDefault();
       const maxActive = getMaxActiveRow();
       SheetState.rangeSelection.start = { col: 'E', row: 6 };
-      SheetState.rangeSelection.end = { col: 'AM', row: maxActive };
+      SheetState.rangeSelection.end = { col: 'AP', row: maxActive };
       selectCell('E', 6, false);
       highlightSelectedRange();
-      showToast('🔲 All editable cells selected', 'info');
       return;
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) {
-        showToast('🔒 ভিউ মোড: এডিটিং বন্ধ রয়েছে।', 'warning');
+        showToast('Permission Denied: Read-only access.', 'warning');
         return;
       }
       saveSheetData(true);
-      showToast('💾 Saved!', 'success');
+      showToast('Changes saved to cloud successfully!', 'success');
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) return;
@@ -6700,25 +4626,24 @@ function bindExcelEvents() {
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
       e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) {
-        showToast('🔒 ভিউ মোড: পেস্ট বা পরিবর্তন করা যাবে না।', 'warning');
+        showToast('Permission Denied: Read-only access.', 'warning');
         return;
       }
       if (navigator.clipboard && navigator.clipboard.readText) {
         navigator.clipboard.readText().then(text => {
           if (text) handleClipboardPaste(text);
         }).catch(() => {
-          showToast('⚠️ Please use Right Click -> Paste or browser paste', 'warning');
+          showToast('Please use Ctrl+V or browser paste.', 'warning');
         });
       }
     } else if (e.key === ' ' || (e.altKey && e.key.toLowerCase() === 'e')) {
       e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) {
-        showToast('🔒 ভিউ মোড: ডাটা এন্ট্রি বন্ধ রয়েছে।', 'warning');
+        showToast('Permission Denied: Read-only access.', 'warning');
         return;
       }
       if (!isRowLocked(cur.row)) openQuickEntryModal(cur.row);
     } else if (e.shiftKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      // Excel-like Shift + Arrow Multi-cell Range Selection
       e.preventDefault();
       if (!SheetState.rangeSelection.start) {
         SheetState.rangeSelection.start = { col: cur.colLetter, row: cur.row };
@@ -6756,7 +4681,7 @@ function bindExcelEvents() {
     } else if (e.key === 'Enter' || e.key === 'F2') {
       e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) {
-        showToast('🔒 ভিউ মোড: কোনো ডাটা এডিট করা যাবে না।', 'warning');
+        showToast('Permission Denied: Read-only access.', 'warning');
         return;
       }
       if (colDef && !colDef.isFormula && !colDef.isReadOnly && cur.row !== 5 && !isRowLocked(cur.row)) {
@@ -6764,14 +4689,14 @@ function bindExcelEvents() {
       }
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       if (CurrentUser && CurrentUser.isReadOnly) {
-        showToast('🔒 ভিউ মোড: কোনো ডাটা ডিলিট বা এডিট করা যাবে না।', 'warning');
+        showToast('Permission Denied: Read-only access.', 'warning');
         return;
       }
       e.preventDefault();
       deleteSelectedRange(false);
     } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       if (CurrentUser && CurrentUser.isReadOnly) {
-        showToast('🔒 ভিউ মোড: কোনো ডাটা টাইপ বা এডিট করা যাবে না।', 'warning');
+        showToast('Permission Denied: Read-only access.', 'warning');
         return;
       }
       if (cur.row !== 5 && colDef && !colDef.isFormula && !colDef.isReadOnly && !isRowLocked(cur.row)) {
@@ -6784,23 +4709,11 @@ function bindExcelEvents() {
     }
   });
 
-  // Automatically flush and persist any active cell edit on browser refresh or navigation
   const flushAndSaveOnUnload = () => {
-    if (SheetState.isEditing && SheetState.activeInput) {
-      const cur = SheetState.selected;
-      if (cur && cur.row !== 5 && !isRowLocked(cur.row)) {
-        const colDef = EXCEL_COLUMNS.find(c => c.col === cur.colLetter);
-        if (colDef && !colDef.isReadOnly && !colDef.isFormula) {
-          const rowObj = SheetState.rows.find(r => r.row === cur.row);
-          if (rowObj) {
-            const rawVal = SheetState.activeInput.value.trim();
-            const cleanVal = (cur.colLetter === 'AM') ? (rawVal === '' ? null : rawVal) : sanitizeNumericValue(rawVal);
-            if (!rowObj[cur.colLetter]) rowObj[cur.colLetter] = {};
-            rowObj[cur.colLetter].val = cleanVal;
-            recalculateRow(rowObj);
-            recalculateTotalRow();
-          }
-        }
+    if (EditingState.isEditing && EditingState.cell) {
+      const input = EditingState.cell.querySelector('input');
+      if (input) {
+        commitCellEdit(EditingState.cell, EditingState.colLetter, EditingState.row, input.value);
       }
     }
     saveSheetData(false);
@@ -6810,6 +4723,49 @@ function bindExcelEvents() {
   window.addEventListener('pagehide', flushAndSaveOnUnload);
 
   initContextMenu();
+}
+
+function initContextMenu() {
+  const menu = document.getElementById('contextMenu');
+  if (!menu) return;
+
+  window.addEventListener('click', () => {
+    menu.classList.add('hidden');
+  });
+
+  document.getElementById('ctxCopy')?.addEventListener('click', () => {
+    handleClipboardCopy();
+    menu.classList.add('hidden');
+  });
+
+  document.getElementById('ctxPaste')?.addEventListener('click', () => {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(text => {
+        if (text) handleClipboardPaste(text);
+      });
+    }
+    menu.classList.add('hidden');
+  });
+
+  document.getElementById('ctxClear')?.addEventListener('click', () => {
+    deleteSelectedRange(false);
+    menu.classList.add('hidden');
+  });
+
+  document.getElementById('ctxUndo')?.addEventListener('click', () => {
+    undoAction();
+    menu.classList.add('hidden');
+  });
+
+  document.getElementById('ctxRedo')?.addEventListener('click', () => {
+    redoAction();
+    menu.classList.add('hidden');
+  });
+
+  document.getElementById('ctxExport')?.addEventListener('click', () => {
+    exportExcelFile();
+    menu.classList.add('hidden');
+  });
 }
 
 function setText(id, val) {
@@ -6825,7 +4781,13 @@ function showToast(message, type = 'info') {
   toast.className = 'toast-msg';
 
   const iconSpan = document.createElement('span');
-  iconSpan.textContent = type === 'success' ? '✅' : (type === 'error' ? '❌' : (type === 'warning' ? '⚠️' : 'ℹ️'));
+  iconSpan.innerHTML = type === 'success' 
+    ? '<svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' 
+    : (type === 'error' 
+      ? '<svg class="w-4 h-4 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' 
+      : (type === 'warning'
+        ? '<svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+        : '<svg class="w-4 h-4 text-sky-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'));
 
   const textSpan = document.createElement('span');
   textSpan.textContent = message;
@@ -6840,4 +4802,26 @@ function showToast(message, type = 'info') {
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, 3500);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// APPLICATION ENTRY POINT
+// ══════════════════════════════════════════════════════════════════════════════
+function startApp() {
+  try {
+    restoreAppState();
+    initMonthYearSelectors();
+    initSheetTabButtons();
+    bindExcelEvents();
+    initAuthSystem();
+    initFirebase();
+  } catch (err) {
+    console.error('Error starting app:', err);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
 }
