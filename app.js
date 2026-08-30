@@ -378,7 +378,7 @@ function getMaxActiveRow(tabId = ACTIVE_TAB) {
 }
 
 function getStorageKey(tabId, year, monthIndex) {
-  return `mep_oee_v23_${tabId}_${year}_${monthIndex}`;
+  return `mep_oee_store_${tabId}_${year}_${monthIndex}`;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -991,58 +991,29 @@ function getStoredLocalData(tabId, year, monthIndex) {
 }
 
 function loadSheetData() {
-  const expectedRowsCount = getDaysInSelectedMonth() * getRowsPerDay(ACTIVE_TAB);
-  const expectedMachines = getMachinesForTab(ACTIVE_TAB);
   const localData = getStoredLocalData(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
 
   if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
-    const parsed = localData.rows;
-
-    // Best case: row count and machine names match perfectly
-    if (parsed.length === expectedRowsCount) {
-      let matches = true;
-      const rowsPerDay = expectedMachines.length;
-      for (let i = 0; i < parsed.length; i++) {
-        const mIdx = i % rowsPerDay;
-        if (parsed[i].D?.val !== expectedMachines[mIdx]) {
-          matches = false;
-          break;
-        }
-      }
-      if (matches) {
-        SheetState.rows = parsed;
-        return;
-      }
-    }
-
-    // Fallback: row count matches but machine names might differ slightly
-    // Still use the data - it came from Firebase and has valid entered values
-    if (parsed.length === expectedRowsCount) {
-      SheetState.rows = parsed;
-      return;
-    }
-
-    // Last resort: data has different row count but has actual entered data
-    // Use it anyway rather than showing blank - data preservation is critical
-    let hasAnyData = false;
-    for (const r of parsed) {
-      if (r.E?.val || r.F?.val || r.G?.val || r.H?.val) {
-        hasAnyData = true;
-        break;
-      }
-    }
-    if (hasAnyData) {
-      SheetState.rows = parsed;
-      return;
-    }
+    SheetState.rows = localData.rows;
+    // Re-verify that each row has proper row index
+    SheetState.rows.forEach((r, idx) => {
+      r.row = 6 + idx;
+    });
+    return;
   }
 
-  // Only generate blank rows if there's truly no saved data at all
-  if (ACTIVE_TAB === 'fan_lathe' && MonthYearState.year === 2026 && MonthYearState.monthIndex === 7 && typeof INITIAL_EXCEL_ROWS !== 'undefined') {
-    SheetState.rows = JSON.parse(JSON.stringify(INITIAL_EXCEL_ROWS));
-  } else {
-    SheetState.rows = generateBlankMonthRows(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
+  // If localStorage has raw array format
+  if (Array.isArray(localData) && localData.length > 0) {
+    SheetState.rows = localData;
+    SheetState.rows.forEach((r, idx) => {
+      r.row = 6 + idx;
+    });
+    return;
   }
+
+  // Generate blank month rows as a clean canvas
+  SheetState.rows = generateBlankMonthRows(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
+  LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows, 'InitialBlank');
 }
 
 function pushHistoryState() {
@@ -1157,13 +1128,13 @@ function getStoredLocalData(tabId, year, monthIndex) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// MODULE 2: PURE GOOGLE SHEETS REAL-TIME ENGINE (Cell/Row Granular Cloud Sync)
+// MODULE 2: GOOGLE SHEETS ULTRA-RELIABLE REAL-TIME FIREBASE ENGINE
 // ──────────────────────────────────────────────────────────────────────────
 let activeSheetRef = null;
 let activeSheetListenerTab = null;
 
 const GoogleSheetsRealtimeEngine = {
-  // Push a single modified row immediately to Firebase Realtime Database
+  // Push a single row change immediately to Firebase
   async pushRowChange(tabId, year, monthIndex, rowObj) {
     if (!rowObj || typeof rowObj.row !== 'number') return;
     if (CurrentUser && CurrentUser.isReadOnly) return;
@@ -1180,7 +1151,6 @@ const GoogleSheetsRealtimeEngine = {
       if (firebaseDb) {
         firebaseDb.ref(path).set(cleanRow);
       }
-      // REST API call
       fetch(`${FIREBASE_RTDB_BASE_URL}/${path}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1190,39 +1160,64 @@ const GoogleSheetsRealtimeEngine = {
       }).catch(() => {});
     } catch (err) {
       console.error('pushRowChange error:', err);
-      updateCloudStatusUI('offline', 'Saved locally (offline)');
     }
   },
 
-  // Push batch of modified rows (e.g. from paste or modal entry)
+  // Push batch of modified rows (e.g. from paste, drag autofill, or modal entry)
   async pushRowsBatch(tabId, year, monthIndex, rowsArray) {
     if (!Array.isArray(rowsArray) || rowsArray.length === 0) return;
     if (CurrentUser && CurrentUser.isReadOnly) return;
 
     updateCloudStatusUI('syncing', 'Saving...');
 
-    const promises = rowsArray.map(rObj => {
-      const rIdx = rObj.row - 6;
-      if (rIdx < 0) return Promise.resolve();
-      const cleanRow = cleanDataForFirebase(rObj);
-      const path = `mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows/${rIdx}`;
-
-      if (firebaseDb) {
-        firebaseDb.ref(path).set(cleanRow);
-      }
-      return fetch(`${FIREBASE_RTDB_BASE_URL}/${path}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cleanRow)
-      });
-    });
+    const cleanRows = cleanDataForFirebase(rowsArray);
+    const path = `mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows`;
 
     try {
-      await Promise.all(promises);
-      updateCloudStatusUI('synced', 'All changes saved to cloud');
+      if (firebaseDb) {
+        const updates = {};
+        rowsArray.forEach(rObj => {
+          const rIdx = rObj.row - 6;
+          if (rIdx >= 0) {
+            updates[`${path}/${rIdx}`] = cleanDataForFirebase(rObj);
+          }
+        });
+        firebaseDb.ref().update(updates);
+      }
+
+      // Also persist to REST API endpoint
+      if (rowsArray.length > 5) {
+        // Full sheet array update
+        fetch(`${FIREBASE_RTDB_BASE_URL}/${path}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cleanRows)
+        }).then(() => {
+          updateCloudStatusUI('synced', 'All changes saved to cloud');
+        }).catch(() => {});
+      } else {
+        // Granular row updates
+        rowsArray.forEach(rObj => {
+          const rIdx = rObj.row - 6;
+          if (rIdx >= 0) {
+            fetch(`${FIREBASE_RTDB_BASE_URL}/${path}/${rIdx}.json`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cleanDataForFirebase(rObj))
+            }).catch(() => {});
+          }
+        });
+        updateCloudStatusUI('synced', 'All changes saved to cloud');
+      }
     } catch (e) {
+      console.error('pushRowsBatch error:', e);
       updateCloudStatusUI('synced', 'All changes saved to cloud');
     }
+  },
+
+  // Push full active sheet
+  async pushSheet(tabId, year, monthIndex, fullRows) {
+    return this.pushRowsBatch(tabId, year, monthIndex, fullRows);
   },
 
   // Listen to the active sheet in real-time via WebSockets
@@ -1244,7 +1239,6 @@ const GoogleSheetsRealtimeEngine = {
         const incomingRow = snap.val();
         if (!incomingRow || isNaN(rIdx)) return;
 
-        // If local user is currently editing THIS exact row, don't interrupt cursor
         if (SheetState.isEditing && SheetState.selected && SheetState.selected.row === (rIdx + 6)) {
           return;
         }
@@ -1260,10 +1254,10 @@ const GoogleSheetsRealtimeEngine = {
       });
     }
 
-    // Fallback polling every 3 seconds
+    // Background poll fallback every 4 seconds
     if (!window._mepGoogleSheetsPoll) {
       window._mepGoogleSheetsPoll = setInterval(async () => {
-        if (SheetState.isEditing) return; // Don't poll while user is actively typing
+        if (SheetState.isEditing) return;
         try {
           const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/sheets/${MonthYearState.year}/${MonthYearState.monthIndex}/${ACTIVE_TAB}/rows.json`);
           if (res.ok) {
@@ -1272,11 +1266,11 @@ const GoogleSheetsRealtimeEngine = {
               let hasChanges = false;
               cloudRows.forEach((r, idx) => {
                 if (!r || idx >= SheetState.rows.length) return;
-                // Quick compare input fields
                 if (JSON.stringify(r.E) !== JSON.stringify(SheetState.rows[idx]?.E) ||
                     JSON.stringify(r.F) !== JSON.stringify(SheetState.rows[idx]?.F) ||
                     JSON.stringify(r.G) !== JSON.stringify(SheetState.rows[idx]?.G) ||
                     JSON.stringify(r.H) !== JSON.stringify(SheetState.rows[idx]?.H) ||
+                    JSON.stringify(r.I) !== JSON.stringify(SheetState.rows[idx]?.I) ||
                     JSON.stringify(r.AM) !== JSON.stringify(SheetState.rows[idx]?.AM)) {
                   SheetState.rows[idx] = r;
                   recalculateRow(SheetState.rows[idx]);
@@ -1292,19 +1286,37 @@ const GoogleSheetsRealtimeEngine = {
             }
           }
         } catch(e) {}
-      }, 3000);
+      }, 4000);
     }
   },
 
   // Fetch full sheet from Firebase
   async fetchSheetFromCloud(tabId, year, monthIndex) {
     try {
-      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}.json?nocache=${Date.now()}`;
+      // Try direct Firebase SDK first
+      if (firebaseDb) {
+        const snap = await firebaseDb.ref(`mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows`).once('value');
+        const val = snap.val();
+        if (val) {
+          if (Array.isArray(val) && val.length > 0) return val;
+          if (typeof val === 'object') {
+            const arr = Object.values(val);
+            if (Array.isArray(arr) && arr.length > 0) return arr;
+          }
+        }
+      }
+
+      // REST API fallback
+      const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows.json?nocache=${Date.now()}`;
       const res = await fetch(url, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        if (data && Array.isArray(data.rows) && data.rows.length > 0) {
-          return data.rows;
+        if (data) {
+          if (Array.isArray(data) && data.length > 0) return data;
+          if (typeof data === 'object') {
+            const arr = Object.values(data);
+            if (Array.isArray(arr) && arr.length > 0) return arr;
+          }
         }
       }
     } catch (e) {
@@ -1389,15 +1401,45 @@ async function syncAllCloudData(showFeedback = false) {
     const cloudRows = await GoogleSheetsRealtimeEngine.fetchSheetFromCloud(ACTIVE_TAB, year, monthIndex);
 
     if (cloudRows && Array.isArray(cloudRows) && cloudRows.length > 0) {
-      cloudRows.forEach(r => recalculateRow(r));
-      SheetState.rows = cloudRows;
-      LocalStorageEngine.save(ACTIVE_TAB, year, monthIndex, cloudRows, 'CloudSync');
-      recalculateAllFormulas();
-      renderExcelTable();
-      updateTotalRowDisplay();
+      // Cloud has data -> verify if cloud has entries
+      let cloudHasData = false;
+      for (const r of cloudRows) {
+        if (r && (r.E?.val || r.F?.val || r.G?.val || r.H?.val || r.I?.val)) {
+          cloudHasData = true;
+          break;
+        }
+      }
+
+      // Check if local state already has entries
+      let localHasData = false;
+      for (const r of SheetState.rows) {
+        if (r && (r.E?.val || r.F?.val || r.G?.val || r.H?.val || r.I?.val)) {
+          localHasData = true;
+          break;
+        }
+      }
+
+      if (cloudHasData || !localHasData) {
+        cloudRows.forEach((r, idx) => {
+          r.row = 6 + idx;
+          recalculateRow(r);
+        });
+        SheetState.rows = cloudRows;
+        LocalStorageEngine.save(ACTIVE_TAB, year, monthIndex, cloudRows, 'CloudSync');
+        recalculateAllFormulas();
+        renderExcelTable();
+        updateTotalRowDisplay();
+      } else if (localHasData && !cloudHasData) {
+        // Local has data but cloud is empty -> push local data to cloud!
+        GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, year, monthIndex, SheetState.rows);
+      }
       updateCloudStatusUI('synced', 'All changes saved to cloud');
-    showToast('Operation completed successfully.', 'success');
+      if (showFeedback) showToast('Cloud synchronized successfully.', 'success');
     } else {
+      // Cloud was empty -> push current local sheet to cloud so cloud is immediately up to date!
+      if (SheetState.rows && SheetState.rows.length > 0) {
+        GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, year, monthIndex, SheetState.rows);
+      }
       updateCloudStatusUI('synced', 'All changes saved to cloud');
     }
   } catch (err) {
@@ -1421,7 +1463,8 @@ function handleSyncOrPublish() {
 
 function saveSheetData(pushHistory = true) {
   if (pushHistory) pushHistoryState();
-  LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
+  LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows, CurrentUser?.name);
+  GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
 }
 
 function triggerSaveIndicator() {
@@ -3064,7 +3107,11 @@ function renderExcelTable() {
   const table = document.getElementById('excelMainTable');
   if (!table) return;
 
-  table.replaceChildren();
+  if (table.replaceChildren) {
+    table.replaceChildren();
+  } else {
+    table.innerHTML = '';
+  }
 
   // If viewing Executive Summary Reports
   if (ACTIVE_TAB === 'summary_downtime') {
@@ -3324,6 +3371,10 @@ function renderExcelTable() {
           }
           startCellEdit(td, colLetter, r, colDef);
         });
+
+        td.addEventListener('contextmenu', (e) => {
+          onCellContextMenu(colLetter, r, e);
+        });
       }
 
       tr.appendChild(td);
@@ -3366,6 +3417,9 @@ function formatCellValue(val, colDef, isTotalRow = false) {
 
 // ──────────────────────────────────────────────────────────────────────────
 function selectCell(colLetter, rowNum, resetRange = true) {
+  if (SheetState.isEditing && (SheetState.selected?.row !== rowNum || SheetState.selected?.colLetter !== colLetter)) {
+    commitCurrentEdit();
+  }
   if (ACTIVE_TAB === 'summary_downtime' || ACTIVE_TAB === 'summary_production') return;
   if (isRowLocked(rowNum)) return;
 
@@ -3477,6 +3531,9 @@ function clearSelectionStyles() {
 
 function onCellMouseDown(colLetter, rowNum, e) {
   if (isRowLocked(rowNum) || rowNum === 5) return;
+  if (SheetState.isEditing) {
+    commitCurrentEdit();
+  }
 
   if (e && e.shiftKey && SheetState.selected) {
     if (e.preventDefault) e.preventDefault();
@@ -3553,8 +3610,12 @@ function updateRangeStats(minR, maxR, minC, maxC) {
     const end = SheetState.rangeSelection.end || SheetState.selected;
     if (!start || !end) return;
 
-    const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === start.col);
-    const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === end.col);
+    const startColLet = start.col || start.colLetter;
+    const endColLet = end.col || end.colLetter;
+    const startCIdx = EXCEL_COLUMNS.findIndex(c => c.col === startColLet);
+    const endCIdx = EXCEL_COLUMNS.findIndex(c => c.col === endColLet);
+    if (startCIdx === -1 || endCIdx === -1) return;
+
     minC = Math.min(startCIdx, endCIdx);
     maxC = Math.max(startCIdx, endCIdx);
     minR = Math.min(start.row, end.row);
@@ -3569,6 +3630,7 @@ function updateRangeStats(minR, maxR, minC, maxC) {
     if (isRowLocked(r)) continue;
     const rowObj = SheetState.rows.find(row => row.row === r);
     for (let c = minC; c <= maxC; c++) {
+      if (!EXCEL_COLUMNS[c]) continue;
       count++;
       const colLetter = EXCEL_COLUMNS[c].col;
       const val = rowObj ? rowObj[colLetter]?.val : (r === 5 ? SheetState.totals[colLetter] : null);
@@ -3928,37 +3990,80 @@ function onFillHandleMouseDown(e) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// BULLETPROOF SINGLE-CELL EDITING & CLEANUP ENGINE
+// ──────────────────────────────────────────────────────────────────────────
+function commitCurrentEdit() {
+  if (!SheetState.isEditing && !document.querySelector('.cell-edit-input, .cell-edit-input-remarks')) {
+    return;
+  }
+
+  const inputs = document.querySelectorAll('.cell-edit-input, .cell-edit-input-remarks');
+  inputs.forEach(input => {
+    const td = input.closest('td');
+    const rawVal = input.value.trim();
+    if (td && td.dataset.col && td.dataset.row) {
+      const colLetter = td.dataset.col;
+      const rowNum = Number(td.dataset.row);
+      const colDef = EXCEL_COLUMNS.find(c => c.col === colLetter);
+
+      input.remove();
+      if (colDef) {
+        td.textContent = formatCellValue(rawVal, colDef);
+      }
+
+      SheetState.isEditing = false;
+      SheetState.activeInput = null;
+
+      saveCellUpdate(colLetter, rowNum, rawVal, colDef);
+    } else {
+      input.remove();
+    }
+  });
+
+  SheetState.isEditing = false;
+  SheetState.activeInput = null;
+}
+
+function normalizeDigits(str) {
+  if (typeof str !== 'string') return str;
+  const banglaDigits = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+  return str.replace(/[০-৯]/g, d => banglaDigits[d] || d);
+}
+
 function sanitizeNumericValue(val) {
   if (typeof val !== 'string') return val;
-  const trimmed = val.trim();
-  if (trimmed.startsWith('=')) {
+  const normalized = normalizeDigits(val.trim());
+  
+  if (normalized.startsWith('=')) {
     try {
-      const sanitized = trimmed.substring(1).replace(/[^0-9+\-*/(). ]/g, '');
+      const sanitized = normalized.substring(1).replace(/[^0-9+\-*/(). ]/g, '');
       if (sanitized) {
         const result = Function(`'use strict'; return (${sanitized})`)();
         if (!isNaN(result) && isFinite(result)) return Math.round(result * 100) / 100;
       }
-    } catch (e) {
-      // Fallback
-    }
+    } catch (e) {}
   }
-  const cleaned = trimmed.replace(/[^0-9.]/g, '');
+
+  const cleaned = normalized.replace(/[^0-9.]/g, '');
   return cleaned === '' ? null : (Number(cleaned) || 0);
 }
 
-// ──────────────────────────────────────────────────────────────────────────
 function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
   if (CurrentUser && CurrentUser.isReadOnly) {
     showToast('Permission Denied: This operation is restricted.', 'warning');
     return;
   }
 
-  if (ACTIVE_TAB === 'summary_downtime' || ACTIVE_TAB === 'summary_production' || rowNum === 5 || colDef.isFormula || colDef.isReadOnly || isRowLocked(rowNum)) {
+  if (ACTIVE_TAB.startsWith('summary_') || rowNum === 5 || colDef.isFormula || colDef.isReadOnly || isRowLocked(rowNum)) {
     return;
   }
 
-  if (colLetter !== 'AM' && initialChar !== null) {
-    if (!/^[0-9.=\-+/*()]$/.test(initialChar)) {
+  // Commit any currently open edit box first
+  commitCurrentEdit();
+
+  const normInitial = initialChar !== null ? normalizeDigits(initialChar) : null;
+  if (colLetter !== 'AM' && normInitial !== null) {
+    if (!/^[0-9.=\-+/*()]$/.test(normInitial)) {
       return;
     }
   }
@@ -3972,7 +4077,7 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
   if (colLetter === 'AM') {
     input = document.createElement('textarea');
     input.rows = 1;
-    input.value = initialChar !== null ? initialChar : currentVal;
+    input.value = normInitial !== null ? normInitial : currentVal;
     input.className = 'cell-edit-input-remarks';
 
     const autoGrow = () => {
@@ -3984,22 +4089,23 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
   } else {
     input = document.createElement('input');
     input.type = 'text';
-    input.inputMode = 'numeric';
-    input.value = initialChar !== null ? initialChar : currentVal;
+    input.inputMode = 'decimal';
+    input.value = normInitial !== null ? normInitial : currentVal;
     input.className = 'cell-edit-input';
 
     input.addEventListener('keydown', (e) => {
-      // Prevent bubbling so window shortcuts don't intercept editing
       e.stopPropagation();
       if (['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
         return;
       }
-      if (!/^[0-9.=\-+/*() ]$/.test(e.key)) {
+      const k = normalizeDigits(e.key);
+      if (!/^[0-9.=\-+/*() ]$/.test(k)) {
         e.preventDefault();
       }
     });
 
     input.addEventListener('input', () => {
+      input.value = normalizeDigits(input.value);
       if (!input.value.trim().startsWith('=')) {
         input.value = input.value.replace(/[^0-9.]/g, '');
       }
@@ -4011,21 +4117,26 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
   SheetState.activeInput = input;
 
   input.focus();
-  if (initialChar !== null) {
+  if (normInitial !== null) {
     input.setSelectionRange(input.value.length, input.value.length);
   } else if (input.select) {
     input.select();
   }
 
+  let isCommitted = false;
   const commit = () => {
-    if (!SheetState.isEditing) return;
+    if (isCommitted) return;
+    isCommitted = true;
     SheetState.isEditing = false;
     SheetState.activeInput = null;
     const newVal = input.value.trim();
     saveCellUpdate(colLetter, rowNum, newVal, colDef);
   };
 
-  input.addEventListener('blur', commit);
+  input.addEventListener('blur', () => {
+    commit();
+  });
+
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -4050,6 +4161,7 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
     } else if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
+      isCommitted = true;
       SheetState.isEditing = false;
       SheetState.activeInput = null;
       updateSingleRowDisplay(rowNum);
@@ -4059,13 +4171,8 @@ function startCellEdit(td, colLetter, rowNum, colDef, initialChar = null) {
 }
 
 function saveCellUpdate(colLetter, rowNum, newVal, colDef) {
-  if (CurrentUser && CurrentUser.isReadOnly) {
-    return;
-  }
-
-  if (colDef.isReadOnly || colDef.isFormula || isRowLocked(rowNum) || rowNum === 5) {
-    return;
-  }
+  if (CurrentUser && CurrentUser.isReadOnly) return;
+  if (!colDef || colDef.isReadOnly || colDef.isFormula || isRowLocked(rowNum) || rowNum === 5) return;
 
   const rowObj = SheetState.rows.find(r => r.row === rowNum);
   if (!rowObj) return;
@@ -4094,7 +4201,7 @@ function saveCellUpdate(colLetter, rowNum, newVal, colDef) {
         const gRowObj = SheetState.rows.find(r => r.row === (dayStart + groupInfo.masterIdx + i));
         if (gRowObj) {
           if (!gRowObj[colLetter]) gRowObj[colLetter] = {};
-          gRowObj[colLetter].val = cleanNum;
+          gRowObj[colLetter].val = rowObj[colLetter].val;
         }
       }
     }
@@ -4112,7 +4219,7 @@ function saveCellUpdate(colLetter, rowNum, newVal, colDef) {
   }
 
   recalculateTotalRow();
-  saveSheetData(false);
+  LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows, CurrentUser?.name);
   GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, affectedRows);
   updateSingleRowDisplay(rowNum);
   updateTotalRowDisplay();
@@ -4401,17 +4508,39 @@ function closeSearchBar() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// CLIPBOARD & RANGE OPERATIONS
+// COMPREHENSIVE CLIPBOARD & GOOGLE SHEETS / EXCEL COMPATIBLE RANGE ENGINE
 // ──────────────────────────────────────────────────────────────────────────
+let InternalClipboard = {
+  text: '',
+  isSingle: true,
+  singleVal: '',
+  rows: []
+};
+
 function handleClipboardCopy() {
+  document.querySelectorAll('.mep-excel-table td.excel-copied-cell').forEach(td => td.classList.remove('excel-copied-cell'));
+
   if (!SheetState.rangeSelection.start || !SheetState.rangeSelection.end) {
     const cur = SheetState.selected;
     if (cur) {
       const rowObj = SheetState.rows.find(r => r.row === cur.row);
       const val = rowObj ? (rowObj[cur.colLetter]?.val ?? '') : '';
-      navigator.clipboard.writeText(String(val)).then(() => {
-        showToast('Copied cell to clipboard.', 'info');
-      }).catch(() => {});
+      const strVal = String(val !== null && val !== undefined ? val : '');
+      
+      InternalClipboard = {
+        text: strVal,
+        isSingle: true,
+        singleVal: val,
+        rows: [[val]]
+      };
+
+      const targetTd = document.querySelector(`.mep-excel-table td[data-col="${cur.colLetter}"][data-row="${cur.row}"]`);
+      if (targetTd) targetTd.classList.add('excel-copied-cell');
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(strVal).catch(() => {});
+      }
+      showToast(`Copied cell ${cur.colLetter}${cur.row} to clipboard.`, 'info');
     }
     return;
   }
@@ -4425,20 +4554,41 @@ function handleClipboardCopy() {
   const maxR = Math.max(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row);
 
   const lines = [];
+  const rawRows = [];
+
   for (let r = minR; r <= maxR; r++) {
     const rowObj = SheetState.rows.find(ro => ro.row === r);
     const rowVals = [];
+    const rawRow = [];
     for (let c = minC; c <= maxC; c++) {
       const colLetter = EXCEL_COLUMNS[c].col;
-      rowVals.push(rowObj ? (rowObj[colLetter]?.val ?? '') : '');
+      const val = rowObj ? (rowObj[colLetter]?.val ?? '') : '';
+      rowVals.push(val !== null && val !== undefined ? val : '');
+      rawRow.push(val);
+
+      const targetTd = document.querySelector(`.mep-excel-table td[data-col="${colLetter}"][data-row="${r}"]`);
+      if (targetTd) targetTd.classList.add('excel-copied-cell');
     }
     lines.push(rowVals.join('\t'));
+    rawRows.push(rawRow);
   }
 
   const tsv = lines.join('\n');
-  navigator.clipboard.writeText(tsv).then(() => {
-    showToast(`Copied ${maxR - minR + 1} x ${maxC - minC + 1} cells.`, 'info');
-  }).catch(() => {});
+  const isSingle = (minR === maxR && minC === maxC);
+  
+  InternalClipboard = {
+    text: tsv,
+    isSingle: isSingle,
+    singleVal: isSingle ? rawRows[0][0] : '',
+    rows: rawRows
+  };
+
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(tsv).catch(() => {});
+  }
+
+  const cellCount = (maxR - minR + 1) * (maxC - minC + 1);
+  showToast(`Copied ${cellCount} cell${cellCount > 1 ? 's' : ''} to clipboard.`, 'info');
 }
 
 function handleClipboardPaste(text) {
@@ -4446,7 +4596,9 @@ function handleClipboardPaste(text) {
     showToast('Permission Denied: Read-only access.', 'warning');
     return;
   }
-  if (!text) return;
+
+  const pasteText = (text && typeof text === 'string' && text.trim().length > 0) ? text : InternalClipboard.text;
+  if (!pasteText && InternalClipboard.singleVal === '') return;
 
   const cur = SheetState.selected;
   if (!cur) return;
@@ -4454,44 +4606,101 @@ function handleClipboardPaste(text) {
   const startC = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
   if (startC === -1) return;
 
-  const rows = text.split(/\r?\n/).filter(r => r.length > 0);
-  let modifiedCount = 0;
+  // Split clipboard text into 2D matrix
+  let rawLines = (pasteText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  if (rawLines.length > 1 && rawLines[rawLines.length - 1] === '') {
+    rawLines.pop(); // Remove trailing newline
+  }
+  const matrix = rawLines.map(line => line.split('\t'));
+  const isSingleValue = (matrix.length === 1 && matrix[0].length === 1);
+  const singlePasteVal = isSingleValue ? matrix[0][0].trim() : '';
 
   pushHistoryState();
 
-  rows.forEach((rowStr, rOffset) => {
-    const targetRow = cur.row + rOffset;
-    if (isRowLocked(targetRow)) return;
+  let modifiedCount = 0;
+  const affectedRows = new Set();
 
-    const rowObj = SheetState.rows.find(r => r.row === targetRow);
-    if (!rowObj) return;
+  // CASE 1: Single Value Copied AND Multi-Cell Selection Active -> Fill Range!
+  const hasRangeSelection = SheetState.rangeSelection?.start && SheetState.rangeSelection?.end;
+  const rangeStartC = hasRangeSelection ? EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.start.col) : startC;
+  const rangeEndC = hasRangeSelection ? EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.end.col) : startC;
+  const rangeMinC = Math.min(rangeStartC, rangeEndC);
+  const rangeMaxC = Math.max(rangeStartC, rangeEndC);
+  const rangeMinR = hasRangeSelection ? Math.min(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row) : cur.row;
+  const rangeMaxR = hasRangeSelection ? Math.max(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row) : cur.row;
 
-    const cells = rowStr.split('\t');
-    cells.forEach((valStr, cOffset) => {
-      const targetCIdx = startC + cOffset;
-      if (targetCIdx >= EXCEL_COLUMNS.length) return;
+  const isMultiCellRange = (rangeMinR !== rangeMaxR || rangeMinC !== rangeMaxC);
 
-      const colDef = EXCEL_COLUMNS[targetCIdx];
-      if (colDef.isReadOnly || colDef.isFormula) return;
+  if (isSingleValue && isMultiCellRange) {
+    for (let r = rangeMinR; r <= rangeMaxR; r++) {
+      if (isRowLocked(r) || r === 5) continue;
+      const rowObj = SheetState.rows.find(row => row.row === r);
+      if (!rowObj) continue;
 
-      let val = valStr.trim();
-      if (colDef.col !== 'AM' && val !== '') {
-        const num = parseFloat(val);
-        if (!isNaN(num)) val = num;
+      for (let c = rangeMinC; c <= rangeMaxC; c++) {
+        const colDef = EXCEL_COLUMNS[c];
+        if (colDef.isReadOnly || colDef.isFormula) continue;
+
+        let parsedVal = singlePasteVal;
+        if (colDef.col !== 'AM' && parsedVal !== '') {
+          const num = parseFloat(parsedVal);
+          if (!isNaN(num)) parsedVal = num;
+        } else if (parsedVal === '') {
+          parsedVal = null;
+        }
+
+        if (!rowObj[colDef.col]) rowObj[colDef.col] = {};
+        rowObj[colDef.col].val = parsedVal;
+        affectedRows.add(rowObj);
+        modifiedCount++;
       }
+    }
+  } else {
+    // CASE 2: Multi-Cell Matrix Paste or Single Cell Paste onto Active Cell
+    matrix.forEach((rowVals, rOffset) => {
+      const targetRow = cur.row + rOffset;
+      if (isRowLocked(targetRow) || targetRow === 5) return;
 
-      rowObj[colDef.col] = { val };
-      modifiedCount++;
+      const rowObj = SheetState.rows.find(r => r.row === targetRow);
+      if (!rowObj) return;
+
+      rowVals.forEach((valStr, cOffset) => {
+        const targetCIdx = startC + cOffset;
+        if (targetCIdx >= EXCEL_COLUMNS.length) return;
+
+        const colDef = EXCEL_COLUMNS[targetCIdx];
+        if (colDef.isReadOnly || colDef.isFormula) return;
+
+        let val = valStr.trim();
+        if (colDef.col !== 'AM' && val !== '') {
+          const num = parseFloat(val);
+          if (!isNaN(num)) val = num;
+        } else if (val === '') {
+          val = null;
+        }
+
+        if (!rowObj[colDef.col]) rowObj[colDef.col] = {};
+        rowObj[colDef.col].val = val;
+        affectedRows.add(rowObj);
+        modifiedCount++;
+      });
     });
+  }
 
-    recalculateRow(rowObj);
-    updateSingleRowDisplay(targetRow);
-  });
-
+  affectedRows.forEach(row => recalculateRow(row));
   recalculateTotalRow();
   updateTotalRowDisplay();
   saveSheetData(false);
-  showToast(`Pasted into ${modifiedCount} cells successfully.`, 'success');
+  renderExcelTable();
+
+  // Re-select active cell or range
+  if (isSingleValue && isMultiCellRange) {
+    highlightSelectedRange();
+  } else {
+    selectCell(cur.colLetter, cur.row, false);
+  }
+
+  showToast(`Pasted into ${modifiedCount} cell${modifiedCount > 1 ? 's' : ''} successfully.`, 'success');
 }
 
 function deleteSelectedRange(isCut = false) {
@@ -4683,8 +4892,10 @@ function buildDepartmentExcelSheet(workbook, tabId, monthName, year, rowsData) {
   const tabInfo = SHEET_TABS[tabId] || {};
   const sheetName = tabInfo.name || 'Department';
   const ws = workbook.addWorksheet(sheetName.substring(0, 31), {
+    properties: { tabColor: { argb: tabInfo.colorArgb || 'FF0054A6' } },
     views: [{ state: 'frozen', xSplit: 10, ySplit: 5, topLeftCell: 'K6', showGridLines: true }]
   });
+  if (ws.properties) ws.properties.tabColor = { argb: tabInfo.colorArgb || 'FF0054A6' };
 
   const totalCols = EXCEL_COLUMNS.length; // 40 columns
 
@@ -4984,8 +5195,10 @@ function buildDepartmentExcelSheet(workbook, tabId, monthName, year, rowsData) {
 // ──────────────────────────────────────────────────────────────────────────
 function buildProductionOutputExcelSheet(workbook, monthName, year) {
   const ws = workbook.addWorksheet('Production Status', {
+    properties: { tabColor: { argb: 'FF2563EB' } },
     views: [{ state: 'frozen', ySplit: 4, showGridLines: true }]
   });
+  if (ws.properties) ws.properties.tabColor = { argb: 'FF2563EB' };
 
   // Title Row 1
   const r1 = ws.addRow(['MEP FAN LTD.']);
@@ -5120,8 +5333,10 @@ function buildProductionOutputExcelSheet(workbook, monthName, year) {
 // ──────────────────────────────────────────────────────────────────────────
 function buildRunningStatusExcelSheet(workbook, monthName, year) {
   const ws = workbook.addWorksheet('Down Time & Running Status', {
+    properties: { tabColor: { argb: 'FF10B981' } },
     views: [{ state: 'frozen', ySplit: 3, showGridLines: true }]
   });
+  if (ws.properties) ws.properties.tabColor = { argb: 'FF10B981' };
 
   const r1 = ws.addRow(['MEP FAN LTD.']);
   ws.mergeCells('A1:G1');
@@ -5242,8 +5457,10 @@ function buildRunningStatusExcelSheet(workbook, monthName, year) {
 // ──────────────────────────────────────────────────────────────────────────
 function buildTotalDowntimeReportExcelSheet(workbook, monthName, year) {
   const ws = workbook.addWorksheet('Total Downtime Report', {
+    properties: { tabColor: { argb: 'FFF59E0B' } },
     views: [{ state: 'frozen', xSplit: 1, ySplit: 4, showGridLines: true }]
   });
+  if (ws.properties) ws.properties.tabColor = { argb: 'FFF59E0B' };
   const dtCols = EXCEL_COLUMNS.filter(c => c.isDt);
   const totalCols = 1 + dtCols.length + 4;
 
@@ -5376,8 +5593,10 @@ function buildTotalDowntimeReportExcelSheet(workbook, monthName, year) {
 // ──────────────────────────────────────────────────────────────────────────
 function buildOEESummaryExcelSheet(workbook, monthName, year) {
   const ws = workbook.addWorksheet('OEE', {
+    properties: { tabColor: { argb: 'FF8B5CF6' } },
     views: [{ state: 'frozen', ySplit: 4, showGridLines: true }]
   });
+  if (ws.properties) ws.properties.tabColor = { argb: 'FF8B5CF6' };
 
   const r1 = ws.addRow(['MEP FAN LTD.']);
   ws.mergeCells('A1:I1');
@@ -5504,8 +5723,10 @@ function buildOEESummaryExcelSheet(workbook, monthName, year) {
 // ──────────────────────────────────────────────────────────────────────────
 function buildYearlySummaryExcelSheet(workbook, monthName, year) {
   const ws = workbook.addWorksheet('Summary of OEE', {
+    properties: { tabColor: { argb: 'FFEA580C' } },
     views: [{ state: 'frozen', ySplit: 5, showGridLines: true }]
   });
+  if (ws.properties) ws.properties.tabColor = { argb: 'FFEA580C' };
 
   const r1 = ws.addRow(['MEP FAN LTD.']);
   ws.mergeCells('A1:J1');
@@ -5671,6 +5892,23 @@ function initKeyboardShortcuts() {
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
       e.preventDefault();
       handleClipboardCopy();
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
+      e.preventDefault();
+      if (CurrentUser && CurrentUser.isReadOnly) {
+        showToast('Permission Denied: Read-only access.', 'warning');
+        return;
+      }
+      handleClipboardCopy();
+      deleteSelectedRange(true);
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+      e.preventDefault();
+      // Select All Cells in active sheet
+      const maxR = getMaxActiveRow();
+      SheetState.rangeSelection = {
+        start: { col: 'A', row: 6 },
+        end: { col: EXCEL_COLUMNS[EXCEL_COLUMNS.length - 1].col, row: maxR }
+      };
+      highlightSelectedRange();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
       e.preventDefault();
       if (CurrentUser && CurrentUser.isReadOnly) {
@@ -5774,46 +6012,144 @@ function initKeyboardShortcuts() {
 }
 
 function initContextMenu() {
-  const menu = document.getElementById('contextMenu');
-  if (!menu) return;
+  const menu = document.getElementById('gridContextMenu');
+  if (!menu || typeof menu.querySelectorAll !== 'function') return;
 
+  // Hide context menu on global click or scroll
   window.addEventListener('click', () => {
     menu.classList.add('hidden');
   });
 
-  document.getElementById('ctxCopy')?.addEventListener('click', () => {
-    handleClipboardCopy();
+  window.addEventListener('scroll', () => {
     menu.classList.add('hidden');
+  }, true);
+
+  // Wire menu buttons with data-action
+  menu.querySelectorAll('.context-menu-row').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.add('hidden');
+      const action = item.dataset.action;
+      const cur = SheetState.selected;
+
+      if (action === 'quick-form') {
+        if (cur && !isRowLocked(cur.row)) openQuickEntryModal(cur.row);
+      } else if (action === 'copy') {
+        handleClipboardCopy();
+      } else if (action === 'paste') {
+        if (CurrentUser && CurrentUser.isReadOnly) {
+          showToast('Permission Denied: Read-only access.', 'warning');
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          navigator.clipboard.readText().then(text => {
+            handleClipboardPaste(text);
+          }).catch(() => {
+            handleClipboardPaste(InternalClipboard.text);
+          });
+        } else {
+          handleClipboardPaste(InternalClipboard.text);
+        }
+      } else if (action === 'clear') {
+        deleteSelectedRange(false);
+      } else if (action === 'set-zero') {
+        setSelectionZero();
+      }
+    });
   });
 
-  document.getElementById('ctxPaste')?.addEventListener('click', () => {
-    if (navigator.clipboard && navigator.clipboard.readText) {
-      navigator.clipboard.readText().then(text => {
-        if (text) handleClipboardPaste(text);
-      });
+  // Native Global Paste Event Listener
+  document.addEventListener('paste', (e) => {
+    if (CurrentUser && CurrentUser.isReadOnly) return;
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      if (activeEl.id !== 'formulaBarInput') return;
     }
-    menu.classList.add('hidden');
-  });
 
-  document.getElementById('ctxClear')?.addEventListener('click', () => {
-    deleteSelectedRange(false);
-    menu.classList.add('hidden');
+    const clip = e.clipboardData || window.clipboardData;
+    const text = clip ? clip.getData('text/plain') : '';
+    if (text) {
+      e.preventDefault();
+      handleClipboardPaste(text);
+    }
   });
+}
 
-  document.getElementById('ctxUndo')?.addEventListener('click', () => {
-    undoAction();
-    menu.classList.add('hidden');
-  });
+function setSelectionZero() {
+  if (CurrentUser && CurrentUser.isReadOnly) return;
+  pushHistoryState();
 
-  document.getElementById('ctxRedo')?.addEventListener('click', () => {
-    redoAction();
-    menu.classList.add('hidden');
-  });
+  const cur = SheetState.selected;
+  if (!cur) return;
 
-  document.getElementById('ctxExport')?.addEventListener('click', () => {
-    exportExcelFile();
-    menu.classList.add('hidden');
-  });
+  const startC = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
+  const hasRange = SheetState.rangeSelection?.start && SheetState.rangeSelection?.end;
+  const minC = hasRange ? Math.min(EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.start.col), EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.end.col)) : startC;
+  const maxC = hasRange ? Math.max(EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.start.col), EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.end.col)) : startC;
+  const minR = hasRange ? Math.min(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row) : cur.row;
+  const maxR = hasRange ? Math.max(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row) : cur.row;
+
+  const affectedRows = new Set();
+  let count = 0;
+
+  for (let r = minR; r <= maxR; r++) {
+    if (isRowLocked(r) || r === 5) continue;
+    const rowObj = SheetState.rows.find(row => row.row === r);
+    if (!rowObj) continue;
+
+    for (let c = minC; c <= maxC; c++) {
+      const colDef = EXCEL_COLUMNS[c];
+      if (colDef.isReadOnly || colDef.isFormula) continue;
+
+      if (!rowObj[colDef.col]) rowObj[colDef.col] = {};
+      rowObj[colDef.col].val = 0;
+      affectedRows.add(rowObj);
+      count++;
+    }
+  }
+
+  affectedRows.forEach(row => recalculateRow(row));
+  recalculateTotalRow();
+  updateTotalRowDisplay();
+  saveSheetData(false);
+  renderExcelTable();
+  if (hasRange) highlightSelectedRange(); else selectCell(cur.colLetter, cur.row, false);
+  showToast(`Set ${count} cell${count > 1 ? 's' : ''} to 0.`, 'info');
+}
+
+function onCellContextMenu(colLetter, rowNum, e) {
+  if (isRowLocked(rowNum) || rowNum === 5) return;
+  e.preventDefault();
+
+  const menu = document.getElementById('gridContextMenu');
+  if (!menu) return;
+
+  const isInside = isCellInCurrentRange(colLetter, rowNum);
+  if (!isInside) {
+    selectCell(colLetter, rowNum, false);
+  }
+
+  const posX = Math.min(e.clientX, window.innerWidth - 180);
+  const posY = Math.min(e.clientY, window.innerHeight - 200);
+
+  menu.style.left = `${posX}px`;
+  menu.style.top = `${posY}px`;
+  menu.classList.remove('hidden');
+}
+
+function isCellInCurrentRange(colLetter, rowNum) {
+  if (!SheetState.rangeSelection?.start || !SheetState.rangeSelection?.end) {
+    return (SheetState.selected?.colLetter === colLetter && SheetState.selected?.row === rowNum);
+  }
+  const startC = EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.start.col);
+  const endC = EXCEL_COLUMNS.findIndex(c => c.col === SheetState.rangeSelection.end.col);
+  const minC = Math.min(startC, endC);
+  const maxC = Math.max(startC, endC);
+  const minR = Math.min(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row);
+  const maxR = Math.max(SheetState.rangeSelection.start.row, SheetState.rangeSelection.end.row);
+
+  const cIdx = EXCEL_COLUMNS.findIndex(c => c.col === colLetter);
+  return (cIdx >= minC && cIdx <= maxC && rowNum >= minR && rowNum <= maxR);
 }
 
 function setText(id, val) {
