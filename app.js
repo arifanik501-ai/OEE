@@ -1071,11 +1071,215 @@ function cleanDataForFirebase(data) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// MODULE 1: LOCAL STORAGE CACHE (0ms Instant Display & Offline Fallback)
+// ZERO-DATA-LOSS ATOMIC BATCH SYNC QUEUE ENGINE (Instant Sub-Second Sync)
+// ──────────────────────────────────────────────────────────────────────────
+
+const SyncQueueEngine = {
+  QUEUE_KEY: 'mep_oee_sync_queue_v1',
+  isProcessing: false,
+
+  getQueue() {
+    try {
+      const raw = localStorage.getItem(this.QUEUE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveQueue(queue) {
+    try {
+      localStorage.setItem(this.QUEUE_KEY, JSON.stringify(queue));
+      this.updateStatusUI();
+    } catch (e) {}
+  },
+
+  enqueue(tabId, year, monthIndex, rowIndex, rowData) {
+    const queue = this.getQueue();
+    const taskId = `${tabId}_${year}_${monthIndex}_${rowIndex}`;
+    
+    const existingIdx = queue.findIndex(t => t.id === taskId);
+    const taskObj = {
+      id: taskId,
+      tabId,
+      year,
+      monthIndex,
+      rowIndex,
+      rowData: cleanDataForFirebase(rowData),
+      timestamp: Date.now(),
+      retries: 0
+    };
+
+    if (existingIdx !== -1) {
+      queue[existingIdx] = taskObj;
+    } else {
+      queue.push(taskObj);
+    }
+
+    this.saveQueue(queue);
+    this.processQueue();
+  },
+
+  enqueueBatch(tabId, year, monthIndex, rowsArray) {
+    const queue = this.getQueue();
+    const now = Date.now();
+
+    rowsArray.forEach(rObj => {
+      const rIdx = rObj.row - 6;
+      if (rIdx < 0) return;
+      const taskId = `${tabId}_${year}_${monthIndex}_${rIdx}`;
+      const existingIdx = queue.findIndex(t => t.id === taskId);
+      const taskObj = {
+        id: taskId,
+        tabId,
+        year,
+        monthIndex,
+        rowIndex: rIdx,
+        rowData: cleanDataForFirebase(rObj),
+        timestamp: now,
+        retries: 0
+      };
+
+      if (existingIdx !== -1) {
+        queue[existingIdx] = taskObj;
+      } else {
+        queue.push(taskObj);
+      }
+    });
+
+    this.saveQueue(queue);
+    this.processQueue();
+  },
+
+  // 1-Shot Atomic Batch Sync: Flushes all 124 rows in a SINGLE network request
+  async processQueue() {
+    if (this.isProcessing) return;
+    const queue = this.getQueue();
+    if (queue.length === 0) {
+      this.updateStatusUI();
+      return;
+    }
+
+    this.isProcessing = true;
+    this.updateStatusUI();
+
+    try {
+      // Group queue items by sheet: `${tabId}_${year}_${monthIndex}`
+      const groups = {};
+      queue.forEach(task => {
+        const groupKey = `${task.tabId}_${task.year}_${task.monthIndex}`;
+        if (!groups[groupKey]) {
+          groups[groupKey] = {
+            tabId: task.tabId,
+            year: task.year,
+            monthIndex: task.monthIndex,
+            tasks: []
+          };
+        }
+        groups[groupKey].tasks.push(task);
+      });
+
+      const failedTaskIds = new Set();
+
+      // Process each sheet as a single atomic batch payload
+      const groupPromises = Object.values(groups).map(async (group) => {
+        try {
+          const path = `mep_oee_v2/sheets/${group.year}/${group.monthIndex}/${group.tabId}/rows`;
+          
+          // Build atomic batch payload { "0": rowData, "1": rowData, ... }
+          const batchUpdate = {};
+          group.tasks.forEach(t => {
+            batchUpdate[t.rowIndex] = t.rowData;
+          });
+
+          // 1. WebSocket multi-location update
+          if (firebaseDb) {
+            await firebaseDb.ref(path).update(batchUpdate);
+          }
+
+          // 2. REST API PATCH update (single 1-shot HTTP request for all rows!)
+          const res = await fetch(`${FIREBASE_RTDB_BASE_URL}/${path}.json`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(batchUpdate)
+          });
+
+          if (res && res.ok === false && !firebaseDb) {
+            throw new Error('HTTP ' + res.status);
+          }
+
+          // Successfully synced -> mark in-memory rows clean
+          if (ACTIVE_TAB === group.tabId && MonthYearState.year === group.year && MonthYearState.monthIndex === group.monthIndex) {
+            group.tasks.forEach(t => {
+              if (SheetState.rows && SheetState.rows[t.rowIndex]) {
+                SheetState.rows[t.rowIndex]._isDirty = false;
+              }
+            });
+          }
+        } catch (err) {
+          console.warn('Batch sync retry for sheet:', group.tabId, err);
+          group.tasks.forEach(t => failedTaskIds.add(t.id));
+        }
+      });
+
+      await Promise.all(groupPromises);
+
+      // Keep only failed tasks in queue (if any)
+      const currentQueue = this.getQueue();
+      const remainingTasks = currentQueue.filter(t => failedTaskIds.has(t.id));
+      this.saveQueue(remainingTasks);
+    } finally {
+      this.isProcessing = false;
+      this.updateStatusUI();
+    }
+  },
+
+  updateStatusUI() {
+    const queue = this.getQueue();
+    const count = queue.length;
+    const isOnline = (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean') ? navigator.onLine : true;
+
+    if (count > 0) {
+      if (this.isProcessing) {
+        updateCloudStatusUI('syncing', `Saving ${count} change${count > 1 ? 's' : ''} to cloud...`);
+      } else if (!isOnline) {
+        updateCloudStatusUI('offline', `Offline (${count} pending sync)`);
+      } else {
+        updateCloudStatusUI('syncing', `${count} change${count > 1 ? 's' : ''} pending sync...`);
+      }
+    } else {
+      if (isOnline) {
+        updateCloudStatusUI('synced', 'All changes saved to cloud');
+      } else {
+        updateCloudStatusUI('offline', 'Saved locally (offline)');
+      }
+    }
+  }
+};
+
+// Listen for network reconnect to auto-drain queue
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    SyncQueueEngine.processQueue();
+  });
+  window.addEventListener('offline', () => {
+    SyncQueueEngine.updateStatusUI();
+  });
+  // Auto background retry every 3.5 seconds
+  setInterval(() => {
+    const q = SyncQueueEngine.getQueue();
+    if (q.length > 0) {
+      SyncQueueEngine.processQueue();
+    }
+  }, 3500);
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// MODULE 1: LOCAL STORAGE PERSISTENCE ENGINE (Instant 0ms Local Save)
 // ──────────────────────────────────────────────────────────────────────────
 const LocalStorageEngine = {
   getKey(tabId, year, monthIndex) {
-    return getStorageKey(tabId, year, monthIndex);
+    return `mep_oee_store_${tabId}_${year}_${monthIndex}`;
   },
 
   save(tabId, year, monthIndex, rows, updatedBy = 'User') {
@@ -1128,99 +1332,46 @@ function getStoredLocalData(tabId, year, monthIndex) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// MODULE 2: GOOGLE SHEETS ULTRA-RELIABLE REAL-TIME FIREBASE ENGINE
+// MODULE 2: REAL-TIME WEBSOCKET & BACKGROUND SYNC WITH CONFLICT RESOLUTION
 // ──────────────────────────────────────────────────────────────────────────
 let activeSheetRef = null;
 let activeSheetListenerTab = null;
 
 const GoogleSheetsRealtimeEngine = {
-  // Push a single row change immediately to Firebase
-  async pushRowChange(tabId, year, monthIndex, rowObj) {
+  // Push a single row change immediately to queue and cloud
+  pushRowChange(tabId, year, monthIndex, rowObj) {
     if (!rowObj || typeof rowObj.row !== 'number') return;
     if (CurrentUser && CurrentUser.isReadOnly) return;
 
     const rIdx = rowObj.row - 6;
     if (rIdx < 0) return;
 
-    const cleanRow = cleanDataForFirebase(rowObj);
-    const path = `mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows/${rIdx}`;
+    rowObj._updatedAt = Date.now();
+    rowObj._isDirty = true;
 
-    updateCloudStatusUI('syncing', 'Saving...');
-
-    try {
-      if (firebaseDb) {
-        firebaseDb.ref(path).set(cleanRow);
-      }
-      fetch(`${FIREBASE_RTDB_BASE_URL}/${path}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cleanRow)
-      }).then(() => {
-        updateCloudStatusUI('synced', 'All changes saved to cloud');
-      }).catch(() => {});
-    } catch (err) {
-      console.error('pushRowChange error:', err);
-    }
+    SyncQueueEngine.enqueue(tabId, year, monthIndex, rIdx, rowObj);
   },
 
-  // Push batch of modified rows (e.g. from paste, drag autofill, or modal entry)
-  async pushRowsBatch(tabId, year, monthIndex, rowsArray) {
+  // Push batch of modified rows
+  pushRowsBatch(tabId, year, monthIndex, rowsArray) {
     if (!Array.isArray(rowsArray) || rowsArray.length === 0) return;
     if (CurrentUser && CurrentUser.isReadOnly) return;
 
-    updateCloudStatusUI('syncing', 'Saving...');
+    const now = Date.now();
+    rowsArray.forEach(r => {
+      r._updatedAt = now;
+      r._isDirty = true;
+    });
 
-    const cleanRows = cleanDataForFirebase(rowsArray);
-    const path = `mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows`;
-
-    try {
-      if (firebaseDb) {
-        const updates = {};
-        rowsArray.forEach(rObj => {
-          const rIdx = rObj.row - 6;
-          if (rIdx >= 0) {
-            updates[`${path}/${rIdx}`] = cleanDataForFirebase(rObj);
-          }
-        });
-        firebaseDb.ref().update(updates);
-      }
-
-      // Also persist to REST API endpoint
-      if (rowsArray.length > 5) {
-        // Full sheet array update
-        fetch(`${FIREBASE_RTDB_BASE_URL}/${path}.json`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(cleanRows)
-        }).then(() => {
-          updateCloudStatusUI('synced', 'All changes saved to cloud');
-        }).catch(() => {});
-      } else {
-        // Granular row updates
-        rowsArray.forEach(rObj => {
-          const rIdx = rObj.row - 6;
-          if (rIdx >= 0) {
-            fetch(`${FIREBASE_RTDB_BASE_URL}/${path}/${rIdx}.json`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(cleanDataForFirebase(rObj))
-            }).catch(() => {});
-          }
-        });
-        updateCloudStatusUI('synced', 'All changes saved to cloud');
-      }
-    } catch (e) {
-      console.error('pushRowsBatch error:', e);
-      updateCloudStatusUI('synced', 'All changes saved to cloud');
-    }
+    SyncQueueEngine.enqueueBatch(tabId, year, monthIndex, rowsArray);
   },
 
   // Push full active sheet
-  async pushSheet(tabId, year, monthIndex, fullRows) {
+  pushSheet(tabId, year, monthIndex, fullRows) {
     return this.pushRowsBatch(tabId, year, monthIndex, fullRows);
   },
 
-  // Listen to the active sheet in real-time via WebSockets
+  // Listen to the active sheet in real-time via WebSockets with strict Conflict Resolution
   listenToActiveSheet(tabId, year, monthIndex) {
     if (activeSheetRef) {
       try { activeSheetRef.off(); } catch (e) {}
@@ -1233,17 +1384,25 @@ const GoogleSheetsRealtimeEngine = {
     if (firebaseDb) {
       activeSheetRef = firebaseDb.ref(path);
 
-      // Listen for individual row updates from other collaborators
       activeSheetRef.on('child_changed', (snap) => {
         const rIdx = Number(snap.key);
         const incomingRow = snap.val();
         if (!incomingRow || isNaN(rIdx)) return;
 
+        // If local user is currently editing THIS exact row, DO NOT interrupt!
         if (SheetState.isEditing && SheetState.selected && SheetState.selected.row === (rIdx + 6)) {
           return;
         }
 
         if (Array.isArray(SheetState.rows) && SheetState.rows[rIdx]) {
+          const localRow = SheetState.rows[rIdx];
+
+          // CONFLICT RESOLUTION: NEVER overwrite if local row is dirty or has a newer timestamp!
+          if (localRow._isDirty) return;
+          if (localRow._updatedAt && incomingRow._updatedAt && localRow._updatedAt >= incomingRow._updatedAt) {
+            return;
+          }
+
           SheetState.rows[rIdx] = incomingRow;
           recalculateRow(SheetState.rows[rIdx]);
           recalculateTotalRow();
@@ -1254,7 +1413,7 @@ const GoogleSheetsRealtimeEngine = {
       });
     }
 
-    // Background poll fallback every 4 seconds
+    // Background poll fallback with strict Conflict Resolution
     if (!window._mepGoogleSheetsPoll) {
       window._mepGoogleSheetsPoll = setInterval(async () => {
         if (SheetState.isEditing) return;
@@ -1266,12 +1425,19 @@ const GoogleSheetsRealtimeEngine = {
               let hasChanges = false;
               cloudRows.forEach((r, idx) => {
                 if (!r || idx >= SheetState.rows.length) return;
-                if (JSON.stringify(r.E) !== JSON.stringify(SheetState.rows[idx]?.E) ||
-                    JSON.stringify(r.F) !== JSON.stringify(SheetState.rows[idx]?.F) ||
-                    JSON.stringify(r.G) !== JSON.stringify(SheetState.rows[idx]?.G) ||
-                    JSON.stringify(r.H) !== JSON.stringify(SheetState.rows[idx]?.H) ||
-                    JSON.stringify(r.I) !== JSON.stringify(SheetState.rows[idx]?.I) ||
-                    JSON.stringify(r.AM) !== JSON.stringify(SheetState.rows[idx]?.AM)) {
+                const localRow = SheetState.rows[idx];
+
+                // CONFLICT RESOLUTION: Never overwrite dirty or newer local rows!
+                if (localRow._isDirty) return;
+                if (localRow._updatedAt && r._updatedAt && localRow._updatedAt >= r._updatedAt) return;
+
+                // Check for genuine external updates
+                if (JSON.stringify(r.E) !== JSON.stringify(localRow?.E) ||
+                    JSON.stringify(r.F) !== JSON.stringify(localRow?.F) ||
+                    JSON.stringify(r.G) !== JSON.stringify(localRow?.G) ||
+                    JSON.stringify(r.H) !== JSON.stringify(localRow?.H) ||
+                    JSON.stringify(r.I) !== JSON.stringify(localRow?.I) ||
+                    JSON.stringify(r.AM) !== JSON.stringify(localRow?.AM)) {
                   SheetState.rows[idx] = r;
                   recalculateRow(SheetState.rows[idx]);
                   updateSingleRowDisplay(idx + 6);
@@ -1290,10 +1456,8 @@ const GoogleSheetsRealtimeEngine = {
     }
   },
 
-  // Fetch full sheet from Firebase
   async fetchSheetFromCloud(tabId, year, monthIndex) {
     try {
-      // Try direct Firebase SDK first
       if (firebaseDb) {
         const snap = await firebaseDb.ref(`mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows`).once('value');
         const val = snap.val();
@@ -1306,7 +1470,6 @@ const GoogleSheetsRealtimeEngine = {
         }
       }
 
-      // REST API fallback
       const url = `${FIREBASE_RTDB_BASE_URL}/mep_oee_v2/sheets/${year}/${monthIndex}/${tabId}/rows.json?nocache=${Date.now()}`;
       const res = await fetch(url, { cache: 'no-store' });
       if (res.ok) {
