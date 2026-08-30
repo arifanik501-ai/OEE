@@ -153,8 +153,8 @@ const SHEET_TABS = {
     title: 'MEP FAN LTD.',
     subtitle: 'Production Performance Analysis Report',
     machines: [
-      'Auto Die Casting (Cover)',
-      'Auto Die Casting (Body)'
+      'Auto Die Casting (Body)',
+      'Auto Die Casting (Cover)'
     ]
   },
   fan_power_press: {
@@ -799,6 +799,10 @@ function logoutUser() {
     showToast('Information updated.', 'info');
 }
 
+function isSummaryTab(tabId) {
+  return !!SHEET_TABS[tabId]?.isSummary;
+}
+
 function isTabAllowedForUser(tabId) {
   if (!CurrentUser || CurrentUser.id === 'admin') return true;
   // All 5 summary tabs are allowed for everyone
@@ -910,7 +914,9 @@ function switchSheetTab(tabId) {
   }
   if (ACTIVE_TAB === tabId) return;
 
-  saveSheetData(false);
+  if (!isSummaryTab(ACTIVE_TAB)) {
+    saveSheetData(false);
+  }
   ACTIVE_TAB = tabId;
   localStorage.setItem('mep_oee_active_tab', tabId);
 
@@ -961,6 +967,21 @@ function generateBlankMonthRows(tabId, year, monthIndex) {
   const monthShort = MonthYearState.monthShortNames[monthIndex];
   const machines = getMachinesForTab(tabId);
 
+  // Department-specific default planned time & expected downtime
+  let defaultPlannedTime = 660;
+  let defaultExpectedDt = 30;
+
+  if (tabId === 'fan_die_casting') {
+    defaultPlannedTime = 1440;
+    defaultExpectedDt = 180;
+  } else if (tabId === 'fan_power_press') {
+    defaultPlannedTime = 660;
+    defaultExpectedDt = 120;
+  } else if (tabId === 'fan_lathe' || tabId === 'fan_powder') {
+    defaultPlannedTime = 660;
+    defaultExpectedDt = 30;
+  }
+
   const rows = [];
   let rowCounter = 6;
 
@@ -978,6 +999,20 @@ function generateBlankMonthRows(tabId, year, monthIndex) {
       rowObj.C.val = 'Morning';
       rowObj.D.val = machines[mIdx];
 
+      // Set standard initial defaults
+      rowObj.H.val = defaultPlannedTime;
+      rowObj.I.val = defaultExpectedDt;
+
+      // Initialize default Excel formulas
+      rowObj.J.formula = `=H${rowCounter}-AH${rowCounter}`;
+      rowObj.AH.formula = `=SUM(K${rowCounter}:AG${rowCounter})`;
+      rowObj.AI.formula = `=IFERROR(J${rowCounter}/H${rowCounter},"0")`;
+      rowObj.AJ.formula = `=IFERROR(F${rowCounter}/E${rowCounter},"0")`;
+      rowObj.AK.formula = `=IFERROR(F${rowCounter}/(F${rowCounter}+G${rowCounter}),"0")`;
+      rowObj.AL.formula = `=IFERROR(AK${rowCounter}*AJ${rowCounter}*AI${rowCounter},"0")`;
+
+      recalculateRow(rowObj);
+
       rows.push(rowObj);
       rowCounter++;
     }
@@ -991,28 +1026,81 @@ function getStoredLocalData(tabId, year, monthIndex) {
 }
 
 function loadSheetData() {
+  if (isSummaryTab(ACTIVE_TAB)) {
+    return;
+  }
+
+  const expectedMachines = getMachinesForTab(ACTIVE_TAB);
+  const daysInMonth = getDaysInSelectedMonth();
+  const expectedRowsCount = daysInMonth * expectedMachines.length;
+  const blankRows = generateBlankMonthRows(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
+
   const localData = getStoredLocalData(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
+  const rawRows = (localData && Array.isArray(localData.rows)) ? localData.rows : (Array.isArray(localData) ? localData : null);
 
-  if (localData && Array.isArray(localData.rows) && localData.rows.length > 0) {
-    SheetState.rows = localData.rows;
-    // Re-verify that each row has proper row index
-    SheetState.rows.forEach((r, idx) => {
-      r.row = 6 + idx;
-    });
+  if (rawRows && rawRows.length > 0) {
+    // Check if row count and machine structure match
+    if (rawRows.length === expectedRowsCount) {
+      let machinesMatch = true;
+      for (let i = 0; i < rawRows.length; i++) {
+        const mIdx = i % expectedMachines.length;
+        const currentMach = rawRows[i].D?.val;
+        if (currentMach && currentMach !== expectedMachines[mIdx] && !currentMach.toLowerCase().includes(expectedMachines[mIdx].toLowerCase().slice(0, 4))) {
+          machinesMatch = false;
+          break;
+        }
+      }
+
+      if (machinesMatch) {
+        // Enforce proper Date, Day, Shift, Machine Name and formulas
+        rawRows.forEach((r, idx) => {
+          r.row = 6 + idx;
+          r.A = { val: blankRows[idx].A.val, formula: null };
+          r.B = { val: blankRows[idx].B.val, formula: null };
+          r.C = { val: blankRows[idx].C.val, formula: null };
+          r.D = { val: blankRows[idx].D.val, formula: null };
+          recalculateRow(r);
+        });
+        SheetState.rows = rawRows;
+        return;
+      }
+    }
+
+    // Schema mismatch (e.g. data from another tab stored in key): Safe Re-Mapping by Date & Machine
+    for (let d = 1; d <= daysInMonth; d++) {
+      for (let m = 0; m < expectedMachines.length; m++) {
+        const targetIdx = (d - 1) * expectedMachines.length + m;
+        const targetMach = expectedMachines[m];
+
+        const srcRow = rawRows.find(r => {
+          const rDate = String(r.A?.val || '');
+          const rMach = String(r.D?.val || '');
+          const dayMatch = rDate.startsWith(`${d}-`) || rDate.startsWith(`0${d}-`);
+          const machMatch = rMach === targetMach || rMach.toLowerCase().includes(targetMach.toLowerCase().slice(0, 4));
+          return dayMatch && machMatch;
+        });
+
+        if (srcRow) {
+          EXCEL_COLUMNS.forEach(colDef => {
+            const c = colDef.col;
+            if (c !== 'A' && c !== 'B' && c !== 'C' && c !== 'D') {
+              if (srcRow[c] && srcRow[c].val !== null && srcRow[c].val !== undefined) {
+                blankRows[targetIdx][c] = { val: srcRow[c].val, formula: srcRow[c].formula || null };
+              }
+            }
+          });
+          recalculateRow(blankRows[targetIdx]);
+        }
+      }
+    }
+
+    SheetState.rows = blankRows;
+    LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows, 'SchemaUntangled');
     return;
   }
 
-  // If localStorage has raw array format
-  if (Array.isArray(localData) && localData.length > 0) {
-    SheetState.rows = localData;
-    SheetState.rows.forEach((r, idx) => {
-      r.row = 6 + idx;
-    });
-    return;
-  }
-
-  // Generate blank month rows as a clean canvas
-  SheetState.rows = generateBlankMonthRows(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex);
+  // Initial fresh blank
+  SheetState.rows = blankRows;
   LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows, 'InitialBlank');
 }
 
@@ -1625,6 +1713,7 @@ function handleSyncOrPublish() {
 }
 
 function saveSheetData(pushHistory = true) {
+  if (isSummaryTab(ACTIVE_TAB)) return;
   if (pushHistory) pushHistoryState();
   LocalStorageEngine.save(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows, CurrentUser?.name);
   GoogleSheetsRealtimeEngine.pushRowsBatch(ACTIVE_TAB, MonthYearState.year, MonthYearState.monthIndex, SheetState.rows);
@@ -1652,23 +1741,39 @@ function resetToOriginalData() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-function recalculateRow(rowObj) {
+function recalculateRow(rowObj, tabId = ACTIVE_TAB) {
   const r = rowObj.row;
-  const rowsPerDay = getRowsPerDay();
+  const rowsPerDay = getRowsPerDay(tabId);
   const mIdx = (r - 6) % rowsPerDay;
-  const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
+  const groupInfo = getTimeGroupInfo(tabId, mIdx);
+
+  let defaultExpDt = 30;
+  let defaultPlan = 660;
+  if (tabId === 'fan_die_casting') {
+    defaultExpDt = 180;
+    defaultPlan = 1440;
+  } else if (tabId === 'fan_power_press') {
+    defaultExpDt = 120;
+    defaultPlan = 660;
+  }
 
   const cap = Number(rowObj.E?.val) || 0;
   const act = Number(rowObj.F?.val) || 0;
   const rej = Number(rowObj.G?.val) || 0;
-  let plan = Number(rowObj.H?.val) || 0;
+  
+  if (rowObj.H?.val === null || rowObj.H?.val === undefined || rowObj.H?.val === '') {
+    if (!rowObj.H) rowObj.H = {};
+    rowObj.H.val = defaultPlan;
+    rowObj.H.formula = null;
+  }
+  let plan = Number(rowObj.H?.val) || defaultPlan;
 
-  // I: Expected DownTime = IF(E<>"", 30, 0)
+  // I: Expected DownTime
   const hasCap = (rowObj.E?.val !== null && rowObj.E?.val !== '' && rowObj.E?.val !== undefined && rowObj.E?.val != 0);
-  const expDt = hasCap ? 30 : 0;
+  const expDt = hasCap ? defaultExpDt : (rowObj.I?.val ? Number(rowObj.I.val) : 0);
   if (!rowObj.I) rowObj.I = {};
   rowObj.I.val = expDt;
-  rowObj.I.formula = `=IF(E${r}<>"",30,0)`;
+  rowObj.I.formula = `=IF(E${r}<>"",${defaultExpDt},0)`;
 
   // AG_LOSS: Daily Speed / Capacity Loss Downtime (Min)
   let effectivePlan = plan;
