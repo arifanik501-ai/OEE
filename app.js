@@ -650,10 +650,11 @@ function closePinModal() {
 }
 
 function updatePinDots() {
+  const len = EnteredPin.length;
   for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById(`dot${i}`);
+    const dot = document.getElementById('dot' + i);
     if (dot) {
-      if (i < EnteredPin.length) {
+      if (i < len) {
         dot.classList.add('active');
       } else {
         dot.classList.remove('active');
@@ -672,10 +673,9 @@ function handlePinKey(key) {
   }
 
   updatePinDots();
-  const hiddenInp = document.getElementById('pinHiddenInput');
-  if (hiddenInp) hiddenInp.value = EnteredPin;
 
   if (EnteredPin.length === 4) {
+    // Immediate zero-delay verification
     verifyAndLogin();
   }
 }
@@ -872,6 +872,14 @@ function initSheetTabButtons() {
   btnRight?.addEventListener('click', () => {
     container?.scrollBy({ left: 140, behavior: 'auto' });
   });
+
+  // Enable Smooth Horizontal Mouse Wheel Scrolling on Tab Bar
+  container?.addEventListener('wheel', (e) => {
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      container.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
 
   document.querySelectorAll('.sheet-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1461,8 +1469,16 @@ function recalculateRow(rowObj) {
   if (groupInfo.isSlave) {
     const dayStartRow = r - mIdx;
     const masterRow = SheetState.rows.find(row => row.row === (dayStartRow + groupInfo.masterIdx));
-    if (masterRow && masterRow.H) {
-      effectivePlan = Number(masterRow.H.val) || 0;
+    if (masterRow) {
+      if (masterRow.H) effectivePlan = Number(masterRow.H.val) || 0;
+      // Copy all time columns and downtimes from master row
+      TIME_COLUMNS.forEach(cLetter => {
+        if (masterRow[cLetter]) {
+          if (!rowObj[cLetter]) rowObj[cLetter] = {};
+          rowObj[cLetter].val = masterRow[cLetter].val;
+          rowObj[cLetter].formula = masterRow[cLetter].formula;
+        }
+      });
     }
   }
 
@@ -1523,8 +1539,8 @@ function recalculateRow(rowObj) {
 
   // J: Total Prd. Run Time = H - AH
   if (!rowObj.J) rowObj.J = {};
-  if (plan > 0 || hasAnyDt) {
-    rowObj.J.val = Math.max(0, Math.round(plan - sumDt));
+  if (effectivePlan > 0 || hasAnyDt) {
+    rowObj.J.val = Math.max(0, Math.round(effectivePlan - sumDt));
   } else {
     rowObj.J.val = '-';
   }
@@ -1533,7 +1549,7 @@ function recalculateRow(rowObj) {
   const numRunTime = typeof rowObj.J.val === 'number' ? rowObj.J.val : 0;
 
   // AI: Availability (%) = IFERROR(J/H, "0")
-  let avail = plan > 0 ? (numRunTime / plan) : 0;
+  let avail = effectivePlan > 0 ? (numRunTime / effectivePlan) : 0;
   if (groupInfo.isSlave) {
     const dayStartRow = r - mIdx;
     const masterRow = SheetState.rows.find(row => row.row === (dayStartRow + groupInfo.masterIdx));
@@ -3221,7 +3237,28 @@ function renderExcelTable() {
       const colLetter = colDef.col;
       const isDateDayShiftCol = ['A', 'B', 'C'].includes(colLetter);
 
+      // 1. Date, Day, Shift (Cols A, B, C) - Merged per Day
+      if (isDateDayShiftCol && mIdx > 0) {
+        return; // Skip slave rows
+      }
+
+      // 2. Time-Related Columns (Planned Time, Downtimes, Total DT, Runtime, Availability)
+      const tabInfo = SHEET_TABS[ACTIVE_TAB];
+      const isTimeCol = TIME_COLUMNS.includes(colLetter);
+      let groupInfo = { isMaster: true, span: 1, count: 1, isSlave: false };
+      if (tabInfo && tabInfo.timeGroups && isTimeCol) {
+        groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
+        if (groupInfo.isSlave) {
+          return; // Skip slave rows for merged continuous line time columns
+        }
+      }
+
       const td = document.createElement('td');
+      if (isDateDayShiftCol && rowsPerDay > 1) {
+        td.rowSpan = rowsPerDay;
+      } else if (tabInfo && tabInfo.timeGroups && isTimeCol && groupInfo.count > 1 && groupInfo.isMaster) {
+        td.rowSpan = groupInfo.count;
+      }
       td.dataset.row = r;
       td.dataset.col = colLetter;
       td.dataset.cidx = cIdx;
@@ -3338,7 +3375,21 @@ function selectCell(colLetter, rowNum, resetRange = true) {
 
   clearSelectionStyles();
 
-  let targetTd = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${rowNum}"]`);
+  const rowsPerDay = getRowsPerDay();
+  const mIdx = (rowNum - 6) % rowsPerDay;
+  const tabInfo = SHEET_TABS[ACTIVE_TAB];
+
+  let targetRow = rowNum;
+  if (['A', 'B', 'C'].includes(colLetter)) {
+    targetRow = rowNum - mIdx;
+  } else if (tabInfo && tabInfo.timeGroups && TIME_COLUMNS.includes(colLetter)) {
+    const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
+    if (groupInfo.isSlave) {
+      targetRow = (rowNum - mIdx) + groupInfo.masterIdx;
+    }
+  }
+
+  let targetTd = document.querySelector(`.mep-excel-table [data-col="${colLetter}"][data-row="${targetRow}"]`);
   if (!targetTd && ['A', 'B', 'C'].includes(colLetter)) {
     const rowsPerDay = getRowsPerDay();
     const masterRow = rowNum - ((rowNum - 6) % rowsPerDay);
@@ -4035,7 +4086,19 @@ function saveCellUpdate(colLetter, rowNum, newVal, colDef) {
   if (tabInfo && tabInfo.timeGroups) {
     const rowsPerDay = getRowsPerDay();
     const mIdx = (rowNum - 6) % rowsPerDay;
+    const groupInfo = getTimeGroupInfo(ACTIVE_TAB, mIdx);
     const dayStart = rowNum - mIdx;
+
+    if (TIME_COLUMNS.includes(colLetter)) {
+      for (let i = 0; i < groupInfo.count; i++) {
+        const gRowObj = SheetState.rows.find(r => r.row === (dayStart + groupInfo.masterIdx + i));
+        if (gRowObj) {
+          if (!gRowObj[colLetter]) gRowObj[colLetter] = {};
+          gRowObj[colLetter].val = cleanNum;
+        }
+      }
+    }
+
     for (let i = 0; i < rowsPerDay; i++) {
       const targetRowObj = SheetState.rows.find(r => r.row === (dayStart + i));
       if (targetRowObj) {
@@ -4141,9 +4204,36 @@ function navigateSelection(dCol, dRow) {
     return;
   }
 
+  const spanInfo = getCellSpanInfo(cur.colLetter, cur.row);
+  const curMasterRow = spanInfo.isMerged ? spanInfo.masterRow : cur.row;
+  let nextRow = curMasterRow;
+
+  if (dRow > 0) {
+    // Moving Down: jump over merged span in 1 keypress
+    nextRow = curMasterRow + (spanInfo.isMerged ? spanInfo.span : dRow);
+  } else if (dRow < 0) {
+    // Moving Up: jump to previous cell's master row in 1 keypress
+    if (spanInfo.isMerged) {
+      const prevTarget = curMasterRow - 1;
+      if (prevTarget >= 6) {
+        const prevSpanInfo = getCellSpanInfo(cur.colLetter, prevTarget);
+        nextRow = prevSpanInfo.isMerged ? prevSpanInfo.masterRow : prevTarget;
+      } else {
+        nextRow = 6;
+      }
+    } else {
+      const targetR = curMasterRow + dRow;
+      if (targetR >= 6) {
+        const targetSpanInfo = getCellSpanInfo(cur.colLetter, targetR);
+        nextRow = targetSpanInfo.isMerged ? targetSpanInfo.masterRow : targetR;
+      } else {
+        nextRow = 6;
+      }
+    }
+  }
+
   const curCIdx = EXCEL_COLUMNS.findIndex(c => c.col === cur.colLetter);
   let nextCIdx = curCIdx + dCol;
-  let nextRow = cur.row + dRow;
 
   const maxR = getMaxActiveRow();
   nextCIdx = Math.max(0, Math.min(EXCEL_COLUMNS.length - 1, nextCIdx));
@@ -4495,14 +4585,22 @@ function redoAction() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// EXPORT TO EXCEL (EXCELJS WORKBOOK)
+// CORPORATE LUXURY EXECUTIVE-CLASS EXCEL WORKBOOK EXPORT ENGINE
+// Multi-Tab Enterprise Suite with Frozen Panes, Dynamic KPI Tinting, Zebra Striping,
+// Generous Padding, Zero-Clipping Headers, and Deep Executive Navy Banners
 // ──────────────────────────────────────────────────────────────────────────
 async function exportExcelFile() {
   try {
-    showToast('Generating Excel workbook...', 'info');
+    showToast('Generating executive luxury Excel workbook...', 'info');
+
+    const monthNames = MonthYearState.monthNames || ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthName = monthNames[MonthYearState.monthIndex] || 'Month';
+    const year = MonthYearState.year || 2026;
+    const userRole = CurrentUser?.name ? CurrentUser.name.toUpperCase() : 'USER';
+    const filename = `MEP_OEE_ENTERPRISE_REPORT_${userRole}_${monthName}_${year}.xlsx`;
 
     if (typeof ExcelJS === 'undefined') {
-      showToast('Excel library loading. Please try again.', 'warning');
+      showToast('ExcelJS library is loading. Please try again.', 'warning');
       return;
     }
 
@@ -4512,50 +4610,1000 @@ async function exportExcelFile() {
     workbook.created = new Date();
     workbook.modified = new Date();
 
-    const monthName = MONTH_NAMES[MonthYearState.monthIndex];
-    const year = MonthYearState.year;
+    const allTabIds = Object.keys(SHEET_TABS);
+    const allowedTabIds = allTabIds.filter(tId => isTabAllowedForUser(tId));
 
-    // Export Active Sheet
-    const sheetName = SHEET_TABS[ACTIVE_TAB]?.name || 'OEE Report';
-    const worksheet = workbook.addWorksheet(sheetName.substring(0, 31));
-
-    // Headers
-    worksheet.addRow(['MEP FAN LTD.']);
-    worksheet.addRow(['Production Performance Analysis Report']);
-    worksheet.addRow([sheetName]);
-
-    const colHeaders = EXCEL_COLUMNS.map(c => c.label);
-    worksheet.addRow(colHeaders);
-
-    // Total Row
-    const totalRow = EXCEL_COLUMNS.map(c => {
-      if (['A', 'B', 'C', 'D'].includes(c.col)) return c.col === 'A' ? 'Total:' : '';
-      return formatCellValue(SheetState.totals[c.col], c, true);
-    });
-    worksheet.addRow(totalRow);
-
-    // Data Rows
-    SheetState.rows.forEach(r => {
-      const rowData = EXCEL_COLUMNS.map(c => formatCellValue(r[c.col]?.val, c));
-      worksheet.addRow(rowData);
-    });
+    for (const tabId of allowedTabIds) {
+      if (tabId === 'summary_oee_yearly') {
+        buildYearlySummaryExcelSheet(workbook, monthName, year);
+      } else if (tabId === 'summary_oee') {
+        buildOEESummaryExcelSheet(workbook, monthName, year);
+      } else if (tabId === 'summary_production') {
+        buildProductionOutputExcelSheet(workbook, monthName, year);
+      } else if (tabId === 'summary_status') {
+        buildRunningStatusExcelSheet(workbook, monthName, year);
+      } else if (tabId === 'summary_downtime') {
+        buildTotalDowntimeReportExcelSheet(workbook, monthName, year);
+      } else {
+        const tabRows = (tabId === ACTIVE_TAB && SheetState.rows) ? SheetState.rows : getTabData(tabId, year, MonthYearState.monthIndex);
+        buildDepartmentExcelSheet(workbook, tabId, monthName, year, tabRows);
+      }
+    }
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `MEP_OEE_${sheetName.replace(/\s+/g, '_')}_${monthName}_${year}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
 
-    showToast('Excel workbook exported successfully!', 'success');
+    if (typeof saveAs !== 'undefined') {
+      saveAs(blob, filename);
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 300);
+    }
+
+    showToast(`Executive Excel exported successfully! (${allowedTabIds.length} tabs included)`, 'success');
   } catch (err) {
-    console.error('Export error:', err);
-    showToast('Excel export failed.', 'error');
+    console.error('Export Excel Error:', err);
+    showToast('Excel export failed: ' + (err.message || 'Unknown error'), 'error');
   }
+}
+
+function getTabData(tabId, year, monthIndex) {
+  const stored = LocalStorageEngine.load(tabId, year, monthIndex);
+  if (stored && Array.isArray(stored.rows) && stored.rows.length > 0) {
+    return stored.rows;
+  }
+  if (Array.isArray(stored) && stored.length > 0) {
+    return stored;
+  }
+  return generateBlankMonthRows(tabId, year, monthIndex);
+}
+
+function openpyxlLetter(c) {
+  let s = '';
+  while (c > 0) {
+    let m = (c - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    c = Math.floor((c - m) / 26);
+  }
+  return s;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 1. DEPARTMENT EXCEL SHEET BUILDER (Enterprise Grade with Freeze Panes)
+// ──────────────────────────────────────────────────────────────────────────
+function buildDepartmentExcelSheet(workbook, tabId, monthName, year, rowsData) {
+  const tabInfo = SHEET_TABS[tabId] || {};
+  const sheetName = tabInfo.name || 'Department';
+  const ws = workbook.addWorksheet(sheetName.substring(0, 31), {
+    views: [{ state: 'frozen', xSplit: 10, ySplit: 5, topLeftCell: 'K6', showGridLines: true }]
+  });
+
+  const totalCols = EXCEL_COLUMNS.length; // 40 columns
+
+  // ── ROW 1: Executive Corporate Banner (Deep Royal Navy #0F294D) ──
+  const r1 = ws.addRow(['MEP FAN LTD.']);
+  ws.mergeCells(1, 1, 1, totalCols);
+  r1.height = 36;
+  r1.getCell(1).font = { name: 'Times New Roman', size: 24, bold: true, color: { argb: 'FFFFFFFF' } };
+  r1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+  r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // ── ROW 2: Report Subtitle (Steel Navy #1E3A8A) ──
+  const r2 = ws.addRow(['Production Performance & OEE Analysis Report']);
+  ws.mergeCells(2, 1, 2, totalCols);
+  r2.height = 22;
+  r2.getCell(1).font = { name: 'Times New Roman', size: 14, bold: true, color: { argb: 'FFDBEAFE' } };
+  r2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  r2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // ── ROW 3: Department Title (Dark Slate #334155) ──
+  const r3 = ws.addRow([`${sheetName}  •  Period: ${monthName} ${year}  •  SCADA MES Live Data`]);
+  ws.mergeCells(3, 1, 3, totalCols);
+  r3.height = 20;
+  r3.getCell(1).font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+  r3.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+  r3.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // ── ROW 4: Downtime Code Numbers (Royal Purple #7C3AED with White text) ──
+  const row4Vals = new Array(totalCols).fill('');
+  EXCEL_COLUMNS.forEach((c, idx) => {
+    if (c.code) row4Vals[idx] = c.code;
+  });
+  const r4 = ws.addRow(row4Vals);
+  r4.height = 20;
+  r4.eachCell((cell, colIdx) => {
+    const colDef = EXCEL_COLUMNS[colIdx - 1];
+    if (colDef?.isDt || colDef?.code) {
+      cell.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7C3AED' } }; // Royal Purple
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF4C1D95' } },
+        left: { style: 'thin', color: { argb: 'FF4C1D95' } },
+        bottom: { style: 'thin', color: { argb: 'FF4C1D95' } },
+        right: { style: 'thin', color: { argb: 'FF4C1D95' } }
+      };
+    } else {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+    }
+  });
+
+  // ── ROW 5: Column Headers (Tall 115pt Height, Distinct Corporate Fills & Text Wrap) ──
+  const colHeaders = EXCEL_COLUMNS.map(c => c.label);
+  const r5 = ws.addRow(colHeaders);
+  r5.height = 115;
+  r5.eachCell((cell, colIdx) => {
+    const colDef = EXCEL_COLUMNS[colIdx - 1];
+    let bgArgb = 'FFD9E1F2'; // Royal Sky (Metadata)
+    let txtArgb = 'FF0F172A';
+
+    if (colDef?.col === 'E' || colDef?.col === 'F') {
+      bgArgb = 'FFE2EFDA'; // Soft Mint (Capacity & Actual)
+      txtArgb = 'FF14532D';
+    } else if (colDef?.col === 'G') {
+      bgArgb = 'FFFCE4D6'; // Soft Rose (Rejection)
+      txtArgb = 'FF7F1D1D';
+    } else if (colDef?.col === 'H' || colDef?.col === 'I' || colDef?.col === 'J') {
+      bgArgb = 'FFDDEBF7'; // Soft Cyan (Planned & Run time)
+      txtArgb = 'FF0C4A6E';
+    } else if (colDef?.isDt) {
+      bgArgb = 'FFEDE9FE'; // Soft Lilac (Downtimes)
+      txtArgb = 'FF4C1D95';
+    } else if (colDef?.isLossDt || colDef?.isTotalDt) {
+      bgArgb = 'FFFEF3C7'; // Soft Amber (Loss & Total DT)
+      txtArgb = 'FF78350F';
+    } else if (colDef?.col === 'AI') {
+      bgArgb = 'FFCFFAFE'; // Cyan (Availability)
+      txtArgb = 'FF155E75';
+    } else if (colDef?.col === 'AJ') {
+      bgArgb = 'FFDBEAFE'; // Blue (Performance)
+      txtArgb = 'FF1E40AF';
+    } else if (colDef?.col === 'AK') {
+      bgArgb = 'FFD1FAE5'; // Emerald (Quality)
+      txtArgb = 'FF065F46';
+    } else if (colDef?.col === 'AL') {
+      bgArgb = 'FFFEF08A'; // Golden Trophy (OEE %)
+      txtArgb = 'FF713F12';
+    } else if (colDef?.isRemarks) {
+      bgArgb = 'FFF1F5F9';
+      txtArgb = 'FF334155';
+    }
+
+    const fSize = colDef?.isRemarks ? 12 : (colDef?.col === 'AL' ? 10 : 8.5);
+    cell.font = { name: 'Times New Roman', size: fSize, bold: true, color: { argb: txtArgb } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = {
+      top: { style: 'medium', color: { argb: 'FF334155' } },
+      left: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+      right: { style: 'thin', color: { argb: 'FF94A3B8' } }
+    };
+  });
+
+  // ── DATA ROWS (Row 6 onwards with Zebra Striping & KPI Tinting) ──
+  const rowsPerDay = getRowsPerDay(tabId);
+  const startRowIdx = 6;
+  let currentExcelRow = startRowIdx;
+  let rowsToIterate = [];
+  if (Array.isArray(rowsData)) {
+    rowsToIterate = rowsData;
+  } else if (rowsData && Array.isArray(rowsData.rows)) {
+    rowsToIterate = rowsData.rows;
+  } else {
+    rowsToIterate = generateBlankMonthRows(tabId, year, MonthYearState.monthIndex);
+  }
+
+  rowsToIterate.forEach((rowObj, rIdx) => {
+    const r = rowObj.row;
+    const mIdx = (r - 6) % rowsPerDay;
+    const dayIdx = Math.floor(rIdx / rowsPerDay);
+    const isEvenDay = (dayIdx % 2 === 0);
+    const zebraBg = isEvenDay ? 'FFFFFFFF' : 'FFF8FAFC'; // Ultra-clean alternating day tint
+
+    const rowVals = EXCEL_COLUMNS.map(c => {
+      const val = rowObj[c.col]?.val;
+      if (val === null || val === undefined || val === '') return '';
+      if (c.col === 'A' || c.col === 'B' || c.col === 'C' || c.col === 'D' || c.col === 'AM') return val;
+      if (c.isPercent && typeof val === 'number') return val;
+      if ((c.isNumeric || c.isDt || c.isFormula) && typeof val === 'number') return Math.round(val);
+      return val;
+    });
+
+    const dataRow = ws.addRow(rowVals);
+    dataRow.height = 18;
+
+    dataRow.eachCell((cell, colIdx) => {
+      const colDef = EXCEL_COLUMNS[colIdx - 1];
+      const val = cell.value;
+      const isRejCol = (colDef?.col === 'G');
+      const isDtCol = colDef?.isDt;
+      const isOEECol = (colDef?.col === 'AL');
+
+      let cellBg = zebraBg;
+      let cellTxt = 'FF0F172A';
+      let isBold = colDef?.isFormula || colDef?.isPercent || false;
+
+      // Rejection Red Highlight
+      if (isRejCol && typeof val === 'number' && val > 0) {
+        cellBg = 'FFFEE2E2'; // Soft Light Red
+        cellTxt = 'FF991B1B'; // Deep Crimson
+        isBold = true;
+      }
+      // Downtime Purple Highlight
+      if (isDtCol && typeof val === 'number' && val > 0) {
+        cellBg = 'FFEDE9FE'; // Soft Lilac
+        cellTxt = 'FF5B21B6'; // Deep Violet
+        isBold = true;
+      }
+      // OEE Golden / Green / Amber Tint
+      if (isOEECol && typeof val === 'number') {
+        if (val >= 0.85) {
+          cellBg = 'FFDCFCE7'; // Soft Emerald
+          cellTxt = 'FF166534';
+        } else if (val > 0 && val < 0.50) {
+          cellBg = 'FFFEF3C7'; // Soft Amber
+          cellTxt = 'FF92400E';
+        }
+        isBold = true;
+      }
+
+      cell.font = { name: 'Times New Roman', size: 10, bold: isBold, color: { argb: cellTxt } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cellBg } };
+      cell.alignment = {
+        horizontal: colDef?.align || 'center',
+        vertical: 'middle',
+        wrapText: true
+      };
+
+      if (colDef?.isPercent) {
+        cell.numFmt = '0%';
+      } else if (colDef?.isNumeric || colDef?.isDt || colDef?.isFormula) {
+        if (typeof val === 'number') cell.numFmt = '#,##0';
+      }
+
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+    });
+
+    currentExcelRow++;
+  });
+
+  // Apply Merges & Dark Navy Day Separators
+  const totalDays = Math.floor(rowsToIterate.length / rowsPerDay);
+  for (let d = 0; d < totalDays; d++) {
+    const dayStartExcelRow = startRowIdx + (d * rowsPerDay);
+    const dayEndExcelRow = dayStartExcelRow + rowsPerDay - 1;
+
+    // Merge Cols A, B, C (Date, Day, Shift)
+    if (rowsPerDay > 1) {
+      ws.mergeCells(dayStartExcelRow, 1, dayEndExcelRow, 1);
+      ws.mergeCells(dayStartExcelRow, 2, dayEndExcelRow, 2);
+      ws.mergeCells(dayStartExcelRow, 3, dayEndExcelRow, 3);
+    }
+
+    // Merge Time Groups (e.g. APC 3 machines in Auto Powder Coating)
+    if (tabInfo.timeGroups) {
+      tabInfo.timeGroups.forEach(g => {
+        if (g.count > 1) {
+          const gStart = dayStartExcelRow + g.startIdx;
+          const gEnd = gStart + g.count - 1;
+          EXCEL_COLUMNS.forEach((colDef, cIdx) => {
+            if (TIME_COLUMNS.includes(colDef.col)) {
+              const colNum = cIdx + 1;
+              try {
+                ws.mergeCells(gStart, colNum, gEnd, colNum);
+              } catch (e) {}
+            }
+          });
+        }
+      });
+    }
+
+    // Day End Thick Corporate Navy Border
+    for (let c = 1; c <= totalCols; c++) {
+      const cell = ws.getCell(dayEndExcelRow, c);
+      const b = cell.border || {};
+      cell.border = {
+        ...b,
+        bottom: { style: 'medium', color: { argb: 'FF0F294D' } }
+      };
+    }
+  }
+
+  // ── TOTAL ROW AT BOTTOM (Deep Corporate Navy #0F294D with Crisp White Text) ──
+  const lastDataRow = currentExcelRow - 1;
+  const totalExcelRow = currentExcelRow;
+  const totRowVals = new Array(totalCols).fill('');
+  totRowVals[0] = 'Total:';
+
+  EXCEL_COLUMNS.forEach((colDef, idx) => {
+    const colNum = idx + 1;
+    const colLet = colDef.col;
+    if (['A', 'B', 'C', 'D'].includes(colLet)) return;
+
+    if (colDef.isPercent) {
+      if (colLet === 'AI') totRowVals[idx] = { formula: `IFERROR(J${totalExcelRow}/H${totalExcelRow}, 0)` };
+      else if (colLet === 'AJ') totRowVals[idx] = { formula: `IFERROR(F${totalExcelRow}/E${totalExcelRow}, 0)` };
+      else if (colLet === 'AK') totRowVals[idx] = { formula: `IFERROR(F${totalExcelRow}/(F${totalExcelRow}+G${totalExcelRow}), 0)` };
+      else if (colLet === 'AL') totRowVals[idx] = { formula: `IFERROR(AK${totalExcelRow}*AJ${totalExcelRow}*AI${totalExcelRow}, 0)` };
+    } else if (colDef.isNumeric || colDef.isDt || colDef.isFormula) {
+      totRowVals[idx] = { formula: `SUM(${openpyxlLetter(colNum)}6:${openpyxlLetter(colNum)}${lastDataRow})` };
+    }
+  });
+
+  const totRow = ws.addRow(totRowVals);
+  totRow.height = 26;
+  ws.mergeCells(totalExcelRow, 1, totalExcelRow, 4);
+
+  totRow.eachCell((cell, colIdx) => {
+    const colDef = EXCEL_COLUMNS[colIdx - 1];
+    cell.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    if (colDef?.isPercent) {
+      cell.numFmt = '0%';
+    } else if (colDef?.isNumeric || colDef?.isDt || colDef?.isFormula) {
+      cell.numFmt = '#,##0';
+    }
+
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+      left: { style: 'thin', color: { argb: 'FF334155' } },
+      bottom: { style: 'double', color: { argb: 'FFFFFFFF' } },
+      right: { style: 'thin', color: { argb: 'FF334155' } }
+    };
+  });
+
+  // Generous column widths (Zero Clipping)
+  const colWidthMap = {
+    A: 11.0, B: 7.0, C: 10.0, D: 32.0, E: 13.0, F: 13.0, G: 9.0,
+    H: 11.0, I: 10.0, J: 11.0, AH: 12.0, AI: 11.0, AJ: 11.0, AK: 11.0, AL: 12.0, AM: 38.0
+  };
+  EXCEL_COLUMNS.forEach((c, idx) => {
+    const w = colWidthMap[c.col] || (c.isDt ? 8.0 : 10.0);
+    ws.getColumn(idx + 1).width = w;
+  });
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 2. PRODUCTION OUTPUT SUMMARY SHEET (Enterprise Executive Edition)
+// ──────────────────────────────────────────────────────────────────────────
+function buildProductionOutputExcelSheet(workbook, monthName, year) {
+  const ws = workbook.addWorksheet('Production Status', {
+    views: [{ state: 'frozen', ySplit: 4, showGridLines: true }]
+  });
+
+  // Title Row 1
+  const r1 = ws.addRow(['MEP FAN LTD.']);
+  ws.mergeCells('A1:G1');
+  r1.height = 36;
+  r1.getCell(1).font = { name: 'Times New Roman', size: 24, bold: true, color: { argb: 'FFFFFFFF' } };
+  r1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+  r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Subtitle Row 2
+  const r2 = ws.addRow([`Production Output & Efficiency Analysis (${monthName} ${year})`]);
+  ws.mergeCells('A2:G2');
+  r2.height = 22;
+  r2.getCell(1).font = { name: 'Times New Roman', size: 14, bold: true, color: { argb: 'FFDBEAFE' } };
+  r2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  r2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Header Rows 3 & 4 (2-Level Wrapped Header with Generous Widths)
+  const r3 = ws.addRow(['Section Name', 'Production Running (hr)', 'Machine Capacity (Pcs)', 'Production Qty.', '', 'Standard Wise Production Output (%)', 'Remarks']);
+  const r4 = ws.addRow(['', '', '', 'Total Production (pcs)', 'Rejection (Pcs)', '', '']);
+  r3.height = 26;
+  r4.height = 30;
+
+  ws.mergeCells('A3:A4');
+  ws.mergeCells('B3:B4');
+  ws.mergeCells('C3:C4');
+  ws.mergeCells('D3:E3');
+  ws.mergeCells('F3:F4');
+  ws.mergeCells('G3:G4');
+
+  [r3, r4].forEach(r => {
+    r.eachCell((cell, colIdx) => {
+      let bgArgb = 'FFD9E1F2';
+      let txtArgb = 'FF0F172A';
+      if (colIdx === 4) { bgArgb = 'FFE2EFDA'; txtArgb = 'FF14532D'; }
+      else if (colIdx === 5) { bgArgb = 'FFFCE4D6'; txtArgb = 'FF7F1D1D'; }
+      else if (colIdx === 6) { bgArgb = 'FFDDEBF7'; txtArgb = 'FF0C4A6E'; }
+
+      cell.font = { name: 'Times New Roman', size: 10.5, bold: true, color: { argb: txtArgb } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'medium', color: { argb: 'FF334155' } },
+        left: { style: 'thin', color: { argb: 'FF94A3B8' } },
+        bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+        right: { style: 'thin', color: { argb: 'FF94A3B8' } }
+      };
+    });
+  });
+
+  const depts = getActiveSummaryDepts();
+  let startDataRow = 5;
+  let curRow = startDataRow;
+
+  depts.forEach((dept, idx) => {
+    const oeeData = getTabOEESummary(dept.id, year, MonthYearState.monthIndex);
+    const runHours = Math.round(oeeData.runTimeMins / 60);
+    const zebraBg = (idx % 2 === 0) ? 'FFFFFFFF' : 'FFF8FAFC';
+
+    const row = ws.addRow([dept.name, runHours, oeeData.capacityPcs, oeeData.totalProduction, oeeData.rejectionPcs, oeeData.performance, oeeData.remarks || '']);
+    row.height = 22;
+
+    row.eachCell((cell, colIdx) => {
+      let cellBg = zebraBg;
+      let cellTxt = 'FF0F172A';
+      let isBold = (colIdx === 6);
+
+      if (colIdx === 5 && typeof cell.value === 'number' && cell.value > 0) {
+        cellBg = 'FFFEE2E2';
+        cellTxt = 'FF991B1B';
+        isBold = true;
+      }
+
+      cell.font = { name: 'Times New Roman', size: 10.5, bold: isBold, color: { argb: cellTxt } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cellBg } };
+      cell.alignment = { horizontal: colIdx === 1 ? 'left' : 'center', vertical: 'middle', wrapText: true };
+      if (colIdx === 6) cell.numFmt = '0%';
+      else if ([2, 3, 4, 5].includes(colIdx)) cell.numFmt = '#,##0';
+
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+    });
+    curRow++;
+  });
+
+  // Total Row (Deep Navy #0F294D)
+  const lastDataRow = curRow - 1;
+  const totRowVals = [
+    'Total:',
+    { formula: `SUM(B${startDataRow}:B${lastDataRow})` },
+    { formula: `SUM(C${startDataRow}:C${lastDataRow})` },
+    { formula: `SUM(D${startDataRow}:D${lastDataRow})` },
+    { formula: `SUM(E${startDataRow}:E${lastDataRow})` },
+    { formula: `IFERROR(D${curRow}/C${curRow}, 0)` },
+    ''
+  ];
+  const totRow = ws.addRow(totRowVals);
+  totRow.height = 26;
+
+  totRow.eachCell((cell, colIdx) => {
+    cell.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+    cell.alignment = { horizontal: colIdx === 1 ? 'left' : 'center', vertical: 'middle' };
+    if (colIdx === 6) cell.numFmt = '0%';
+    else if ([2, 3, 4, 5].includes(colIdx)) cell.numFmt = '#,##0';
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+      left: { style: 'thin', color: { argb: 'FF334155' } },
+      bottom: { style: 'double', color: { argb: 'FFFFFFFF' } },
+      right: { style: 'thin', color: { argb: 'FF334155' } }
+    };
+  });
+
+  // Generous column widths (Zero Clipping)
+  ws.columns = [
+    { width: 32.0 }, // Section Name
+    { width: 24.0 }, // Production Running (hr)
+    { width: 24.0 }, // Machine Capacity (Pcs)
+    { width: 24.0 }, // Total Production (pcs)
+    { width: 18.0 }, // Rejection (Pcs)
+    { width: 34.0 }, // Standard Wise Production Output (%)
+    { width: 28.0 }  // Remarks
+  ];
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 3. RUNNING & DOWNTIME STATUS SHEET (Enterprise Executive Edition)
+// ──────────────────────────────────────────────────────────────────────────
+function buildRunningStatusExcelSheet(workbook, monthName, year) {
+  const ws = workbook.addWorksheet('Down Time & Running Status', {
+    views: [{ state: 'frozen', ySplit: 3, showGridLines: true }]
+  });
+
+  const r1 = ws.addRow(['MEP FAN LTD.']);
+  ws.mergeCells('A1:G1');
+  r1.height = 36;
+  r1.getCell(1).font = { name: 'Times New Roman', size: 24, bold: true, color: { argb: 'FFFFFFFF' } };
+  r1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+  r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  const r2 = ws.addRow([`Down Time & Running Time Status (${monthName} ${year})`]);
+  ws.mergeCells('A2:G2');
+  r2.height = 22;
+  r2.getCell(1).font = { name: 'Times New Roman', size: 14, bold: true, color: { argb: 'FFDBEAFE' } };
+  r2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  r2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  const r3 = ws.addRow([
+    'Machine No.',
+    'Planned Production Time (mins)',
+    'Production Run Time (Mins)',
+    'Machine Down Time (Mins)',
+    'Production Running Time (%)',
+    'Production Down Time (%)',
+    'Remarks'
+  ]);
+  r3.height = 48;
+
+  r3.eachCell((cell, colIdx) => {
+    let bgArgb = 'FFD9E1F2';
+    let txtArgb = 'FF0F172A';
+    if (colIdx === 3) { bgArgb = 'FFE2EFDA'; txtArgb = 'FF14532D'; }
+    else if (colIdx === 4) { bgArgb = 'FFFCE4D6'; txtArgb = 'FF7F1D1D'; }
+    else if (colIdx === 5) { bgArgb = 'FFDDEBF7'; txtArgb = 'FF0C4A6E'; }
+    else if (colIdx === 6) { bgArgb = 'FFFEF3C7'; txtArgb = 'FF78350F'; }
+
+    cell.font = { name: 'Times New Roman', size: 10.5, bold: true, color: { argb: txtArgb } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = {
+      top: { style: 'medium', color: { argb: 'FF334155' } },
+      left: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+      right: { style: 'thin', color: { argb: 'FF94A3B8' } }
+    };
+  });
+
+  const depts = getActiveSummaryDepts();
+  let startDataRow = 4;
+  let curRow = startDataRow;
+
+  depts.forEach((dept, idx) => {
+    const oeeData = getTabOEESummary(dept.id, year, MonthYearState.monthIndex);
+    const runPct = oeeData.plannedTimeMins > 0 ? (oeeData.runTimeMins / oeeData.plannedTimeMins) : 0;
+    const dtPct = oeeData.plannedTimeMins > 0 ? (oeeData.downTimeMins / oeeData.plannedTimeMins) : 0;
+    const zebraBg = (idx % 2 === 0) ? 'FFFFFFFF' : 'FFF8FAFC';
+
+    const row = ws.addRow([dept.name, oeeData.plannedTimeMins, oeeData.runTimeMins, oeeData.downTimeMins, runPct, dtPct, oeeData.remarks || '']);
+    row.height = 22;
+
+    row.eachCell((cell, colIdx) => {
+      let isBold = [5, 6].includes(colIdx);
+      cell.font = { name: 'Times New Roman', size: 10.5, bold: isBold, color: { argb: 'FF0F172A' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: zebraBg } };
+      cell.alignment = { horizontal: colIdx === 1 ? 'left' : 'center', vertical: 'middle', wrapText: true };
+      if ([5, 6].includes(colIdx)) cell.numFmt = '0%';
+      else if ([2, 3, 4].includes(colIdx)) cell.numFmt = '#,##0';
+
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+    });
+    curRow++;
+  });
+
+  // Total Row
+  const lastDataRow = curRow - 1;
+  const totRowVals = [
+    'Total:',
+    { formula: `SUM(B${startDataRow}:B${lastDataRow})` },
+    { formula: `SUM(C${startDataRow}:C${lastDataRow})` },
+    { formula: `SUM(D${startDataRow}:D${lastDataRow})` },
+    { formula: `IFERROR(C${curRow}/B${curRow}, 0)` },
+    { formula: `IFERROR(D${curRow}/B${curRow}, 0)` },
+    ''
+  ];
+  const totRow = ws.addRow(totRowVals);
+  totRow.height = 26;
+
+  totRow.eachCell((cell, colIdx) => {
+    cell.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+    cell.alignment = { horizontal: colIdx === 1 ? 'left' : 'center', vertical: 'middle' };
+    if ([5, 6].includes(colIdx)) cell.numFmt = '0%';
+    else if ([2, 3, 4].includes(colIdx)) cell.numFmt = '#,##0';
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+      left: { style: 'thin', color: { argb: 'FF334155' } },
+      bottom: { style: 'double', color: { argb: 'FFFFFFFF' } },
+      right: { style: 'thin', color: { argb: 'FF334155' } }
+    };
+  });
+
+  ws.columns = [
+    { width: 32.0 }, // Machine No.
+    { width: 30.0 }, // Planned Production Time (mins)
+    { width: 28.0 }, // Production Run Time (Mins)
+    { width: 28.0 }, // Machine Down Time (Mins)
+    { width: 28.0 }, // Production Running Time (%)
+    { width: 26.0 }, // Production Down Time (%)
+    { width: 28.0 }  // Remarks
+  ];
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 4. TOTAL DOWNTIME MATRIX REPORT (Enterprise Executive Edition)
+// ──────────────────────────────────────────────────────────────────────────
+function buildTotalDowntimeReportExcelSheet(workbook, monthName, year) {
+  const ws = workbook.addWorksheet('Total Downtime Report', {
+    views: [{ state: 'frozen', xSplit: 1, ySplit: 4, showGridLines: true }]
+  });
+  const dtCols = EXCEL_COLUMNS.filter(c => c.isDt);
+  const totalCols = 1 + dtCols.length + 4;
+
+  const r1 = ws.addRow(['MEP FAN LTD.']);
+  ws.mergeCells(1, 1, 1, totalCols);
+  r1.height = 36;
+  r1.getCell(1).font = { name: 'Times New Roman', size: 24, bold: true, color: { argb: 'FFFFFFFF' } };
+  r1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+  r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  const r2 = ws.addRow([`Total Downtime Comprehensive Report (${monthName} ${year})`]);
+  ws.mergeCells(2, 1, 2, totalCols);
+  r2.height = 22;
+  r2.getCell(1).font = { name: 'Times New Roman', size: 14, bold: true, color: { argb: 'FFDBEAFE' } };
+  r2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  r2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Row 3: Codes (10 to 35) in Purple
+  const codeVals = new Array(totalCols).fill('');
+  dtCols.forEach((c, idx) => {
+    codeVals[idx + 1] = c.code || '';
+  });
+  const r3 = ws.addRow(codeVals);
+  r3.height = 20;
+  r3.eachCell((cell, colIdx) => {
+    if (colIdx > 1 && colIdx <= dtCols.length + 1) {
+      cell.font = { name: 'Times New Roman', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7C3AED' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+    }
+  });
+
+  // Row 4: Column Labels
+  const labelVals = ['Machine No.', ...dtCols.map(c => c.label), 'Total Down Time (mins)', 'Planned Production Time (mins)', 'Total Production Run Time (mins)', 'Total Down Time (%)'];
+  const r4 = ws.addRow(labelVals);
+  r4.height = 110;
+  r4.eachCell((cell, colIdx) => {
+    let bgArgb = 'FFD9E1F2';
+    let txtArgb = 'FF0F172A';
+    if (colIdx > 1 && colIdx <= dtCols.length + 1) { bgArgb = 'FFEDE9FE'; txtArgb = 'FF4C1D95'; }
+    else if (colIdx === dtCols.length + 2) { bgArgb = 'FFFEF3C7'; txtArgb = 'FF78350F'; }
+    else if (colIdx === dtCols.length + 4) { bgArgb = 'FFE2EFDA'; txtArgb = 'FF14532D'; }
+    else if (colIdx === dtCols.length + 5) { bgArgb = 'FFCFFAFE'; txtArgb = 'FF155E75'; }
+
+    cell.font = { name: 'Times New Roman', size: 8.5, bold: true, color: { argb: txtArgb } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
+  });
+
+  const depts = getActiveSummaryDepts();
+  let startDataRow = 5;
+  let curRow = startDataRow;
+
+  depts.forEach((dept, idx) => {
+    const oeeData = getTabOEESummary(dept.id, year, MonthYearState.monthIndex);
+    const dtSumMap = {};
+    dtCols.forEach(c => { dtSumMap[c.col] = 0; });
+
+    const rows = getTabData(dept.id, year, MonthYearState.monthIndex);
+    (rows || []).forEach(r => {
+      dtCols.forEach(c => {
+        const val = parseFloat(r[c.col]?.val) || 0;
+        dtSumMap[c.col] += val;
+      });
+    });
+
+    const dtVals = dtCols.map(c => dtSumMap[c.col]);
+    const dtPct = oeeData.plannedTimeMins > 0 ? (oeeData.downTimeMins / oeeData.plannedTimeMins) : 0;
+    const rowVals = [dept.name, ...dtVals, oeeData.downTimeMins, oeeData.plannedTimeMins, oeeData.runTimeMins, dtPct];
+    const row = ws.addRow(rowVals);
+    row.height = 20;
+
+    const zebraBg = (idx % 2 === 0) ? 'FFFFFFFF' : 'FFF8FAFC';
+
+    row.eachCell((cell, colIdx) => {
+      let cellBg = zebraBg;
+      let cellTxt = 'FF0F172A';
+      let isBold = (colIdx > dtCols.length + 1);
+
+      if (colIdx > 1 && colIdx <= dtCols.length + 1 && typeof cell.value === 'number' && cell.value > 0) {
+        cellBg = 'FFEDE9FE';
+        cellTxt = 'FF5B21B6';
+        isBold = true;
+      }
+
+      cell.font = { name: 'Times New Roman', size: 10, bold: isBold, color: { argb: cellTxt } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cellBg } };
+      cell.alignment = { horizontal: colIdx === 1 ? 'left' : 'center', vertical: 'middle' };
+      if (colIdx === totalCols) cell.numFmt = '0%';
+      else if (colIdx > 1) cell.numFmt = '#,##0';
+
+      cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+    });
+    curRow++;
+  });
+
+  // Total Row (Deep Navy #0F294D)
+  const lastDataRow = curRow - 1;
+  const totVals = new Array(totalCols).fill('');
+  totVals[0] = 'Total:';
+  for (let c = 2; c < totalCols; c++) {
+    const colLet = openpyxlLetter(c);
+    totVals[c - 1] = { formula: `SUM(${colLet}${startDataRow}:${colLet}${lastDataRow})` };
+  }
+  const totDtLet = openpyxlLetter(dtCols.length + 2);
+  const planLet = openpyxlLetter(dtCols.length + 3);
+  totVals[totalCols - 1] = { formula: `IFERROR(${totDtLet}${curRow}/${planLet}${curRow}, 0)` };
+
+  const totRow = ws.addRow(totVals);
+  totRow.height = 26;
+  totRow.eachCell((cell, colIdx) => {
+    cell.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+    cell.alignment = { horizontal: colIdx === 1 ? 'left' : 'center', vertical: 'middle' };
+    if (colIdx === totalCols) cell.numFmt = '0%';
+    else if (colIdx > 1) cell.numFmt = '#,##0';
+    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'double', color: { argb: 'FFFFFFFF' } }, right: { style: 'thin' } };
+  });
+
+  const colWidths = [{ width: 30.0 }];
+  dtCols.forEach(() => colWidths.push({ width: 13.0 }));
+  colWidths.push({ width: 20.0 }, { width: 26.0 }, { width: 26.0 }, { width: 20.0 });
+  ws.columns = colWidths;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 5. OEE DEPARTMENT SUMMARY SHEET (Enterprise Executive Edition)
+// ──────────────────────────────────────────────────────────────────────────
+function buildOEESummaryExcelSheet(workbook, monthName, year) {
+  const ws = workbook.addWorksheet('OEE', {
+    views: [{ state: 'frozen', ySplit: 4, showGridLines: true }]
+  });
+
+  const r1 = ws.addRow(['MEP FAN LTD.']);
+  ws.mergeCells('A1:I1');
+  r1.height = 36;
+  r1.getCell(1).font = { name: 'Times New Roman', size: 24, bold: true, color: { argb: 'FFFFFFFF' } };
+  r1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+  r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  const r2 = ws.addRow([`Overall Equipment Effectiveness (OEE) Report (${monthName} ${year})`]);
+  ws.mergeCells('A2:I2');
+  r2.height = 22;
+  r2.getCell(1).font = { name: 'Times New Roman', size: 14, bold: true, color: { argb: 'FFDBEAFE' } };
+  r2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  r2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  const r3 = ws.addRow(['Section', 'Machine Capacity (Pcs)', 'Production Qty.', '', 'Availability (%)', 'Performance (%)', 'Quality (%)', 'OEE (%)', "Remark's"]);
+  const r4 = ws.addRow(['', '', 'Total Production (pcs)', 'Rejection (Pcs)', '', '', '', '', '']);
+  r3.height = 24;
+  r4.height = 30;
+
+  ws.mergeCells('A3:A4');
+  ws.mergeCells('B3:B4');
+  ws.mergeCells('C3:D3');
+  ws.mergeCells('E3:E4');
+  ws.mergeCells('F3:F4');
+  ws.mergeCells('G3:G4');
+  ws.mergeCells('H3:H4');
+  ws.mergeCells('I3:I4');
+
+  [r3, r4].forEach(r => {
+    r.eachCell((cell, colIdx) => {
+      let bgArgb = 'FFD9E1F2';
+      let txtArgb = 'FF0F172A';
+      if (colIdx === 3) { bgArgb = 'FFE2EFDA'; txtArgb = 'FF14532D'; }
+      else if (colIdx === 4) { bgArgb = 'FFFCE4D6'; txtArgb = 'FF7F1D1D'; }
+      else if (colIdx === 5) { bgArgb = 'FFCFFAFE'; txtArgb = 'FF155E75'; }
+      else if (colIdx === 6) { bgArgb = 'FFDBEAFE'; txtArgb = 'FF1E40AF'; }
+      else if (colIdx === 7) { bgArgb = 'FFD1FAE5'; txtArgb = 'FF065F46'; }
+      else if (colIdx === 8) { bgArgb = 'FFFEF08A'; txtArgb = 'FF713F12'; }
+
+      cell.font = { name: 'Times New Roman', size: 10.5, bold: true, color: { argb: txtArgb } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = { top: { style: 'medium' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
+    });
+  });
+
+  const depts = getActiveSummaryDepts();
+  let startDataRow = 5;
+  let curRow = startDataRow;
+
+  depts.forEach((dept, idx) => {
+    const oeeData = getTabOEESummary(dept.id, year, MonthYearState.monthIndex);
+    const zebraBg = (idx % 2 === 0) ? 'FFFFFFFF' : 'FFF8FAFC';
+
+    const row = ws.addRow([dept.name, oeeData.capacityPcs, oeeData.totalProduction, oeeData.rejectionPcs, oeeData.availability, oeeData.performance, oeeData.quality, oeeData.oee, oeeData.remarks || '']);
+    row.height = 22;
+
+    row.eachCell((cell, colIdx) => {
+      let cellBg = zebraBg;
+      let cellTxt = 'FF0F172A';
+      let isBold = [5, 6, 7, 8].includes(colIdx);
+
+      if (colIdx === 4 && typeof cell.value === 'number' && cell.value > 0) {
+        cellBg = 'FFFEE2E2';
+        cellTxt = 'FF991B1B';
+      }
+      if (colIdx === 8 && typeof cell.value === 'number') {
+        if (cell.value >= 0.85) { cellBg = 'FFDCFCE7'; cellTxt = 'FF166534'; }
+        else if (cell.value > 0 && cell.value < 0.50) { cellBg = 'FFFEF3C7'; cellTxt = 'FF92400E'; }
+      }
+
+      cell.font = { name: 'Times New Roman', size: 10.5, bold: isBold, color: { argb: cellTxt } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cellBg } };
+      cell.alignment = { horizontal: colIdx === 1 ? 'left' : 'center', vertical: 'middle', wrapText: true };
+      if ([5, 6, 7, 8].includes(colIdx)) cell.numFmt = '0%';
+      else if ([2, 3, 4].includes(colIdx)) cell.numFmt = '#,##0';
+
+      cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+    });
+    curRow++;
+  });
+
+  // Total Row
+  const lastDataRow = curRow - 1;
+  const totRowVals = [
+    'Total:',
+    { formula: `SUM(B${startDataRow}:B${lastDataRow})` },
+    { formula: `SUM(C${startDataRow}:C${lastDataRow})` },
+    { formula: `SUM(D${startDataRow}:D${lastDataRow})` },
+    { formula: `AVERAGE(E${startDataRow}:E${lastDataRow})` },
+    { formula: `IFERROR(C${curRow}/B${curRow}, 0)` },
+    { formula: `IFERROR(C${curRow}/(C${curRow}+D${curRow}), 0)` },
+    { formula: `IFERROR(E${curRow}*F${curRow}*G${curRow}, 0)` },
+    ''
+  ];
+  const totRow = ws.addRow(totRowVals);
+  totRow.height = 26;
+
+  totRow.eachCell((cell, colIdx) => {
+    cell.font = { name: 'Times New Roman', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+    cell.alignment = { horizontal: colIdx === 1 ? 'left' : 'center', vertical: 'middle' };
+    if ([5, 6, 7, 8].includes(colIdx)) cell.numFmt = '0%';
+    else if ([2, 3, 4].includes(colIdx)) cell.numFmt = '#,##0';
+    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'double', color: { argb: 'FFFFFFFF' } }, right: { style: 'thin' } };
+  });
+
+  ws.columns = [
+    { width: 32.0 }, // Section
+    { width: 24.0 }, // Machine Capacity
+    { width: 24.0 }, // Total Production
+    { width: 18.0 }, // Rejection
+    { width: 18.0 }, // Availability
+    { width: 18.0 }, // Performance
+    { width: 16.0 }, // Quality
+    { width: 18.0 }, // OEE
+    { width: 28.0 }  // Remarks
+  ];
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 6. YEARLY SUMMARY OF OEE (Enterprise Executive Edition)
+// ──────────────────────────────────────────────────────────────────────────
+function buildYearlySummaryExcelSheet(workbook, monthName, year) {
+  const ws = workbook.addWorksheet('Summary of OEE', {
+    views: [{ state: 'frozen', ySplit: 5, showGridLines: true }]
+  });
+
+  const r1 = ws.addRow(['MEP FAN LTD.']);
+  ws.mergeCells('A1:J1');
+  r1.height = 36;
+  r1.getCell(1).font = { name: 'Times New Roman', size: 24, bold: true, color: { argb: 'FFFFFFFF' } };
+  r1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F294D' } };
+  r1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  const r2 = ws.addRow(['MEP FAN LTD.']);
+  ws.mergeCells('A2:J2');
+  r2.height = 20;
+  r2.getCell(1).font = { name: 'Times New Roman', size: 14, bold: true, color: { argb: 'FFDBEAFE' } };
+  r2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+  r2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  const r3 = ws.addRow([`Annual Executive Summary of OEE (${year})`]);
+  ws.mergeCells('A3:J3');
+  r3.height = 20;
+  r3.getCell(1).font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+  r3.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+  r3.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  const r4 = ws.addRow(['Month', 'Detail', 'Machine Capacity (Pcs)', 'Production Qty.', '', 'Availability (%)', 'Performance (%)', 'Quality (%)', 'OEE (%)', "Remark's"]);
+  const r5 = ws.addRow(['', '', '', 'Total Production (pcs)', 'Rejection (Pcs)', '', '', '', '', '']);
+  r4.height = 22;
+  r5.height = 38;
+
+  ws.mergeCells('A4:A5');
+  ws.mergeCells('B4:B5');
+  ws.mergeCells('C4:C5');
+  ws.mergeCells('D4:E4');
+  ws.mergeCells('F4:F5');
+  ws.mergeCells('G4:G5');
+  ws.mergeCells('H4:H5');
+  ws.mergeCells('I4:I5');
+  ws.mergeCells('J4:J5');
+
+  [r4, r5].forEach(r => {
+    r.eachCell((cell, colIdx) => {
+      let bgArgb = 'FFD9E1F2';
+      let txtArgb = 'FF0F172A';
+      if (colIdx === 4) { bgArgb = 'FFE2EFDA'; txtArgb = 'FF14532D'; }
+      else if (colIdx === 5) { bgArgb = 'FFFCE4D6'; txtArgb = 'FF7F1D1D'; }
+      else if (colIdx === 6) { bgArgb = 'FFCFFAFE'; txtArgb = 'FF155E75'; }
+      else if (colIdx === 7) { bgArgb = 'FFDBEAFE'; txtArgb = 'FF1E40AF'; }
+      else if (colIdx === 8) { bgArgb = 'FFD1FAE5'; txtArgb = 'FF065F46'; }
+      else if (colIdx === 9) { bgArgb = 'FFFEF08A'; txtArgb = 'FF713F12'; }
+
+      cell.font = { name: 'Times New Roman', size: 10.5, bold: true, color: { argb: txtArgb } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = { top: { style: 'medium' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
+    });
+  });
+
+  const yearlyData = getYearlyOEESummary(year);
+  let curRow = 6;
+  yearlyData.forEach(m => {
+    const rowA = ws.addRow([m.monthName, 'Total', m.capacityPcs || 0, m.totalProduction || 0, m.rejectionPcs || 0, m.availability, m.performance, m.quality, m.oee, m.remarks || '']);
+    const rowB = ws.addRow(['', 'Total Acheivement  (%)', m.capacityPcs || 0, '', '', m.availability, m.performance, m.quality, m.oee, '']);
+    rowA.height = 20;
+    rowB.height = 20;
+
+    ws.mergeCells(curRow, 1, curRow + 1, 1);
+
+    rowA.eachCell((cell, colIdx) => {
+      cell.font = { name: 'Times New Roman', size: 10.5 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDE9FE' } }; // Soft Lilac
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      if ([6, 7, 8, 9].includes(colIdx)) cell.numFmt = '0%';
+      else if ([3, 4, 5].includes(colIdx)) cell.numFmt = '#,##0';
+      cell.border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+    });
+
+    rowB.eachCell((cell, colIdx) => {
+      cell.font = { name: 'Times New Roman', size: 10.5, bold: true };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } }; // Sky Blue
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      if ([6, 7, 8, 9].includes(colIdx)) cell.numFmt = '0%';
+      else if ([3, 4, 5].includes(colIdx)) cell.numFmt = '#,##0';
+      cell.border = { top: { style: 'thin', color: { argb: 'FFCBD5E1' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } }, bottom: { style: 'medium', color: { argb: 'FF0F294D' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+    });
+
+    curRow += 2;
+  });
+
+  ws.columns = [
+    { width: 18.0 }, // Month
+    { width: 28.0 }, // Detail
+    { width: 24.0 }, // Capacity
+    { width: 24.0 }, // Total Production
+    { width: 18.0 }, // Rejection
+    { width: 18.0 }, // Availability
+    { width: 18.0 }, // Performance
+    { width: 18.0 }, // Quality
+    { width: 18.0 }, // OEE
+    { width: 28.0 }  // Remarks
+  ];
 }
 
 function exportPDFReport() {

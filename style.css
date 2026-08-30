@@ -1510,11 +1510,9 @@ html.user-unauthenticated #appMainContainer {
 
 /* ─── 1. COMPACT FLOATING HEADER ────────────────────────────────────────────── */
 .portal-glass-header {
-  background: rgba(255, 255, 255, 0.035) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  background: #0B172C !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
   border-radius: 14px !important;
 }
 
@@ -1558,12 +1556,10 @@ html.user-unauthenticated #appMainContainer {
   max-width: 295px;
   min-height: 250px;
   height: 255px;
-  background: rgba(255, 255, 255, 0.035) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #0E1B31 !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
   border-radius: 18px !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
   padding: 20px 18px 16px 18px;
   display: flex;
   flex-direction: column;
@@ -1573,15 +1569,16 @@ html.user-unauthenticated #appMainContainer {
   user-select: none;
   touch-action: manipulation;
   overflow: hidden;
-  will-change: transform, border-color, box-shadow;
+  will-change: transform, border-color;
   transform: translateZ(0);
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, box-shadow 0.18s ease !important;
+  transition: transform 0.12s ease, border-color 0.12s ease !important;
 }
 
 .user-portal-card:hover {
-  transform: translateY(-3px) translateZ(0) !important;
-  border-color: rgba(255, 255, 255, 0.18) !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-2px) translateZ(0) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background: #12223D !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
 }
 
 .user-portal-card:active {
@@ -1701,9 +1698,7 @@ html.user-unauthenticated #appMainContainer {
   width: 100vw !important;
   height: 100vh !important;
   z-index: 100000 !important;
-  background: rgba(4, 10, 22, 0.78) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
+  background: rgba(3, 8, 18, 0.88) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1715,14 +1710,12 @@ html.user-unauthenticated #appMainContainer {
 }
 
 .pin-modal-card-glass {
-  background: rgba(11, 20, 36, 0.94) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.10) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 24px 60px rgba(0, 0, 0, 0.5) !important;
+  background: #0C182E !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6) !important;
   border-radius: 20px !important;
   color: #FFFFFF !important;
-  animation: pinModalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateZ(0);
 }
 
 @keyframes pinModalPop {
@@ -1739,23 +1732,22 @@ html.user-unauthenticated #appMainContainer {
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.04);
-  transition: all 0.12s ease;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .pin-dot.active {
   background: #38BDF8 !important;
-  border-color: #7DD3FC !important;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5) !important;
-  transform: scale(1.15);
+  border-color: #38BDF8 !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6) !important;
+  transform: scale(1.1);
 }
 
 .numpad-btn {
   height: 2.85rem;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
   color: #FFFFFF !important;
   font-size: 1.15rem;
   font-weight: 600;
@@ -1765,7 +1757,7 @@ html.user-unauthenticated #appMainContainer {
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;
-  transition: all 0.1s ease !important;
+  transition: background 0.08s ease, transform 0.08s ease !important;
 }
 
 .numpad-btn:hover {
@@ -2277,8 +2269,8 @@ html.user-unauthenticated #appMainContainer {
 /* Brand Logo Glass Box */
 .top-brand-logo-glass {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  /* backdrop-filter removed for 144fps performance */
+  -webkit-/* backdrop-filter removed for 144fps performance */
   border: 1px solid rgba(255, 255, 255, 0.28) !important;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
@@ -2286,8 +2278,8 @@ html.user-unauthenticated #appMainContainer {
 /* Period Capsule (Frosted Glass Container) */
 .glass-period-capsule {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  /* backdrop-filter removed for 144fps performance */
+  -webkit-/* backdrop-filter removed for 144fps performance */
   border: 1px solid rgba(255, 255, 255, 0.22) !important;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.18) !important;
   border-radius: 12px !important;
@@ -2297,8 +2289,8 @@ html.user-unauthenticated #appMainContainer {
 /* Period Select Dropdowns (Glass Pills) */
 .glass-select-pill {
   background: linear-gradient(135deg, rgba(14, 42, 84, 0.85) 0%, rgba(10, 30, 60, 0.9) 100%) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  /* backdrop-filter removed for 144fps performance */
+  -webkit-/* backdrop-filter removed for 144fps performance */
   border: 1px solid rgba(255, 255, 255, 0.22) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.15) !important;
   color: #FFFFFF !important;
@@ -2316,8 +2308,8 @@ html.user-unauthenticated #appMainContainer {
 /* LIVE Status Badge (Frosted Emerald Glass) */
 #cloudStatusBadge {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(6, 78, 59, 0.28) 100%) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  /* backdrop-filter removed for 144fps performance */
+  -webkit-/* backdrop-filter removed for 144fps performance */
   border: 1px solid rgba(52, 211, 153, 0.35) !important;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 4px 14px rgba(0, 0, 0, 0.2) !important;
   border-radius: 12px !important;
@@ -2332,8 +2324,8 @@ html.user-unauthenticated #appMainContainer {
 /* Current User Badge (Frosted Obsidian Glass) */
 #currentUserBadge {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  /* backdrop-filter removed for 144fps performance */
+  -webkit-/* backdrop-filter removed for 144fps performance */
   border: 1px solid rgba(255, 255, 255, 0.24) !important;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 4px 14px rgba(0, 0, 0, 0.2) !important;
   border-radius: 12px !important;
@@ -2351,8 +2343,8 @@ html.user-unauthenticated #appMainContainer {
 /* Back Button (Frosted Ruby Glass) */
 #btnSwitchUser {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(185, 28, 28, 0.95) 100%) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  /* backdrop-filter removed for 144fps performance */
+  -webkit-/* backdrop-filter removed for 144fps performance */
   border: 1px solid rgba(254, 202, 202, 0.4) !important;
   box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.5), 0 6px 18px rgba(220, 38, 38, 0.35) !important;
   border-radius: 12px !important;
@@ -2376,8 +2368,8 @@ html.user-unauthenticated #appMainContainer {
 /* Export Excel Button (Frosted Emerald Glass) */
 #btnExportExcel {
   background: linear-gradient(135deg, rgba(22, 163, 74, 0.9) 0%, rgba(21, 128, 61, 0.95) 100%) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  /* backdrop-filter removed for 144fps performance */
+  -webkit-/* backdrop-filter removed for 144fps performance */
   border: 1px solid rgba(187, 247, 208, 0.45) !important;
   box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.55), 0 6px 18px rgba(16, 124, 65, 0.35) !important;
   border-radius: 12px !important;
@@ -2401,8 +2393,8 @@ html.user-unauthenticated #appMainContainer {
 /* Save Grid Button (Incharge - Frosted Sapphire Glass) */
 #btnSaveGrid {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(29, 78, 216, 0.95) 100%) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  /* backdrop-filter removed for 144fps performance */
+  -webkit-/* backdrop-filter removed for 144fps performance */
   border: 1px solid rgba(191, 219, 254, 0.45) !important;
   box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.55), 0 6px 18px rgba(37, 99, 235, 0.35) !important;
   border-radius: 12px !important;
@@ -2635,4 +2627,29 @@ html.user-unauthenticated #appMainContainer {
 .yearly-ach-highlight,
 .yearly-ach-running {
   border: 1px solid #334155 !important;
+}
+
+/* Executive Summary Tabs Distinction */
+.sheet-tab-btn[data-tab="summary_oee_yearly"] {
+  border-left: 2px solid #EA580C !important;
+  background: linear-gradient(180deg, rgba(234, 88, 12, 0.18) 0%, #1E293B 100%) !important;
+  color: #FDBA74 !important;
+}
+.sheet-tab-btn[data-tab="summary_downtime"] {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.18) 0%, #1E293B 100%) !important;
+  color: #FCD34D !important;
+}
+.sheet-tab-btn[data-tab="summary_production"] {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, #1E293B 100%) !important;
+  color: #93C5FD !important;
+}
+.sheet-tab-btn[data-tab="summary_status"] {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.18) 0%, #1E293B 100%) !important;
+  color: #6EE7B7 !important;
+}
+.sheet-tab-btn[data-tab="summary_oee"] {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.18) 0%, #1E293B 100%) !important;
+  color: #C4B5FD !important;
+  margin-right: 8px !important;
+  border-right: 2px solid #64748B !important;
 }
